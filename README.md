@@ -4,12 +4,16 @@ FineArtSuite is a minimal gallery website project. This repository provides a si
 
 ## Running the site locally
 
-The project now includes a small Node.js/Express application. Install dependencies and start the server:
+The project now includes a small Node.js/Express application with SQLite persistence. Install dependencies and start the server:
 
 ```bash
 npm install
 npm start
 ```
+
+On first run the application will create a `gallery.db` SQLite file in the project
+root populated with demo data. Remove this file if you want to start with an
+empty database.
 
 After running the server, visit `http://localhost:3000` in your browser to view the homepage.
 
@@ -25,7 +29,7 @@ Set these variables before starting the server to override the defaults.
 
 ## Gallery pages
 
-Navigating to `/demo-gallery` or another gallery slug will display a public gallery page rendered from placeholder data.
+Navigating to `/demo-gallery` or another gallery slug will display a public gallery page. Gallery, artist and artwork data is loaded from the SQLite database.
 
 ## Planned gallery features
 
