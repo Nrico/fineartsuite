@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { initialize } = require('./models/db');
+const { initialize, db } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
 const { getArtist } = require('./models/artistModel');
 const { getArtwork } = require('./models/artworkModel');
@@ -22,6 +22,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
 
 // Initialize the SQLite database and seed demo data if needed
@@ -75,11 +76,67 @@ app.get('/dashboard', requireLogin, (req, res) => {
 });
 
 app.get('/dashboard/artists', requireLogin, (req, res) => {
-  res.render('admin/artists');
+  db.all('SELECT * FROM artists', (err, artists) => {
+    if (err) return res.status(500).send('Database error');
+    res.render('admin/artists', { artists });
+  });
 });
 
 app.get('/dashboard/artworks', requireLogin, (req, res) => {
-  res.render('admin/artworks');
+  db.all('SELECT * FROM artworks', (err, artworks) => {
+    if (err) return res.status(500).send('Database error');
+    res.render('admin/artworks', { artworks });
+  });
+});
+
+app.post('/dashboard/artists', requireLogin, (req, res) => {
+  const { id, gallery_slug, name, bio } = req.body;
+  const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio) VALUES (?,?,?,?)';
+  db.run(stmt, [id, gallery_slug, name, bio], err => {
+    if (err) return res.status(500).send('Database error');
+    res.redirect('/dashboard/artists');
+  });
+});
+
+app.put('/dashboard/artists/:id', requireLogin, (req, res) => {
+  const { name, bio } = req.body;
+  const stmt = 'UPDATE artists SET name = ?, bio = ? WHERE id = ?';
+  db.run(stmt, [name, bio, req.params.id], err => {
+    if (err) return res.status(500).send('Database error');
+    res.sendStatus(204);
+  });
+});
+
+app.delete('/dashboard/artists/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
+    if (err) return res.status(500).send('Database error');
+    res.sendStatus(204);
+  });
+});
+
+app.post('/dashboard/artworks', requireLogin, (req, res) => {
+  const { id, artist_id, title, medium, dimensions, price, image } = req.body;
+  const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image) VALUES (?,?,?,?,?,?,?)`;
+  db.run(stmt, [id, artist_id, title, medium, dimensions, price, image], err => {
+    if (err) return res.status(500).send('Database error');
+    res.redirect('/dashboard/artworks');
+  });
+});
+
+app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
+  const { title, medium, dimensions, price, image } = req.body;
+  const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=? WHERE id=?`;
+  db.run(stmt, [title, medium, dimensions, price, image, req.params.id], err => {
+    if (err) return res.status(500).send('Database error');
+    res.sendStatus(204);
+  });
+});
+
+app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
+    if (err) return res.status(500).send('Database error');
+    res.sendStatus(204);
+  });
 });
 
 app.get('/dashboard/upload', requireLogin, (req, res) => {

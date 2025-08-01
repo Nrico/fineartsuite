@@ -6,7 +6,53 @@
 </head>
 <body>
   <h1>Artwork Management</h1>
-  <p>Artwork management interface coming soon.</p>
+  <form id="add-art" method="post" action="/dashboard/artworks">
+    <label>ID <input type="text" name="id" required></label><br>
+    <label>Artist ID <input type="text" name="artist_id" required></label><br>
+    <label>Title <input type="text" name="title" required></label><br>
+    <label>Medium <input type="text" name="medium" required></label><br>
+    <label>Dimensions <input type="text" name="dimensions" required></label><br>
+    <label>Price <input type="text" name="price" required></label><br>
+    <label>Image <input type="text" name="image" required></label><br>
+    <button type="submit">Add Artwork</button>
+  </form>
+  <h2>Existing Artworks</h2>
+  <ul>
+    <% artworks.forEach(function(art){ %>
+      <li>
+        <form class="art-form" data-id="<%= art.id %>">
+          <input name="title" value="<%= art.title %>">
+          <input name="medium" value="<%= art.medium %>">
+          <input name="dimensions" value="<%= art.dimensions %>">
+          <input name="price" value="<%= art.price %>">
+          <input name="image" value="<%= art.image %>">
+          <button type="submit">Save</button>
+          <button type="button" class="delete">Delete</button>
+        </form>
+        (<%= art.artist_id %>)
+      </li>
+    <% }) %>
+  </ul>
   <p><a href="/dashboard">Back to dashboard</a></p>
+  <script>
+    document.querySelectorAll('.art-form').forEach(f => {
+      const id = f.dataset.id;
+      f.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(f).entries());
+        await fetch('/dashboard/artworks/' + id, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        });
+        location.reload();
+      });
+      f.querySelector('.delete').addEventListener('click', async e => {
+        e.preventDefault();
+        await fetch('/dashboard/artworks/' + id, { method: 'DELETE' });
+        location.reload();
+      });
+    });
+  </script>
 </body>
 </html>
