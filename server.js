@@ -113,6 +113,11 @@ app.get('/dashboard/settings', requireLogin, (req, res) => {
   res.render('admin/settings');
 });
 
+// Render custom 404 page for any unmatched routes
+app.use((req, res) => {
+  res.status(404).render('404');
+});
+
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
