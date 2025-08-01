@@ -21,7 +21,7 @@ const galleries = [
     featuredArtwork: {
       id: 'art1',
       title: 'Dreamscape',
-      image: 'https://via.placeholder.com/600x400?text=Dreamscape'
+      image: 'https://placehold.co/600x400?text=Dreamscape'
     },
     artists: [
       {
@@ -35,7 +35,7 @@ const galleries = [
             medium: 'Oil on Canvas',
             dimensions: '30x40',
             price: '$4000',
-            image: 'https://via.placeholder.com/600x400?text=Dreamscape'
+            image: 'https://placehold.co/600x400?text=Dreamscape'
           },
           {
             id: 'art2',
@@ -43,7 +43,7 @@ const galleries = [
             medium: 'Acrylic',
             dimensions: '24x36',
             price: '$2500',
-            image: 'https://via.placeholder.com/600x400?text=Ocean+Depths'
+            image: 'https://placehold.co/600x400?text=Ocean+Depths'
           }
         ]
       }
