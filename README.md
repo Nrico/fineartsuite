@@ -42,4 +42,6 @@ The current page is only a basic landing page. Future improvements may include:
 
 ## Admin upload page
 
-An `admin-upload.html` file is available for uploading new artwork. It provides fields for title, medium, dimensions, price, image upload with preview, and status. Open the file in a browser to use the form.
+After logging in as an admin you can upload new artwork by visiting
+`/dashboard/upload`. The form provides fields for title, medium, dimensions,
+price, image upload with preview and status selection.
