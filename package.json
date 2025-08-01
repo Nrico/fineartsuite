@@ -4,7 +4,7 @@
   "description": "FineArtSuite is a minimal gallery website project. This repository provides a single HTML file that serves as a starting point for displaying art online.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "start": "node server.js"
   },
   "keywords": [],

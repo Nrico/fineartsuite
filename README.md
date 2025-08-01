@@ -43,3 +43,13 @@ The current page is only a basic landing page. Future improvements may include:
 ## Admin upload page
 
 An `admin-upload.html` file is available for uploading new artwork. It provides fields for title, medium, dimensions, price, image upload with preview, and status. Open the file in a browser to use the form.
+
+## Running tests
+
+The project uses Node's built-in `test` runner for basic route tests. After installing dependencies, run:
+
+```bash
+npm test
+```
+
+This will start the application in test mode and verify that the homepage and a sample gallery page respond correctly.
