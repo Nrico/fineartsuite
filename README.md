@@ -12,6 +12,10 @@ python3 -m http.server
 
 After running the command in the project directory, visit `http://localhost:8000` in your browser to view the page.
 
+## Gallery pages
+
+Navigating directly to a path such as `/jenny` or `/leo` will display a simple gallery for that slug using placeholder data from `gallery.js`.
+
 ## Planned gallery features
 
 The current page is only a basic landing page. Future improvements may include:
