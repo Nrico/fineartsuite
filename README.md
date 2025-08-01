@@ -13,6 +13,12 @@ npm start
 
 After running the server, visit `http://localhost:3000` in your browser to view the homepage.
 
+### Persistent sessions
+
+Sessions are stored in MongoDB using `connect-mongo`. Provide a MongoDB
+connection string via the `MONGODB_URI` environment variable before starting the
+server. By default the app connects to `mongodb://localhost:27017/fineartsuite`.
+
 ## Gallery pages
 
 Navigating to `/demo-gallery` or another gallery slug will display a public gallery page rendered from placeholder data.
