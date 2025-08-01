@@ -12,6 +12,8 @@ const { getArtwork } = require('./models/artworkModel');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
+// When true, admin pages are automatically authenticated
+const USE_DEMO_AUTH = process.env.USE_DEMO_AUTH === 'true';
 
 const app = express();
 
@@ -42,6 +44,53 @@ app.get('/', (req, res) => {
   res.render('home');
 });
 
+// Auth routes
+app.get('/login', (req, res) => {
+  res.render('login', { error: null });
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    req.session.user = username;
+    return res.redirect('/dashboard');
+  }
+  res.render('login', { error: 'Invalid credentials' });
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+  res.redirect('/login');
+});
+});
+
+// Apply fake authentication for all admin routes when enabled
+if (USE_DEMO_AUTH) {
+  app.use('/dashboard', simulateAuth);
+}
+
+// Admin routes
+app.get('/dashboard', requireLogin, (req, res) => {
+  res.render('admin/dashboard');
+});
+
+app.get('/dashboard/artists', requireLogin, (req, res) => {
+  res.render('admin/artists');
+});
+
+app.get('/dashboard/artworks', requireLogin, (req, res) => {
+  res.render('admin/artworks');
+});
+
+app.get('/dashboard/upload', requireLogin, (req, res) => {
+  res.render('admin/upload');
+});
+
+app.get('/dashboard/settings', requireLogin, (req, res) => {
+  res.render('admin/settings');
+});
+
+// Public gallery routes
 app.get('/:gallerySlug', (req, res) => {
   getGallery(req.params.gallerySlug, (err, gallery) => {
     if (err) return res.status(404).send('Gallery not found');
@@ -67,50 +116,6 @@ app.get('/:gallerySlug/artworks/:artworkId', (req, res) => {
       res.render('artwork-detail', { gallery, artwork: result.artwork, artistId: result.artistId, slug: req.params.gallerySlug });
     });
   });
-});
-
-// Auth routes
-app.get('/login', (req, res) => {
-  res.render('login', { error: null });
-});
-
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    req.session.user = username;
-    return res.redirect('/dashboard');
-  }
-  res.render('login', { error: 'Invalid credentials' });
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/login');
-  });
-});
-
-// Apply fake authentication for all admin routes
-app.use('/dashboard', simulateAuth);
-
-// Admin routes
-app.get('/dashboard', requireLogin, (req, res) => {
-  res.render('admin/dashboard');
-});
-
-app.get('/dashboard/artists', requireLogin, (req, res) => {
-  res.render('admin/artists');
-});
-
-app.get('/dashboard/artworks', requireLogin, (req, res) => {
-  res.render('admin/artworks');
-});
-
-app.get('/dashboard/upload', requireLogin, (req, res) => {
-  res.render('admin/upload');
-});
-
-app.get('/dashboard/settings', requireLogin, (req, res) => {
-  res.render('admin/settings');
 });
 
 // Render custom 404 page for any unmatched routes

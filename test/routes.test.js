@@ -1,3 +1,4 @@
+process.env.USE_DEMO_AUTH = 'false';
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
@@ -22,7 +23,7 @@ function httpGet(url) {
     http.get(url, res => {
       let body = '';
       res.on('data', chunk => body += chunk);
-      res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+      res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body }));
     }).on('error', reject);
   });
 }
@@ -39,4 +40,18 @@ test('gallery page responds with gallery name', async () => {
   const { statusCode, body } = await httpGet(`http://localhost:${port}/demo-gallery`);
   assert.strictEqual(statusCode, 200);
   assert.match(body, /Demo Gallery/);
+});
+
+test('dashboard redirects to login when not authenticated', async () => {
+  const port = server.address().port;
+  const { statusCode, headers } = await httpGet(`http://localhost:${port}/dashboard`);
+  assert.strictEqual(statusCode, 302);
+  assert.strictEqual(headers.location, '/login');
+});
+
+test('upload page redirects to login when not authenticated', async () => {
+  const port = server.address().port;
+  const { statusCode, headers } = await httpGet(`http://localhost:${port}/dashboard/upload`);
+  assert.strictEqual(statusCode, 302);
+  assert.strictEqual(headers.location, '/login');
 });
