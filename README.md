@@ -24,8 +24,13 @@ The server reads credentials and session configuration from environment variable
 - `ADMIN_USERNAME` – username for the admin login (defaults to `admin`)
 - `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
 - `SESSION_SECRET` – secret used to sign session cookies (defaults to `gallerysecret`)
+- `USE_DEMO_AUTH` – set to `true` to automatically log into admin pages
 
 Set these variables before starting the server to override the defaults.
+
+When `USE_DEMO_AUTH` is disabled (the default), all `/dashboard` routes require
+logging in. Set the variable to `true` during development to bypass the login
+form for convenience.
 
 ## Gallery pages
 
