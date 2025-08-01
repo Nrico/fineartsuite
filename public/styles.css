@@ -1,3 +1,48 @@
-body { font-family: Arial, sans-serif; margin: 20px; }
-h1 { color: #333; }
-img { max-width: 100%; }
+/* Base styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  background: #f8f8f8;
+  color: #333;
+  line-height: 1.6;
+}
+
+h1 {
+  color: #333;
+  margin-top: 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  nav .nav-links {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .artist-list {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .artworks {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
