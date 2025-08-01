@@ -12,9 +12,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({ secret: 'gallerysecret', resave: false, saveUninitialized: true }));
 
-// Placeholder data
-const galleries = {
-  'demo-gallery': {
+// Placeholder data stored in-memory
+const galleries = [
+  {
+    slug: 'demo-gallery',
     name: 'Demo Gallery',
     bio: 'Welcome to the demo gallery showcasing placeholder artwork.',
     featuredArtwork: {
@@ -47,11 +48,38 @@ const galleries = {
         ]
       }
     ]
+  },
+  {
+    slug: 'city-gallery',
+    name: 'City Gallery',
+    bio: 'Featuring modern works from local artists.',
+    featuredArtwork: {
+      id: 'c1',
+      title: 'City Lights',
+      image: 'https://via.placeholder.com/600x400?text=City+Lights'
+    },
+    artists: [
+      {
+        id: 'artist2',
+        name: 'John Smith',
+        bio: 'Exploring the geometry of urban life.',
+        artworks: [
+          {
+            id: 'c1',
+            title: 'City Lights',
+            medium: 'Oil on Canvas',
+            dimensions: '24x30',
+            price: '$3500',
+            image: 'https://via.placeholder.com/600x400?text=City+Lights'
+          }
+        ]
+      }
+    ]
   }
-};
+];
 
 function findGallery(slug) {
-  return galleries[slug];
+  return galleries.find(g => g.slug === slug);
 }
 
 function findArtist(gallery, id) {
@@ -64,6 +92,13 @@ function findArtwork(gallery, id) {
     if (art) return { artwork: art, artistId: artist.id };
   }
   return null;
+}
+
+function simulateAuth(req, res, next) {
+  if (!req.session.user) {
+    req.session.user = 'demoAdmin';
+  }
+  next();
 }
 
 function requireLogin(req, res, next) {
@@ -118,6 +153,9 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Apply fake authentication for all admin routes
+app.use('/dashboard', simulateAuth);
+
 // Admin routes
 app.get('/dashboard', requireLogin, (req, res) => {
   res.render('admin/dashboard');
@@ -129,6 +167,10 @@ app.get('/dashboard/artists', requireLogin, (req, res) => {
 
 app.get('/dashboard/artworks', requireLogin, (req, res) => {
   res.render('admin/artworks');
+});
+
+app.get('/dashboard/upload', requireLogin, (req, res) => {
+  res.render('admin/upload');
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {
