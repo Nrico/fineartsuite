@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const crypto = require('crypto');
 const path = require('path');
 const { initialize } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
@@ -11,6 +12,8 @@ const { getArtwork } = require('./models/artworkModel');
 // development-friendly defaults
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
+const PASSWORD_SALT = process.env.ADMIN_PASSWORD_SALT || 'staticSalt';
+const ADMIN_PASSWORD_HASH = crypto.scryptSync(ADMIN_PASSWORD, PASSWORD_SALT, 64).toString('hex');
 const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
 
 const app = express();
@@ -21,6 +24,23 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
+
+// Simple CSRF protection using a session token
+function csrfProtection(req, res, next) {
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = crypto.randomBytes(24).toString('hex');
+  }
+  if (req.method === 'POST') {
+    const token = req.body._csrf;
+    if (!token || token !== req.session.csrfToken) {
+      return res.status(403).send('Invalid CSRF token');
+    }
+  }
+  res.locals.csrfToken = req.session.csrfToken;
+  next();
+}
+
+app.use(csrfProtection);
 
 // Initialize the SQLite database and seed demo data if needed
 initialize();
@@ -35,6 +55,22 @@ function simulateAuth(req, res, next) {
 function requireLogin(req, res, next) {
   if (req.session.user) return next();
   res.redirect('/login');
+}
+
+function validateLoginInputs(req, res, next) {
+  const { username, password } = req.body;
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password.trim()) {
+    return res.status(400).render('login', { error: 'Invalid input' });
+  }
+  next();
+}
+
+function validateUploadInputs(req, res, next) {
+  const { title, medium, dimensions, price } = req.body;
+  if (!title || !medium || !dimensions || !price || isNaN(parseFloat(price))) {
+    return res.status(400).send('Invalid input');
+  }
+  next();
 }
 
 // Public routes
@@ -74,13 +110,14 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', validateLoginInputs, (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+  const attemptedHash = crypto.scryptSync(password, PASSWORD_SALT, 64).toString('hex');
+  if (username === ADMIN_USERNAME && attemptedHash === ADMIN_PASSWORD_HASH) {
     req.session.user = username;
     return res.redirect('/dashboard');
   }
-  res.render('login', { error: 'Invalid credentials' });
+  res.status(401).render('login', { error: 'Invalid credentials' });
 });
 
 app.get('/logout', (req, res) => {
@@ -107,6 +144,10 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
 
 app.get('/dashboard/upload', requireLogin, (req, res) => {
   res.render('admin/upload');
+});
+
+app.post('/dashboard/upload', requireLogin, validateUploadInputs, (req, res) => {
+  res.send('Upload received');
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {

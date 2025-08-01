@@ -24,6 +24,7 @@ The server reads credentials and session configuration from environment variable
 - `ADMIN_USERNAME` – username for the admin login (defaults to `admin`)
 - `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
 - `SESSION_SECRET` – secret used to sign session cookies (defaults to `gallerysecret`)
+- `ADMIN_PASSWORD_SALT` – salt used for hashing the admin password (defaults to `staticSalt`)
 
 Set these variables before starting the server to override the defaults.
 
@@ -43,3 +44,7 @@ The current page is only a basic landing page. Future improvements may include:
 ## Admin upload page
 
 An `admin-upload.html` file is available for uploading new artwork. It provides fields for title, medium, dimensions, price, image upload with preview, and status. Open the file in a browser to use the form.
+
+## Security features
+
+The server now hashes the configured admin password using Node's `crypto.scrypt` before comparison. All form submissions include a CSRF token stored in the user session. Basic validation is applied to the login and upload forms to reject missing or malformed fields.
