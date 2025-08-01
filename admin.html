@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Manage Artists</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      background: white;
+    }
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    button {
+      padding: 0.4rem 0.8rem;
+      margin-right: 0.25rem;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .add-btn {
+      background: #28a745;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    .edit-btn {
+      background: #007bff;
+      color: white;
+    }
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Artist Management</h1>
+  <button class="add-btn" id="addArtist">Add Artist</button>
+  <table id="artistTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Bio Summary</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Artists will be injected here -->
+    </tbody>
+  </table>
+
+  <script>
+    const artists = [
+      { name: 'Jane Doe', bio: 'Abstract painter from New York.' },
+      { name: 'John Smith', bio: 'Sculptor inspired by nature.' },
+      { name: 'Alice Lee', bio: 'Digital artist exploring modern themes.' }
+    ];
+
+    const tableBody = document.querySelector('#artistTable tbody');
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+      artists.forEach((artist, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${artist.name}</td>
+          <td>${artist.bio}</td>
+          <td>
+            <button class="edit-btn" data-index="${index}">Edit</button>
+            <button class="delete-btn" data-index="${index}">Delete</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function addArtist() {
+      const name = prompt('Artist name:');
+      if (!name) return;
+      const bio = prompt('Short bio:');
+      artists.push({ name, bio: bio || '' });
+      renderTable();
+    }
+
+    function editArtist(index) {
+      const artist = artists[index];
+      const name = prompt('Edit name:', artist.name);
+      if (name === null) return;
+      const bio = prompt('Edit bio:', artist.bio);
+      artists[index] = { name: name || '', bio: bio || '' };
+      renderTable();
+    }
+
+    function deleteArtist(index) {
+      if (confirm('Delete this artist?')) {
+        artists.splice(index, 1);
+        renderTable();
+      }
+    }
+
+    tableBody.addEventListener('click', (e) => {
+      if (e.target.classList.contains('edit-btn')) {
+        const index = e.target.getAttribute('data-index');
+        editArtist(index);
+      } else if (e.target.classList.contains('delete-btn')) {
+        const index = e.target.getAttribute('data-index');
+        deleteArtist(index);
+      }
+    });
+
+    document.getElementById('addArtist').addEventListener('click', addArtist);
+
+    renderTable();
+  </script>
+</body>
+</html>
