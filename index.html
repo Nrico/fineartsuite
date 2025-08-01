@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GallerySite – Your Online Gallery, Simplified</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: sans-serif;
+      background: #f8f8f8;
+      color: #333;
+      line-height: 1.5;
+    }
+    header {
+      background: white;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-weight: bold;
+      font-size: 1.4rem;
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: #333;
+    }
+    main {
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    #cta-button {
+      background: #ba0c2f;
+      color: white;
+      padding: 0.8rem 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #cta-button:hover {
+      background: #a20928;
+    }
+    footer {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <nav>
+      <div class="logo">GallerySite</div>
+      <ul class="nav-links">
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Build Your Online Gallery</h1>
+      <p>Create a beautiful space for your artists and collectors, no coding needed.</p>
+      <button id="cta-button">Get Started</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 GallerySite. All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.getElementById('cta-button').addEventListener('click', function() {
+      alert("Let's build your gallery!");
+    });
+  </script>
+
+</body>
+</html>
