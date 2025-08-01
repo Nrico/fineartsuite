@@ -3,6 +3,12 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 
+// Read credentials and session secret from environment variables with
+// development-friendly defaults
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
+
 const app = express();
 
 app.set('view engine', 'ejs');
@@ -10,7 +16,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(session({ secret: 'gallerysecret', resave: false, saveUninitialized: true }));
+app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
 
 // Placeholder data stored in-memory
 const galleries = [
@@ -140,7 +146,7 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  if (username === 'admin' && password === 'password') {
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     req.session.user = username;
     return res.redirect('/dashboard');
   }
