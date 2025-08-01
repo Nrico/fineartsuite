@@ -16,6 +16,10 @@ function getGallery(slug, cb) {
           artist.artworks = artworks || [];
           if (--remaining === 0) {
             gallery.artists = artists;
+            const firstArtist = artists[0];
+            if (firstArtist && firstArtist.artworks && firstArtist.artworks[0]) {
+              gallery.featuredArtwork = firstArtist.artworks[0];
+            }
             cb(null, gallery);
           }
         });
