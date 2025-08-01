@@ -2,6 +2,9 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const { addArtwork } = require('./db');
 
 // Read credentials and session secret from environment variables with
 // development-friendly defaults
@@ -13,6 +16,18 @@ const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Configure file uploads
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -176,7 +191,26 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
 });
 
 app.get('/dashboard/upload', requireLogin, (req, res) => {
-  res.render('admin/upload');
+  res.render('admin/upload', { message: null, error: null });
+});
+
+app.post('/dashboard/upload', requireLogin, upload.single('image'), async (req, res) => {
+  try {
+    const artwork = {
+      id: Date.now().toString(),
+      title: req.body.title,
+      medium: req.body.medium,
+      dimensions: req.body.dimensions,
+      price: req.body.price,
+      status: req.body.status,
+      image: '/uploads/' + req.file.filename
+    };
+    await addArtwork(artwork);
+    res.render('admin/upload', { message: 'Upload successful', error: null });
+  } catch (err) {
+    console.error(err);
+    res.render('admin/upload', { message: null, error: 'Upload failed' });
+  }
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {
