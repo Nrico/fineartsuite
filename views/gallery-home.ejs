@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= gallery.name %> - Gallery</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1><%= gallery.name %></h1>
+  <p><%= gallery.bio %></p>
+  <h2>Featured Artwork</h2>
+  <img src="<%= gallery.featuredArtwork.image %>" alt="<%= gallery.featuredArtwork.title %>" style="max-width:400px;">
+  <p><%= gallery.featuredArtwork.title %></p>
+
+  <h2>Artists</h2>
+  <ul>
+    <% gallery.artists.forEach(function(artist){ %>
+      <li><a href="/<%= slug %>/artists/<%= artist.id %>"><%= artist.name %></a></li>
+    <% }) %>
+  </ul>
+  <p><a href="/">Back home</a></p>
+</body>
+</html>

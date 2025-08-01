@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= artwork.title %> - <%= gallery.name %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1><%= artwork.title %></h1>
+  <img src="<%= artwork.image %>" alt="<%= artwork.title %>" style="max-width:400px;">
+  <ul>
+    <li>Medium: <%= artwork.medium %></li>
+    <li>Dimensions: <%= artwork.dimensions %></li>
+    <li>Price: <%= artwork.price %></li>
+  </ul>
+  <p><a href="/<%= slug %>/artists/<%= artistId %>">Back to artist</a></p>
+</body>
+</html>
