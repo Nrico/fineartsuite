@@ -1,16 +1,17 @@
 # FineArtSuite
 
-FineArtSuite is a minimal gallery website project. This repository provides a single HTML file that serves as a starting point for displaying art online.
+FineArtSuite is a minimal gallery website project. It now includes a basic Node.js/Express setup using EJS templates for rendering pages.
 
 ## Running the site locally
 
-Any static file server can be used to host the site. The simplest method is Python's built-in server:
+To run the Express server locally, install the dependencies and start the app:
 
 ```bash
-python3 -m http.server
+npm install
+npm start
 ```
 
-After running the command in the project directory, visit `http://localhost:8000` in your browser to view the page.
+The site will be available at `http://localhost:3000` by default.
 
 ## Gallery pages
 
