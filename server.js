@@ -1,5 +1,11 @@
 const express = require('express');
 const session = require('express-session');
+let SQLiteStore;
+try {
+  SQLiteStore = require('connect-sqlite3')(session);
+} catch (err) {
+  console.warn('connect-sqlite3 not installed, falling back to default session store');
+}
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -62,7 +68,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
+
+const sessionOptions = {
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true
+  }
+};
+if (SQLiteStore) {
+  sessionOptions.store = new SQLiteStore();
+}
+app.use(session(sessionOptions));
 
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
