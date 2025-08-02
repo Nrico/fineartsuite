@@ -63,6 +63,42 @@ After logging in you can upload new artwork at `/dashboard/upload`. The form
 provides fields for the artwork details along with an image preview before
 submitting.
 
+## Sample EJS snippets
+
+Styled navigation bar:
+
+```ejs
+<nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+  <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+  <div class="flex space-x-4 mt-2 md:mt-0">
+    <a href="/galleries" class="hover:underline">Galleries</a>
+    <a href="/artists" class="hover:underline">Artists</a>
+  </div>
+</nav>
+```
+
+Clean hero heading:
+
+```ejs
+<section class="text-center py-24">
+  <h1 class="text-5xl font-bold mb-6">Discover Modern Art</h1>
+  <p class="text-gray-600">Explore our curated collection.</p>
+</section>
+```
+
+Two-column layout of artwork thumbnails:
+
+```ejs
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+  <% artworks.forEach(art => { %>
+    <a href="/artworks/<%= art.id %>" class="block">
+      <img src="<%= art.image %>" alt="<%= art.title %>" class="w-full mb-2"/>
+      <h3 class="font-semibold"><%= art.title %></h3>
+    </a>
+  <% }) %>
+</div>
+```
+
 ## Running tests
 
 The project uses Node's built-in `test` runner for basic route tests. After installing dependencies, run:

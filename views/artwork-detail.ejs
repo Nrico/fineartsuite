@@ -4,14 +4,37 @@
   <title><%= artwork.title %> - <%= gallery.name %></title>
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
-  <h1><%= artwork.title %></h1>
-  <img src="<%= artwork.image %>" alt="<%= artwork.title %>" style="max-width:400px;">
-  <ul>
-    <li>Medium: <%= artwork.medium %></li>
-    <li>Dimensions: <%= artwork.dimensions %></li>
-    <li>Price: <%= artwork.price %></li>
-  </ul>
-  <p><a href="/<%= slug %>/artists/<%= artistId %>">Back to artist</a></p>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex space-x-4 mt-2 md:mt-0">
+      <a href="/<%= slug %>" class="hover:underline">Gallery</a>
+      <a href="/<%= slug %>/artists/<%= artistId %>" class="hover:underline">Artist</a>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto p-6">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-4"><%= artwork.title %></h1>
+    </header>
+
+    <div class="mb-8">
+      <img src="<%= artwork.image %>" alt="<%= artwork.title %>" class="mx-auto max-w-full">
+    </div>
+
+    <ul class="max-w-md mx-auto divide-y divide-gray-200 text-center">
+      <li class="py-2">Medium: <span class="font-semibold"><%= artwork.medium %></span></li>
+      <li class="py-2">Dimensions: <span class="font-semibold"><%= artwork.dimensions %></span></li>
+      <li class="py-2">Price: <span class="font-semibold"><%= artwork.price %></span></li>
+    </ul>
+
+    <div class="mt-8 text-center">
+      <a class="underline" href="/<%= slug %>/artists/<%= artistId %>">Back to artist</a>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
 </body>
 </html>
