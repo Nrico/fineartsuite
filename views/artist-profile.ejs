@@ -4,20 +4,41 @@
   <title><%= artist.name %> - <%= gallery.name %></title>
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
-  <h1><%= artist.name %></h1>
-  <p><%= artist.bio %></p>
-  <h2>Artworks</h2>
-  <ul>
-    <% artist.artworks.forEach(function(art){ %>
-      <li>
-        <a href="/<%= slug %>/artworks/<%= art.id %>">
-          <img src="<%= art.image %>" alt="<%= art.title %>" style="height:100px;">
-          <span><%= art.title %></span>
-        </a>
-      </li>
-    <% }) %>
-  </ul>
-  <p><a href="/<%= slug %>">Back to gallery</a></p>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex space-x-4 mt-2 md:mt-0">
+      <a href="/<%= slug %>" class="hover:underline">Gallery</a>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto p-6">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold mb-4"><%= artist.name %></h1>
+      <p class="text-gray-600"><%= artist.bio %></p>
+    </header>
+
+    <section>
+      <h2 class="text-2xl font-bold mb-4">Artworks</h2>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <% artist.artworks.forEach(function(art){ %>
+          <li>
+            <a href="/<%= slug %>/artworks/<%= art.id %>" class="block">
+              <img src="<%= art.image %>" alt="<%= art.title %>" class="w-full mb-2">
+              <span class="font-semibold"><%= art.title %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <div class="mt-12 text-center">
+      <a class="underline" href="/<%= slug %>">Back to gallery</a>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
 </body>
 </html>
