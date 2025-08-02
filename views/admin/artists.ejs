@@ -53,7 +53,9 @@
           <input id="bioImageUrl" type="text" name="bioImageUrl" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Artist</button>
+        <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center justify-center">
+          <span class="status-text">Add Artist</span>
+        </button>
       </form>
       <h2 class="text-xl mt-8 mb-4">Existing Artists</h2>
       <ul class="space-y-4">
@@ -70,7 +72,9 @@
                 <% }) %>
               </select>
               <div class="flex gap-2">
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
+                <button type="submit" class="save-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded flex items-center justify-center">
+                  <span class="status-text">Save</span>
+                </button>
                 <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
               </div>
             </form>
@@ -86,17 +90,49 @@
   </footer>
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    const addForm = document.getElementById('add-artist');
+    addForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = addForm.querySelector('.save-btn');
+      const label = btn.querySelector('.status-text');
+      const original = label.textContent;
+      btn.disabled = true;
+      label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
+      const data = Object.fromEntries(new FormData(addForm).entries());
+      await fetch('/dashboard/artists', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'CSRF-Token': csrfToken },
+        body: JSON.stringify(data)
+      });
+      btn.disabled = false;
+      label.textContent = 'Saved!';
+      setTimeout(() => {
+        label.textContent = original;
+        location.reload();
+      }, 2000);
+    });
+
     document.querySelectorAll('.artist-form').forEach(f => {
       const id = f.dataset.id;
+      const btn = f.querySelector('.save-btn');
+      const label = btn.querySelector('.status-text');
+      const original = label.textContent;
       f.addEventListener('submit', async e => {
         e.preventDefault();
+        btn.disabled = true;
+        label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
         const data = Object.fromEntries(new FormData(f).entries());
         await fetch('/dashboard/artists/' + id, {
           method: 'PUT',
           headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
           body: JSON.stringify(data)
         });
-        location.reload();
+        btn.disabled = false;
+        label.textContent = 'Saved!';
+        setTimeout(() => {
+          label.textContent = original;
+        }, 2000);
       });
       f.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();
