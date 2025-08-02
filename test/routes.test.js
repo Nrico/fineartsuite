@@ -205,3 +205,106 @@ test('admin artwork routes allow CRUD after login', async () => {
   res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${id}`);
   assert.strictEqual(res.statusCode, 404);
 });
+
+// Additional tests for auth-required routes and upload functionality
+const fs = require('node:fs');
+const path = require('node:path');
+
+function httpPostMultipart(url, fields, filePath, cookies = '') {
+  return new Promise((resolve, reject) => {
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(16);
+    const parsed = new URL(url);
+    let payloadParts = [];
+    for (const [name, value] of Object.entries(fields)) {
+      payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
+    }
+    const fileData = fs.readFileSync(filePath);
+    const filename = path.basename(filePath);
+    payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`));
+    payloadParts.push(fileData);
+    payloadParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+    const payload = Buffer.concat(payloadParts);
+
+    const options = {
+      method: 'POST',
+      hostname: parsed.hostname,
+      port: parsed.port,
+      path: parsed.pathname,
+      headers: {
+        'Content-Type': 'multipart/form-data; boundary=' + boundary,
+        'Content-Length': payload.length,
+        'Cookie': cookies
+      }
+    };
+    const req = http.request(options, res => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body }));
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+
+// Clean uploads directory before tests
+test.before(() => {
+  fs.rmSync(uploadsDir, { recursive: true, force: true });
+  fs.mkdirSync(uploadsDir, { recursive: true });
+});
+
+test('artist and artwork routes require login', async () => {
+  const port = server.address().port;
+  let res = await httpPostForm(`http://localhost:${port}/dashboard/artists`, { id: 'x', gallery_slug: 'demo-gallery', name: 'n', bio: 'b' });
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+  res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artists/x`, { name: 'n', bio: 'b' });
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+  res = await httpRequest('DELETE', `http://localhost:${port}/dashboard/artists/x`);
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+
+  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', image: 'i' });
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+  res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artworks/x`, { title: 't' });
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+  res = await httpRequest('DELETE', `http://localhost:${port}/dashboard/artworks/x`);
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+});
+
+test('upload post requires login', async () => {
+  const port = server.address().port;
+  const temp = path.join(__dirname, 'temp.txt');
+  fs.writeFileSync(temp, 'data');
+  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
+    title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available'
+  }, temp);
+  fs.unlinkSync(temp);
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
+});
+
+test('authenticated upload stores file and is served', async () => {
+  const port = server.address().port;
+  const login = await httpPostForm(`http://localhost:${port}/login`, { username: 'admin', password: 'password' });
+  const cookie = login.headers['set-cookie'][0].split(';')[0];
+  const temp = path.join(__dirname, 'upload.txt');
+  fs.writeFileSync(temp, 'image');
+  const uploadRes = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
+    title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available'
+  }, temp, cookie);
+  fs.unlinkSync(temp);
+  assert.strictEqual(uploadRes.statusCode, 302);
+  assert.strictEqual(uploadRes.headers.location, '/dashboard/upload?success=1');
+  const files = fs.readdirSync(uploadsDir);
+  assert.ok(files.length > 0);
+  const fileRes = await httpGet(`http://localhost:${port}/uploads/${files[0]}`);
+  assert.strictEqual(fileRes.statusCode, 200);
+  fs.unlinkSync(path.join(uploadsDir, files[0]));
+});
