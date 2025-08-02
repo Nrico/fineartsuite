@@ -23,10 +23,18 @@
       <% if (flash.success && flash.success.length) { %>
         <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
       <% } %>
-      <form id="add-art" method="post" action="/dashboard/artworks" enctype="multipart/form-data" class="space-y-4 file-or-url">
+      <form id="add-art" method="post" action="/dashboard/artworks" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 file-or-url">
         <div>
           <label class="block text-sm font-medium" for="id">Artwork ID</label>
-          <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
+          <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100 text-gray-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="gallery_slug">Gallery</label>
+          <select id="gallery_slug" name="gallery_slug" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+            <% galleries.forEach(function(g){ %>
+              <option value="<%= g.slug %>"><%= g.slug %></option>
+            <% }) %>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium" for="artist_id">Artist ID</label>
@@ -38,13 +46,20 @@
         </div>
         <div>
           <label class="block text-sm font-medium" for="medium">Medium</label>
-          <input id="medium" type="text" name="medium" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <select id="medium" name="medium" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+            <option value="Oil">Oil</option>
+            <option value="Acrylic">Acrylic</option>
+            <option value="Digital">Digital</option>
+            <option value="Watercolor">Watercolor</option>
+            <option value="other">Other</option>
+          </select>
+          <input id="custom_medium" type="text" name="custom_medium" placeholder="Specify medium" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 hidden">
         </div>
         <div>
           <label class="block text-sm font-medium" for="dimensions">Dimensions</label>
           <input id="dimensions" type="text" name="dimensions" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
-        <div>
+        <div id="price_wrapper">
           <label class="block text-sm font-medium" for="price">Price</label>
           <input id="price" type="text" name="price" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
@@ -52,62 +67,71 @@
           <label class="block text-sm font-medium" for="imageFile">Upload Image</label>
           <input id="imageFile" type="file" name="imageFile" accept="image/*" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
-        <details class="text-sm text-gray-600">
+        <details class="text-sm text-gray-600 col-span-full">
           <summary class="cursor-pointer">Paste URL instead</summary>
           <input id="imageUrl" type="text" name="imageUrl" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </details>
         <div>
           <label class="block text-sm font-medium" for="status">Availability</label>
           <select id="status" name="status" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-            <option value=""></option>
+            <option value="available" selected>Available</option>
             <option value="inquire">Inquire</option>
             <option value="offer">Make an Offer</option>
-            <option value="available" selected>Available</option>
             <option value="collected">Red Dot Collected</option>
           </select>
         </div>
         <div class="flex items-center">
-          <input type="checkbox" id="hide_collected" name="hide_collected" value="1" class="mr-2">
-          <label for="hide_collected" class="text-sm">Hide if collected</label>
+          <input type="checkbox" id="isVisible" name="isVisible" value="1" class="mr-2" checked>
+          <label for="isVisible" class="text-sm">Visible</label>
         </div>
         <div class="flex items-center">
-          <input type="checkbox" id="featured" name="featured" value="1" class="mr-2">
-          <label for="featured" class="text-sm">Featured</label>
+          <input type="checkbox" id="isFeatured" name="isFeatured" value="1" class="mr-2">
+          <label for="isFeatured" class="text-sm">Featured</label>
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Artwork</button>
+        <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded col-span-full flex items-center justify-center"><span class="status-text">Add Artwork</span></button>
       </form>
       <h2 class="text-xl mt-8 mb-4">Existing Artworks</h2>
       <ul class="space-y-4">
         <% artworks.forEach(function(art){ %>
           <li>
-            <form class="art-form space-y-2 file-or-url" data-id="<%= art.id %>" enctype="multipart/form-data">
+            <form class="art-form grid grid-cols-1 md:grid-cols-2 gap-4 file-or-url" data-id="<%= art.id %>" enctype="multipart/form-data">
               <input name="title" value="<%= art.title %>" class="border border-gray-300 rounded px-2 py-1 w-full">
-              <input name="medium" value="<%= art.medium %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+              <div>
+                <select name="medium" class="border border-gray-300 rounded px-2 py-1 w-full medium-select" data-current="<%= art.medium %>">
+                  <option value="Oil">Oil</option>
+                  <option value="Acrylic">Acrylic</option>
+                  <option value="Digital">Digital</option>
+                  <option value="Watercolor">Watercolor</option>
+                  <option value="other">Other</option>
+                </select>
+                <input name="custom_medium" class="border border-gray-300 rounded px-2 py-1 w-full mt-1 hidden" placeholder="Specify medium">
+              </div>
               <input name="dimensions" value="<%= art.dimensions %>" class="border border-gray-300 rounded px-2 py-1 w-full">
-              <input name="price" value="<%= art.price %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+              <div class="price-wrapper">
+                <input name="price" value="<%= art.price %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+              </div>
               <input type="file" name="imageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
               <details class="text-sm text-gray-600">
                 <summary class="cursor-pointer">Paste URL instead</summary>
                 <input name="imageUrl" class="border border-gray-300 rounded px-2 py-1 w-full">
               </details>
-              <select name="status" class="border border-gray-300 rounded px-2 py-1 w-full">
-                <option value="" <%= art.status === '' ? 'selected' : '' %>></option>
-                <option value="inquire" <%= art.status === 'inquire' ? 'selected' : '' %>>Inquire</option>
-                <option value="offer" <%= art.status === 'offer' ? 'selected' : '' %>>Make an Offer</option>
-                <option value="available" <%= art.status === 'available' ? 'selected' : '' %>>Available</option>
-                <option value="collected" <%= art.status === 'collected' ? 'selected' : '' %>>Red Dot Collected</option>
+              <select name="status" class="border border-gray-300 rounded px-2 py-1 w-full status-select" data-current="<%= art.status %>">
+                <option value="available">Available</option>
+                <option value="inquire">Inquire</option>
+                <option value="offer">Make an Offer</option>
+                <option value="collected">Red Dot Collected</option>
               </select>
               <div class="flex items-center">
-                <input type="checkbox" name="hide_collected" value="1" class="mr-2" <%= art.hide_collected ? 'checked' : '' %>>
-                <label class="text-sm">Hide if collected</label>
+                <input type="checkbox" name="isVisible" value="1" class="mr-2" <%= art.isVisible ? 'checked' : '' %>>
+                <label class="text-sm">Visible</label>
               </div>
               <div class="flex items-center">
-                <input type="checkbox" name="featured" value="1" class="mr-2" <%= art.featured ? 'checked' : '' %>>
+                <input type="checkbox" name="isFeatured" value="1" class="mr-2" <%= art.isFeatured ? 'checked' : '' %>>
                 <label class="text-sm">Featured</label>
               </div>
               <div class="flex gap-2">
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
+                <button type="submit" class="save-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded flex items-center justify-center"><span class="status-text">Save</span></button>
                 <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
               </div>
             </form>
@@ -137,17 +161,72 @@
     }
     document.querySelectorAll('.file-or-url').forEach(setupFileUrlToggle);
 
+    function handleMediumSelect(select) {
+      const custom = select.parentElement.querySelector('input[name="custom_medium"]');
+      const current = select.getAttribute('data-current');
+      if (current) select.value = current;
+      if (select.value === 'other') custom.classList.remove('hidden');
+      select.addEventListener('change', () => {
+        if (select.value === 'other') {
+          custom.classList.remove('hidden');
+        } else {
+          custom.classList.add('hidden');
+        }
+      });
+    }
+
+    function handleStatusSelect(select) {
+      const wrapper = select.closest('form').querySelector('.price-wrapper');
+      const current = select.getAttribute('data-current');
+      if (current) select.value = current;
+      if (select.value === 'collected') wrapper.classList.add('hidden');
+      select.addEventListener('change', () => {
+        if (select.value === 'collected') {
+          wrapper.classList.add('hidden');
+        } else {
+          wrapper.classList.remove('hidden');
+        }
+      });
+    }
+
+    document.querySelectorAll('.medium-select').forEach(handleMediumSelect);
+    document.querySelectorAll('.status-select').forEach(handleStatusSelect);
+
+    const addForm = document.getElementById('add-art');
+    addForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = addForm.querySelector('.save-btn');
+      const label = btn.querySelector('.status-text');
+      const original = label.textContent;
+      btn.disabled = true;
+      label.textContent = 'Saving...';
+      const data = new FormData(addForm);
+      await fetch('/dashboard/artworks', {
+        method: 'POST',
+        headers: { 'CSRF-Token': csrfToken },
+        body: data
+      });
+      label.textContent = 'Saved!';
+      setTimeout(() => { location.reload(); }, 1500);
+    });
+
     document.querySelectorAll('.art-form').forEach(f => {
       const id = f.dataset.id;
+      const btn = f.querySelector('.save-btn');
+      const label = btn.querySelector('.status-text');
+      const original = label.textContent;
       f.addEventListener('submit', async e => {
         e.preventDefault();
+        btn.disabled = true;
+        label.textContent = 'Saving...';
         const formData = new FormData(f);
         await fetch('/dashboard/artworks/' + id, {
           method: 'PUT',
           headers: { 'CSRF-Token': csrfToken },
           body: formData
         });
-        location.reload();
+        label.textContent = 'Saved!';
+        setTimeout(() => { label.textContent = original; btn.disabled = false; }, 1500);
       });
       f.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();

@@ -80,10 +80,16 @@ async function processImages(file) {
   const standardPath = path.join(uploadsDir, `${base}_standard${ext}`);
   const thumbPath = path.join(uploadsDir, `${base}_thumb${ext}`);
   if (Jimp) {
-    const image = await Jimp.read(file.path);
-    await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
-    await image.clone().scaleToFit(1000, 1000).writeAsync(standardPath);
-    await image.clone().scaleToFit(500, 500).writeAsync(thumbPath);
+    try {
+      const image = await Jimp.read(file.path);
+      await image.clone().scaleToFit(1000, 1000).writeAsync(fullPath);
+      await image.clone().scaleToFit(1000, 1000).writeAsync(standardPath);
+      await image.clone().scaleToFit(500, 500).writeAsync(thumbPath);
+    } catch {
+      fs.copyFileSync(file.path, fullPath);
+      fs.copyFileSync(file.path, standardPath);
+      fs.copyFileSync(file.path, thumbPath);
+    }
     fs.unlinkSync(file.path);
   } else {
     fs.copyFileSync(file.path, fullPath);
@@ -146,7 +152,10 @@ function requireLogin(req, res, next) {
 
 // Public routes
 app.get('/', (req, res) => {
-  res.render('home');
+  db.all('SELECT slug FROM galleries', (err, rows) => {
+    const galleries = err ? [] : rows;
+    res.render('home', { galleries });
+  });
 });
 
 // Auth routes
@@ -221,15 +230,22 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artworks', { artworks: [], generatedId: '' });
+        return res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
       }
-      const generatedId = 'art_' + Date.now();
-      res.render('admin/artworks', { artworks, generatedId });
+      db.all('SELECT slug FROM galleries', (gErr, galleries) => {
+        if (gErr) {
+          console.error(gErr);
+          req.flash('error', 'Database error');
+          return res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
+        }
+        const generatedId = 'art_' + Date.now();
+        res.render('admin/artworks', { artworks, galleries, generatedId });
+      });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artworks', { artworks: [], generatedId: '' });
+    res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
   }
 });
 
@@ -306,8 +322,8 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
       return res.redirect('/dashboard/artworks');
     }
     try {
-      const { id, artist_id, title, medium, dimensions, price, imageUrl, status, hide_collected, featured } = req.body;
-      if (!id || !artist_id || !title || !medium || !dimensions || !price) {
+      const { id, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      if (!id || !artist_id || !title || !medium || !dimensions) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
       }
@@ -319,9 +335,11 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
         req.flash('error', 'Image is required');
         return res.redirect('/dashboard/artworks');
       }
+      const finalMedium = medium === 'other' ? custom_medium : medium;
+      const finalPrice = status === 'collected' ? null : price;
       const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
-      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
-      db.run(stmt, [id, artist_id, title, medium, dimensions, price, images.imageFull, images.imageStandard, images.imageThumb, status || '', hide_collected ? 1 : 0, featured ? 1 : 0], runErr => {
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [id, artist_id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
         if (runErr) {
           console.error(runErr);
           req.flash('error', 'Database error');
@@ -345,9 +363,11 @@ app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
       return res.status(400).send(err.message);
     }
     try {
-      const { title, medium, dimensions, price, imageUrl, status, hide_collected, featured } = req.body;
-      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, hide_collected=?, featured=?`;
-      const params = [title, medium, dimensions, price, status || '', hide_collected ? 1 : 0, featured ? 1 : 0];
+      const { title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      const finalMedium = medium === 'other' ? custom_medium : medium;
+      const finalPrice = status === 'collected' ? null : price;
+      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?`;
+      const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
       if (req.file || imageUrl) {
         if (req.file && imageUrl) {
           return res.status(400).send('Choose either an upload or a URL');
@@ -392,9 +412,11 @@ app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
 app.get('/dashboard/upload', requireLogin, (req, res) => {
   fs.readdir(uploadsDir, (err, files) => {
     if (err) files = [];
-    const data = files.map(f => ({ name: f, url: '/uploads/' + f }));
-    const generatedId = 'art_' + Date.now();
-    res.render('admin/upload', { files: data, success: req.query.success, generatedId });
+    db.all('SELECT slug FROM galleries', (gErr, galleries) => {
+      const data = files.map(f => ({ name: f, url: '/uploads/' + f }));
+      const generatedId = 'art_' + Date.now();
+      res.render('admin/upload', { files: data, galleries: gErr ? [] : galleries, success: req.query.success, generatedId });
+    });
   });
 });
 
@@ -411,8 +433,8 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    const { id, title, medium, custom_medium, dimensions, price, status, hide_collected, featured } = req.body;
-    if (!title || !medium || !dimensions || !price || !status) {
+    const { id, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
+    if (!title || !medium || !dimensions || !status) {
       req.flash('error', 'All fields are required');
       return res.status(400).redirect('/dashboard/upload');
     }
@@ -427,11 +449,10 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       try {
         const artworkId = id && id.trim() !== '' ? id : 'art_' + Date.now();
         const finalMedium = medium === 'other' ? custom_medium : medium;
-        const hideCollectedVal = hide_collected ? 1 : 0;
-        const featuredVal = featured ? 1 : 0;
+        const finalPrice = status === 'collected' ? null : price;
         const images = await processImages(req.file);
-        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
-        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, price, images.imageFull, images.imageStandard, images.imageThumb, status, hideCollectedVal, featuredVal], runErr => {
+        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
           if (runErr) {
             console.error(runErr);
             req.flash('error', 'Database error');

@@ -19,7 +19,10 @@
 
       <% if (artwork.status) { %>
         <% if (artwork.status === 'collected') { %>
-          <p class="text-red-500 flex items-center justify-center"><span class="mr-1">&#9679;</span>Collected</p>
+          <p class="text-red-500 flex items-center justify-center">
+            <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+            Collected
+          </p>
         <% } else if (artwork.status === 'available') { %>
           <p>Available</p>
         <% } else if (artwork.status === 'inquire') { %>

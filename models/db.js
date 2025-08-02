@@ -8,8 +8,22 @@ function initialize() {
     db.run(`CREATE TABLE IF NOT EXISTS galleries (
       slug TEXT PRIMARY KEY,
       name TEXT,
-      bio TEXT
+      bio TEXT,
+      contact_email TEXT,
+      phone TEXT,
+      address TEXT,
+      gallarist_name TEXT,
+      bio_short TEXT,
+      bio_full TEXT,
+      logo_url TEXT
     )`);
+    db.run('ALTER TABLE galleries ADD COLUMN contact_email TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN phone TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN address TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN gallarist_name TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN bio_short TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN bio_full TEXT', () => {});
+    db.run('ALTER TABLE galleries ADD COLUMN logo_url TEXT', () => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS artists (
       id TEXT PRIMARY KEY,
@@ -17,10 +31,18 @@ function initialize() {
       name TEXT,
       bio TEXT,
       bioImageUrl TEXT,
-      fullBio TEXT
+      fullBio TEXT,
+      bio_short TEXT,
+      bio_full TEXT,
+      portrait_url TEXT,
+      gallery_id TEXT
     )`);
     db.run('ALTER TABLE artists ADD COLUMN bioImageUrl TEXT', () => {});
     db.run('ALTER TABLE artists ADD COLUMN fullBio TEXT', () => {});
+    db.run('ALTER TABLE artists ADD COLUMN bio_short TEXT', () => {});
+    db.run('ALTER TABLE artists ADD COLUMN bio_full TEXT', () => {});
+    db.run('ALTER TABLE artists ADD COLUMN portrait_url TEXT', () => {});
+    db.run('ALTER TABLE artists ADD COLUMN gallery_id TEXT', () => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS gallery_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -46,7 +68,9 @@ function initialize() {
       imageThumb TEXT,
       status TEXT,
       hide_collected INTEGER DEFAULT 0,
-      featured INTEGER DEFAULT 0
+      featured INTEGER DEFAULT 0,
+      isVisible INTEGER DEFAULT 1,
+      isFeatured INTEGER DEFAULT 0
     )`);
     db.run('ALTER TABLE artworks ADD COLUMN imageFull TEXT', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN imageStandard TEXT', () => {});
@@ -54,6 +78,8 @@ function initialize() {
     db.run('ALTER TABLE artworks ADD COLUMN status TEXT', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN hide_collected INTEGER DEFAULT 0', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN featured INTEGER DEFAULT 0', () => {});
+    db.run('ALTER TABLE artworks ADD COLUMN isVisible INTEGER DEFAULT 1', () => {});
+    db.run('ALTER TABLE artworks ADD COLUMN isFeatured INTEGER DEFAULT 0', () => {});
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;
@@ -92,9 +118,9 @@ function seed(done) {
     'Ava Patel explores human connection through digital mediums.\n\nHer creations blur the line between code and compassion.');
   artistStmt.finalize();
 
-  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
   function addArtwork(id, artist, title, medium, dimensions, price, imageUrl) {
-    artworkStmt.run(id, artist, title, medium, dimensions, price, imageUrl, imageUrl, imageUrl, 'available', 0, 0);
+    artworkStmt.run(id, artist, title, medium, dimensions, price, imageUrl, imageUrl, imageUrl, 'available', 0, 0, 1, 0);
   }
   addArtwork('art1', 'artist1', 'Dreamscape', 'Oil on Canvas', '30x40', '$4000', 'https://picsum.photos/id/205/420/630');
   addArtwork('art2', 'artist1', 'Ocean Depths', 'Acrylic', '24x36', '$2500', 'https://picsum.photos/id/207/380/560');

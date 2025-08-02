@@ -20,10 +20,18 @@
       <% if (success) { %>
         <p id="status" class="text-green-600 mb-4 text-center">Upload successful! Artwork stored.</p>
       <% } %>
-      <form id="upload-form" method="post" action="/dashboard/upload" enctype="multipart/form-data" class="space-y-4">
+      <form id="upload-form" method="post" action="/dashboard/upload" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium" for="id">Artwork ID</label>
-          <input type="text" id="id" name="id" value="<%= generatedId %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
+          <input type="text" id="id" name="id" value="<%= generatedId %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100 text-gray-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="gallery_slug">Gallery</label>
+          <select id="gallery_slug" name="gallery_slug" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+            <% galleries.forEach(function(g){ %>
+              <option value="<%= g.slug %>"><%= g.slug %></option>
+            <% }) %>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium" for="title">Title</label>
@@ -47,7 +55,7 @@
           <label class="block text-sm font-medium" for="dimensions">Dimensions</label>
           <input type="text" id="dimensions" name="dimensions" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
-        <div>
+        <div id="price-wrapper">
           <label class="block text-sm font-medium" for="price">Price</label>
           <input type="number" id="price" name="price" step="0.01" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
@@ -59,23 +67,22 @@
         <div>
           <label class="block text-sm font-medium" for="status">Availability</label>
           <select id="status" name="status" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-            <option value=""></option>
+            <option value="available" selected>Available</option>
             <option value="inquire">Inquire</option>
             <option value="offer">Make an Offer</option>
-            <option value="available" selected>Available</option>
             <option value="collected">Red Dot Collected</option>
           </select>
         </div>
         <div class="flex items-center">
-          <input type="checkbox" id="hide_collected" name="hide_collected" value="1" class="mr-2">
-          <label for="hide_collected" class="text-sm">Hide if collected</label>
+          <input type="checkbox" id="isVisible" name="isVisible" value="1" class="mr-2" checked>
+          <label for="isVisible" class="text-sm">Visible</label>
         </div>
         <div class="flex items-center">
-          <input type="checkbox" id="featured" name="featured" value="1" class="mr-2">
-          <label for="featured" class="text-sm">Featured</label>
+          <input type="checkbox" id="isFeatured" name="isFeatured" value="1" class="mr-2">
+          <label for="isFeatured" class="text-sm">Featured</label>
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit</button>
+        <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded col-span-full flex items-center justify-center"><span class="status-text">Submit</span></button>
       </form>
       <h2 class="text-xl font-bold mt-8 mb-4 text-center">Uploaded Files</h2>
       <ul class="grid grid-cols-2 gap-4">
@@ -97,6 +104,11 @@
   const previewImg = document.getElementById('preview');
   const mediumSelect = document.getElementById('medium');
   const customMedium = document.getElementById('custom-medium');
+  const statusSelect = document.getElementById('status');
+  const priceWrapper = document.getElementById('price-wrapper');
+  const form = document.getElementById('upload-form');
+  const submitBtn = form.querySelector('.save-btn');
+  const submitLabel = submitBtn.querySelector('.status-text');
 
   imageInput.addEventListener('change', function() {
     const file = this.files[0];
@@ -119,6 +131,19 @@
     } else {
       customMedium.classList.add('hidden');
     }
+  });
+
+  statusSelect.addEventListener('change', function() {
+    if (this.value === 'collected') {
+      priceWrapper.classList.add('hidden');
+    } else {
+      priceWrapper.classList.remove('hidden');
+    }
+  });
+
+  form.addEventListener('submit', async e => {
+    submitBtn.disabled = true;
+    submitLabel.textContent = 'Saving...';
   });
   </script>
 </body>

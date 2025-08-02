@@ -93,7 +93,7 @@ test('homepage responds with welcome text', async () => {
   const port = server.address().port;
   const { statusCode, body } = await httpGet(`http://localhost:${port}/`);
   assert.strictEqual(statusCode, 200);
-  assert.match(body, /FineArt Gallery Platform/);
+  assert.match(body, /FineArtSuite/);
 });
 
 test('gallery page responds with gallery name', async () => {

@@ -29,7 +29,10 @@
 
               <% if (art.status) { %>
                 <% if (art.status === 'collected') { %>
-                  <span class="text-red-500 flex items-center text-sm"><span class="mr-1">&#9679;</span>Collected</span>
+                  <span class="text-red-500 flex items-center text-sm">
+                    <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                    Collected
+                  </span>
                 <% } else if (art.status === 'available') { %>
                   <span class="text-sm">Available</span>
                 <% } else if (art.status === 'inquire') { %>

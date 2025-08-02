@@ -7,19 +7,19 @@ function getGallery(slug, cb) {
     db.all('SELECT * FROM artists WHERE gallery_slug = ?', [slug], (err2, artists) => {
       if (err2) return cb(err2);
       let remaining = artists.length;
+      const featured = [];
       if (remaining === 0) {
         gallery.artists = [];
+        gallery.featuredArtworks = [];
         return cb(null, gallery);
       }
       artists.forEach(artist => {
-        db.all('SELECT * FROM artworks WHERE artist_id = ?', [artist.id], (err3, artworks) => {
+        db.all('SELECT * FROM artworks WHERE artist_id = ? AND isVisible = 1', [artist.id], (err3, artworks) => {
           artist.artworks = artworks || [];
+          featured.push(...(artworks || []).filter(a => a.isFeatured));
           if (--remaining === 0) {
             gallery.artists = artists;
-            const firstArtist = artists[0];
-            if (firstArtist && firstArtist.artworks && firstArtist.artworks[0]) {
-              gallery.featuredArtwork = firstArtist.artworks[0];
-            }
+            gallery.featuredArtworks = featured;
             cb(null, gallery);
           }
         });
