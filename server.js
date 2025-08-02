@@ -10,6 +10,12 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+let Jimp;
+try {
+  Jimp = require('jimp');
+} catch (err) {
+  console.warn('jimp not installed, images will be copied without resizing');
+}
 let flash;
 try {
   flash = require('connect-flash');
@@ -55,17 +61,42 @@ if (!fs.existsSync(uploadsDir)) {
 const upload = multer({
   dest: uploadsDir,
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png'];
+    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPEG and PNG images are allowed'));
+      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
+
+async function processImages(file) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const base = path.parse(file.filename).name;
+  const fullPath = path.join(uploadsDir, `${base}_full${ext}`);
+  const standardPath = path.join(uploadsDir, `${base}_standard${ext}`);
+  const thumbPath = path.join(uploadsDir, `${base}_thumb${ext}`);
+  if (Jimp) {
+    const image = await Jimp.read(file.path);
+    await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
+    await image.clone().scaleToFit(1000, 1000).writeAsync(standardPath);
+    await image.clone().scaleToFit(500, 500).writeAsync(thumbPath);
+    fs.unlinkSync(file.path);
+  } else {
+    fs.copyFileSync(file.path, fullPath);
+    fs.copyFileSync(file.path, standardPath);
+    fs.copyFileSync(file.path, thumbPath);
+    fs.unlinkSync(file.path);
+  }
+  return {
+    imageFull: `/uploads/${path.basename(fullPath)}`,
+    imageStandard: `/uploads/${path.basename(standardPath)}`,
+    imageThumb: `/uploads/${path.basename(thumbPath)}`
+  };
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -268,45 +299,78 @@ app.delete('/dashboard/artists/:id', requireLogin, (req, res) => {
 });
 
 app.post('/dashboard/artworks', requireLogin, (req, res) => {
-  try {
-    const { id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured } = req.body;
-    if (!id || !artist_id || !title || !medium || !dimensions || !price || !image) {
-      req.flash('error', 'All fields are required');
+  upload.single('imageFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      req.flash('error', err.message);
       return res.redirect('/dashboard/artworks');
     }
-    const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?)`;
-    db.run(stmt, [id, artist_id, title, medium, dimensions, price, image, status || '', hide_collected ? 1 : 0, featured ? 1 : 0], err => {
-      if (err) {
-        console.error(err);
-        req.flash('error', 'Database error');
+    try {
+      const { id, artist_id, title, medium, dimensions, price, imageUrl, status, hide_collected, featured } = req.body;
+      if (!id || !artist_id || !title || !medium || !dimensions || !price) {
+        req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
       }
-      req.flash('success', 'Artwork added');
+      if (req.file && imageUrl) {
+        req.flash('error', 'Choose either an upload or a URL');
+        return res.redirect('/dashboard/artworks');
+      }
+      if (!req.file && !imageUrl) {
+        req.flash('error', 'Image is required');
+        return res.redirect('/dashboard/artworks');
+      }
+      const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [id, artist_id, title, medium, dimensions, price, images.imageFull, images.imageStandard, images.imageThumb, status || '', hide_collected ? 1 : 0, featured ? 1 : 0], runErr => {
+        if (runErr) {
+          console.error(runErr);
+          req.flash('error', 'Database error');
+          return res.redirect('/dashboard/artworks');
+        }
+        req.flash('success', 'Artwork added');
+        res.redirect('/dashboard/artworks');
+      });
+    } catch (e) {
+      console.error(e);
+      req.flash('error', 'Server error');
       res.redirect('/dashboard/artworks');
-    });
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Server error');
-    res.redirect('/dashboard/artworks');
-  }
+    }
+  });
 });
 
 app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
-  try {
-    const { title, medium, dimensions, price, image, status, hide_collected, featured } = req.body;
-    const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=?, status=?, hide_collected=?, featured=? WHERE id=?`;
-    db.run(stmt, [title, medium, dimensions, price, image, status || '', hide_collected ? 1 : 0, featured ? 1 : 0, req.params.id], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
+  upload.single('imageFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      return res.status(400).send(err.message);
+    }
+    try {
+      const { title, medium, dimensions, price, imageUrl, status, hide_collected, featured } = req.body;
+      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, hide_collected=?, featured=?`;
+      const params = [title, medium, dimensions, price, status || '', hide_collected ? 1 : 0, featured ? 1 : 0];
+      if (req.file || imageUrl) {
+        if (req.file && imageUrl) {
+          return res.status(400).send('Choose either an upload or a URL');
+        }
+        const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+        stmt += ', imageFull=?, imageStandard=?, imageThumb=?';
+        params.push(images.imageFull, images.imageStandard, images.imageThumb);
       }
-      req.flash('success', 'Artwork saved');
-      res.sendStatus(204);
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
+      stmt += ' WHERE id=?';
+      params.push(req.params.id);
+      db.run(stmt, params, dbErr => {
+        if (dbErr) {
+          console.error(dbErr);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artwork saved');
+        res.sendStatus(204);
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).send('Server error');
+    }
+  });
 });
 
 app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
@@ -335,7 +399,7 @@ app.get('/dashboard/upload', requireLogin, (req, res) => {
 });
 
 app.post('/dashboard/upload', requireLogin, (req, res) => {
-  upload.single('image')(req, res, err => {
+  upload.single('image')(req, res, async err => {
     if (err) {
       console.error(err);
       const message = err.code === 'LIMIT_FILE_SIZE' ? 'File too large' : err.message;
@@ -353,26 +417,33 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    db.get('SELECT id FROM artists LIMIT 1', (artistErr, artist) => {
+    db.get('SELECT id FROM artists LIMIT 1', async (artistErr, artist) => {
       if (artistErr || !artist) {
         console.error(artistErr);
         req.flash('error', 'Artist not found');
         return res.status(500).redirect('/dashboard/upload');
       }
 
-      const artworkId = id && id.trim() !== '' ? id : 'art_' + Date.now();
-      const finalMedium = medium === 'other' ? custom_medium : medium;
-      const hideCollectedVal = hide_collected ? 1 : 0;
-      const featuredVal = featured ? 1 : 0;
-      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?)`;
-      db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, price, req.file.filename, status, hideCollectedVal, featuredVal], runErr => {
-        if (runErr) {
-          console.error(runErr);
-          req.flash('error', 'Database error');
-          return res.status(500).redirect('/dashboard/upload');
-        }
-        res.redirect('/dashboard/upload?success=1');
-      });
+      try {
+        const artworkId = id && id.trim() !== '' ? id : 'art_' + Date.now();
+        const finalMedium = medium === 'other' ? custom_medium : medium;
+        const hideCollectedVal = hide_collected ? 1 : 0;
+        const featuredVal = featured ? 1 : 0;
+        const images = await processImages(req.file);
+        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, price, images.imageFull, images.imageStandard, images.imageThumb, status, hideCollectedVal, featuredVal], runErr => {
+          if (runErr) {
+            console.error(runErr);
+            req.flash('error', 'Database error');
+            return res.status(500).redirect('/dashboard/upload');
+          }
+          res.redirect('/dashboard/upload?success=1');
+        });
+      } catch (procErr) {
+        console.error(procErr);
+        req.flash('error', 'Image processing failed');
+        return res.status(500).redirect('/dashboard/upload');
+      }
     });
   });
 });

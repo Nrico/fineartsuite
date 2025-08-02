@@ -12,7 +12,9 @@ function getArtwork(gallerySlug, id, cb) {
       medium: row.medium,
       dimensions: row.dimensions,
       price: row.price,
-      image: row.image,
+      imageFull: row.imageFull,
+      imageStandard: row.imageStandard,
+      imageThumb: row.imageThumb,
       status: row.status,
       hide_collected: row.hide_collected,
       featured: row.featured
