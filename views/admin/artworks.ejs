@@ -6,68 +6,80 @@
   <link rel="stylesheet" href="/css/main.css">
   <meta name="csrf-token" content="<%= csrfToken %>">
 </head>
-<body class="bg-gray-100 p-4">
-  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl mb-4 text-center">Artwork Management</h1>
-    <% if (flash.error && flash.error.length) { %>
-      <p class="text-red-600 mb-4"><%= flash.error[0] %></p>
-    <% } %>
-    <% if (flash.success && flash.success.length) { %>
-      <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
-    <% } %>
-    <form id="add-art" method="post" action="/dashboard/artworks" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium" for="id">ID</label>
-        <input id="id" type="text" name="id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="artist_id">Artist ID</label>
-        <input id="artist_id" type="text" name="artist_id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="title">Title</label>
-        <input id="title" type="text" name="title" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="medium">Medium</label>
-        <input id="medium" type="text" name="medium" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="dimensions">Dimensions</label>
-        <input id="dimensions" type="text" name="dimensions" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="price">Price</label>
-        <input id="price" type="text" name="price" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block text-sm font-medium" for="image">Image</label>
-        <input id="image" type="text" name="image" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Artwork</button>
-    </form>
-    <h2 class="text-xl mt-8 mb-4">Existing Artworks</h2>
-    <ul class="space-y-4">
-      <% artworks.forEach(function(art){ %>
-        <li>
-          <form class="art-form flex flex-col sm:grid sm:grid-cols-5 sm:gap-2 gap-2" data-id="<%= art.id %>">
-            <input name="title" value="<%= art.title %>" class="border border-gray-300 rounded px-2 py-1">
-            <input name="medium" value="<%= art.medium %>" class="border border-gray-300 rounded px-2 py-1">
-            <input name="dimensions" value="<%= art.dimensions %>" class="border border-gray-300 rounded px-2 py-1">
-            <input name="price" value="<%= art.price %>" class="border border-gray-300 rounded px-2 py-1">
-            <input name="image" value="<%= art.image %>" class="border border-gray-300 rounded px-2 py-1">
-            <div class="flex gap-2 mt-2 sm:col-span-5">
-              <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
-              <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
-            </div>
-          </form>
-          <span class="text-sm text-gray-600">(<%= art.artist_id %>)</span>
-        </li>
-      <% }) %>
-    </ul>
-    <p class="mt-6"><a href="/dashboard" class="text-blue-600 underline">Back to dashboard</a></p>
-  </div>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex space-x-4 mt-2 md:mt-0">
+      <a href="/dashboard" class="hover:underline">Dashboard</a>
+      <a href="/logout" class="hover:underline">Logout</a>
+    </div>
+  </nav>
+  <main class="max-w-3xl mx-auto p-6">
+    <div class="border border-gray-200 p-6 rounded shadow">
+      <h1 class="text-2xl mb-4 text-center">Artwork Management</h1>
+      <% if (flash.error && flash.error.length) { %>
+        <p class="text-red-600 mb-4"><%= flash.error[0] %></p>
+      <% } %>
+      <% if (flash.success && flash.success.length) { %>
+        <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
+      <% } %>
+      <form id="add-art" method="post" action="/dashboard/artworks" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium" for="id">ID</label>
+          <input id="id" type="text" name="id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="artist_id">Artist ID</label>
+          <input id="artist_id" type="text" name="artist_id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="title">Title</label>
+          <input id="title" type="text" name="title" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="medium">Medium</label>
+          <input id="medium" type="text" name="medium" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="dimensions">Dimensions</label>
+          <input id="dimensions" type="text" name="dimensions" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="price">Price</label>
+          <input id="price" type="text" name="price" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="image">Image</label>
+          <input id="image" type="text" name="image" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Artwork</button>
+      </form>
+      <h2 class="text-xl mt-8 mb-4">Existing Artworks</h2>
+      <ul class="space-y-4">
+        <% artworks.forEach(function(art){ %>
+          <li>
+            <form class="art-form flex flex-col sm:grid sm:grid-cols-5 sm:gap-2 gap-2" data-id="<%= art.id %>">
+              <input name="title" value="<%= art.title %>" class="border border-gray-300 rounded px-2 py-1">
+              <input name="medium" value="<%= art.medium %>" class="border border-gray-300 rounded px-2 py-1">
+              <input name="dimensions" value="<%= art.dimensions %>" class="border border-gray-300 rounded px-2 py-1">
+              <input name="price" value="<%= art.price %>" class="border border-gray-300 rounded px-2 py-1">
+              <input name="image" value="<%= art.image %>" class="border border-gray-300 rounded px-2 py-1">
+              <div class="flex gap-2 mt-2 sm:col-span-5">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
+                <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
+              </div>
+            </form>
+            <span class="text-sm text-gray-600">(<%= art.artist_id %>)</span>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="mt-6"><a href="/dashboard" class="text-blue-600 underline">Back to dashboard</a></p>
+    </div>
+  </main>
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     document.querySelectorAll('.art-form').forEach(f => {
