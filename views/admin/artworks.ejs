@@ -201,13 +201,23 @@
       btn.disabled = true;
       label.textContent = 'Saving...';
       const data = new FormData(addForm);
-      await fetch('/dashboard/artworks', {
-        method: 'POST',
-        headers: { 'CSRF-Token': csrfToken },
-        body: data
-      });
-      label.textContent = 'Saved!';
-      setTimeout(() => { location.reload(); }, 1500);
+      try {
+        const res = await fetch('/dashboard/artworks', {
+          method: 'POST',
+          headers: { 'CSRF-Token': csrfToken },
+          body: data
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || res.statusText);
+        }
+        label.textContent = 'Saved!';
+        setTimeout(() => { location.reload(); }, 1500);
+      } catch (err) {
+        label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
+        btn.disabled = false;
+        setTimeout(() => { label.textContent = original; }, 2000);
+      }
     });
 
     document.querySelectorAll('.art-form').forEach(f => {
@@ -220,18 +230,38 @@
         btn.disabled = true;
         label.textContent = 'Saving...';
         const formData = new FormData(f);
-        await fetch('/dashboard/artworks/' + id, {
-          method: 'PUT',
-          headers: { 'CSRF-Token': csrfToken },
-          body: formData
-        });
-        label.textContent = 'Saved!';
-        setTimeout(() => { label.textContent = original; btn.disabled = false; }, 1500);
+        try {
+          const res = await fetch('/dashboard/artworks/' + id, {
+            method: 'PUT',
+            headers: { 'CSRF-Token': csrfToken },
+            body: formData
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || res.statusText);
+          }
+          label.textContent = 'Saved!';
+          setTimeout(() => { label.textContent = original; btn.disabled = false; }, 1500);
+        } catch (err) {
+          label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
+          btn.disabled = false;
+          setTimeout(() => { label.textContent = original; }, 2000);
+        }
       });
       f.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();
-        await fetch('/dashboard/artworks/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
-        location.reload();
+        try {
+          const res = await fetch('/dashboard/artworks/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || res.statusText);
+          }
+          location.reload();
+        } catch (err) {
+          label.textContent = 'Delete failed' + (err.message ? ': ' + err.message : '');
+          btn.disabled = false;
+          setTimeout(() => { label.textContent = original; }, 2000);
+        }
       });
     });
   </script>
