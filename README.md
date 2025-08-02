@@ -33,8 +33,8 @@ When `USE_DEMO_AUTH` is disabled (the default), all `/dashboard` routes require
 logging in. Set the variable to `true` during development to bypass the login
 form for convenience.
 
-The application uses simple flash messages stored in the session to display
-login errors and form validation feedback.
+Flash messages are provided using the `connect-flash` middleware. These
+messages give feedback after actions such as logging in or editing records.
 
 ## Gallery pages
 

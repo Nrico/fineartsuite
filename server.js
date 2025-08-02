@@ -4,6 +4,24 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+let flash;
+try {
+  flash = require('connect-flash');
+} catch (err) {
+  // Fallback implementation when connect-flash is not installed
+  flash = () => (req, res, next) => {
+    res.locals.flash = req.session?.flash || {};
+    req.flash = function(type, msg) {
+      if (!req.session) throw new Error('flash requires sessions');
+      if (!req.session.flash) req.session.flash = {};
+      if (!req.session.flash[type]) req.session.flash[type] = [];
+      if (msg) req.session.flash[type].push(msg);
+      return req.session.flash[type];
+    };
+    delete req.session?.flash;
+    next();
+  };
+}
 const { initialize, db } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
 const { getArtist } = require('./models/artistModel');
@@ -33,15 +51,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
 
-// Minimal flash message implementation using the session
+// Flash messages using connect-flash or fallback implementation
+app.use(flash());
 app.use((req, res, next) => {
-  res.locals.flash = req.session.flash || {};
-  req.flash = (type, msg) => {
-    if (!req.session.flash) req.session.flash = {};
-    if (!req.session.flash[type]) req.session.flash[type] = [];
-    req.session.flash[type].push(msg);
-  };
-  delete req.session.flash;
+  res.locals.flash = req.flash();
   next();
 });
 
@@ -173,6 +186,7 @@ app.put('/dashboard/artists/:id', requireLogin, (req, res) => {
         console.error(err);
         return res.status(500).send('Database error');
       }
+      req.flash('success', 'Artist saved');
       res.sendStatus(204);
     });
   } catch (err) {
@@ -188,6 +202,7 @@ app.delete('/dashboard/artists/:id', requireLogin, (req, res) => {
         console.error(err);
         return res.status(500).send('Database error');
       }
+      req.flash('success', 'Artist deleted');
       res.sendStatus(204);
     });
   } catch (err) {
@@ -229,6 +244,7 @@ app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
         console.error(err);
         return res.status(500).send('Database error');
       }
+      req.flash('success', 'Artwork saved');
       res.sendStatus(204);
     });
   } catch (err) {
@@ -244,6 +260,7 @@ app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
         console.error(err);
         return res.status(500).send('Database error');
       }
+      req.flash('success', 'Artwork deleted');
       res.sendStatus(204);
     });
   } catch (err) {
