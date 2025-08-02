@@ -65,6 +65,14 @@ npm test
 
 This will start the application in test mode and verify that the homepage and a sample gallery page respond correctly.
 
+## Deployment on Render
+
+The repository includes a `render.yaml` file for deploying the app to
+[Render](https://render.com). Create a new Web Service using this repository
+and Render will apply the provided build and start commands. The configuration
+sets default environment variables and mounts a small persistent disk for the
+SQLite database.
+
 ## License
 
 FineArtSuite is released under the [ISC License](LICENSE).
