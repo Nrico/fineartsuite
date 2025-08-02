@@ -17,7 +17,9 @@ function getArtwork(gallerySlug, id, cb) {
       imageThumb: row.imageThumb,
       status: row.status,
       hide_collected: row.hide_collected,
-      featured: row.featured
+      featured: row.featured,
+      isVisible: row.isVisible,
+      isFeatured: row.isFeatured
     };
     cb(null, { artwork, artistId: row.artistId });
   });

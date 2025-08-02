@@ -2,6 +2,10 @@
 <html>
 <head>
   <title><%= gallery.name %> - Gallery</title>
+  <meta name="description" content="<%= gallery.bio %>">
+  <meta property="og:title" content="<%= gallery.name %>">
+  <meta property="og:description" content="<%= gallery.bio %>">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body class="font-sans bg-white text-black">
@@ -19,37 +23,34 @@
     </header>
 
     <section class="mb-12">
-      <h2 class="text-2xl font-bold mb-4">Featured Artwork</h2>
-      <div class="text-center">
-        <img src="<%= gallery.featuredArtwork.imageStandard %>" alt="<%= gallery.featuredArtwork.title %>" class="mx-auto max-w-sm fade-in" loading="lazy" onload="this.classList.add('loaded')">
-        <p class="mt-4 font-semibold"><%= gallery.featuredArtwork.title %></p>
-
-        <% if (gallery.featuredArtwork.status) { %>
-          <% if (gallery.featuredArtwork.status === 'collected') { %>
-            <p class="text-red-500 flex items-center justify-center text-sm"><span class="mr-1">&#9679;</span>Collected</p>
-          <% } else if (gallery.featuredArtwork.status === 'available') { %>
-            <p class="text-sm">Available</p>
-          <% } else if (gallery.featuredArtwork.status === 'inquire') { %>
-            <button class="mt-2 px-2 py-1 text-sm border rounded">Inquire</button>
-          <% } else if (gallery.featuredArtwork.status === 'make_offer') { %>
-            <button class="mt-2 px-2 py-1 text-sm border rounded">Make an Offer</button>
-          <% } %>
-        <% } %>
-
-        <% const showPrice = !(gallery.featuredArtwork.status === 'collected' && gallery.featuredArtwork.price); %>
-        <p class="text-sm text-gray-600">
-          <%= gallery.featuredArtwork.medium %> • <%= gallery.featuredArtwork.dimensions %>
-          <% if (showPrice && gallery.featuredArtwork.price) { %> • <%= gallery.featuredArtwork.price %><% } %>
-        </p>
-      </div>
+      <h2 class="text-2xl font-bold mb-4">Featured Artworks</h2>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <% gallery.featuredArtworks.forEach(function(art){ %>
+          <li>
+            <a href="/<%= slug %>/artworks/<%= art.id %>" class="block text-center">
+              <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="mx-auto mb-2 fade-in" loading="lazy" onload="this.classList.add('loaded')">
+              <span class="font-semibold block"><%= art.title %></span>
+              <% if (art.status === 'collected') { %>
+                <span class="text-red-500 flex items-center justify-center text-sm">
+                  <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                  Collected
+                </span>
+              <% } %>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
     </section>
 
     <section>
       <h2 class="text-2xl font-bold mb-4">Artists</h2>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         <% gallery.artists.forEach(function(artist){ %>
-          <li>
-            <a class="block p-4 border border-gray-200 hover:bg-gray-50" href="/<%= slug %>/artists/<%= artist.id %>"><%= artist.name %></a>
+          <li class="text-center">
+            <a href="/<%= slug %>/artists/<%= artist.id %>" class="block">
+              <img src="<%= artist.bioImageUrl %>" alt="<%= artist.name %>" class="w-24 h-24 rounded-full mx-auto mb-2 object-cover fade-in" loading="lazy" onload="this.classList.add('loaded')">
+              <span class="font-semibold"><%= artist.name %></span>
+            </a>
           </li>
         <% }) %>
       </ul>

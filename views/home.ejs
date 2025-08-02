@@ -14,10 +14,40 @@
   </nav>
 
   <section class="text-center py-24">
-    <h1 class="text-5xl font-bold mb-6">FineArt Gallery Platform</h1>
-    <p class="text-lg text-gray-600 mb-8">Welcome to FineArtSuite, the easiest way to manage your online art gallery.</p>
-    <p class="mb-2"><a class="underline" href="/demo-gallery">View demo gallery</a></p>
-    <p><a class="underline" href="/login">Admin Login</a></p>
+    <h1 class="text-5xl font-bold mb-6">FineArtSuite</h1>
+    <p class="text-lg text-gray-600 mb-8">Multi-gallery platform for managing and showcasing fine art.</p>
+    <div class="flex justify-center space-x-4">
+      <a href="#galleries" class="bg-black text-white px-6 py-3 rounded hover:bg-gray-800">View a Gallery</a>
+      <a href="/login" class="border border-black px-6 py-3 rounded hover:bg-gray-100">Create Your Own</a>
+    </div>
+  </section>
+
+  <section id="galleries" class="max-w-4xl mx-auto px-4 py-12">
+    <h2 class="text-2xl font-bold mb-6 text-center">Galleries</h2>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-center">
+      <% galleries.forEach(g => { %>
+        <li>
+          <a href="/<%= g.slug %>" class="block border border-gray-200 p-4 hover:bg-gray-50"><%= g.slug %></a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+
+  <section class="bg-gray-50 py-16">
+    <div class="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Showcase Artworks</h3>
+        <p class="text-gray-600">Display high-quality images of artworks in a beautiful gallery.</p>
+      </div>
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Manage Artist Profiles</h3>
+        <p class="text-gray-600">Organize bios and portfolios for your artists in one place.</p>
+      </div>
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Track Availability</h3>
+        <p class="text-gray-600">Monitor artwork status and mark pieces as collected.</p>
+      </div>
+    </div>
   </section>
 
   <footer class="text-center py-6 border-t border-gray-200">
