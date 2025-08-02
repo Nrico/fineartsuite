@@ -103,6 +103,14 @@ test('gallery page responds with gallery name', async () => {
   assert.match(body, /Demo Gallery/);
 });
 
+test('gallery page lists multiple artists', async () => {
+  const port = server.address().port;
+  const { statusCode, body } = await httpGet(`http://localhost:${port}/demo-gallery`);
+  assert.strictEqual(statusCode, 200);
+  const matches = body.match(/demo-gallery\/artists\//g) || [];
+  assert.ok(matches.length >= 2);
+});
+
 test('dashboard redirects to login when not authenticated', async () => {
   const port = server.address().port;
   const { statusCode, headers } = await httpGet(`http://localhost:${port}/dashboard`);

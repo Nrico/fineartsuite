@@ -45,13 +45,19 @@ function seed() {
 
   const artistStmt = db.prepare('INSERT INTO artists (id, gallery_slug, name, bio) VALUES (?,?,?,?)');
   artistStmt.run('artist1', 'demo-gallery', 'Jane Doe', 'An abstract artist exploring color and form.');
-  artistStmt.run('artist2', 'city-gallery', 'John Smith', 'Exploring the geometry of urban life.');
+  artistStmt.run('artist2', 'demo-gallery', 'John Smith', 'Exploring the geometry of urban life.');
+  artistStmt.run('artist3', 'demo-gallery', 'Emily Carter', 'Mixed media artist inspired by nature.');
+  artistStmt.run('artist4', 'demo-gallery', 'Liam Nguyen', 'Digital artist focusing on surreal landscapes.');
+  artistStmt.run('artist5', 'city-gallery', 'Sophia Martinez', 'Sculptor merging modern and classical motifs.');
   artistStmt.finalize();
 
   const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status) VALUES (?,?,?,?,?,?,?,?)');
   artworkStmt.run('art1', 'artist1', 'Dreamscape', 'Oil on Canvas', '30x40', '$4000', 'https://placehold.co/600x400?text=Dreamscape', 'available');
   artworkStmt.run('art2', 'artist1', 'Ocean Depths', 'Acrylic', '24x36', '$2500', 'https://placehold.co/600x400?text=Ocean+Depths', 'available');
   artworkStmt.run('c1', 'artist2', 'City Lights', 'Oil on Canvas', '24x30', '$3500', 'https://via.placeholder.com/600x400?text=City+Lights', 'available');
+  artworkStmt.run('art3', 'artist3', 'Forest Whisper', 'Watercolor', '18x24', '$1800', 'https://placehold.co/600x400?text=Forest+Whisper', 'available');
+  artworkStmt.run('art4', 'artist4', 'Dream Horizon', 'Digital', '1920x1080', '$1200', 'https://placehold.co/600x400?text=Dream+Horizon', 'available');
+  artworkStmt.run('art5', 'artist5', 'Stone Echo', 'Marble', '20x40', '$5000', 'https://placehold.co/600x400?text=Stone+Echo', 'available');
   artworkStmt.finalize();
 }
 
