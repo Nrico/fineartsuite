@@ -109,6 +109,45 @@ test('upload page redirects to login when not authenticated', async () => {
   assert.strictEqual(headers.location, '/login');
 });
 
+test('login succeeds with correct credentials', async () => {
+  const port = server.address().port;
+  const res = await httpPostForm(`http://localhost:${port}/login`, {
+    username: 'admin',
+    password: 'password'
+  });
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/dashboard');
+  assert.ok(res.headers['set-cookie']);
+  const cookie = res.headers['set-cookie'][0].split(';')[0];
+  const dash = await httpRequest('GET', `http://localhost:${port}/dashboard`, null, cookie);
+  assert.strictEqual(dash.statusCode, 200);
+});
+
+test('login fails with bad credentials', async () => {
+  const port = server.address().port;
+  const res = await httpPostForm(`http://localhost:${port}/login`, {
+    username: 'admin',
+    password: 'wrong'
+  });
+  assert.strictEqual(res.statusCode, 200);
+  assert.match(res.body, /Invalid credentials/);
+});
+
+test('logout destroys session', async () => {
+  const port = server.address().port;
+  const login = await httpPostForm(`http://localhost:${port}/login`, {
+    username: 'admin',
+    password: 'password'
+  });
+  const cookie = login.headers['set-cookie'][0].split(';')[0];
+  const out = await httpRequest('GET', `http://localhost:${port}/logout`, null, cookie);
+  assert.strictEqual(out.statusCode, 302);
+  assert.strictEqual(out.headers.location, '/login');
+  const dash = await httpRequest('GET', `http://localhost:${port}/dashboard`, null, cookie);
+  assert.strictEqual(dash.statusCode, 302);
+  assert.strictEqual(dash.headers.location, '/login');
+});
+
 test('admin artist routes allow CRUD after login', async () => {
   const port = server.address().port;
   const login = await httpPostForm(`http://localhost:${port}/login`, { username: 'admin', password: 'password' });
