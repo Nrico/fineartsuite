@@ -336,7 +336,15 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
         return res.redirect('/dashboard/artworks');
       }
       const finalMedium = medium === 'other' ? custom_medium : medium;
-      const finalPrice = status === 'collected' ? null : price;
+      let finalPrice = null;
+      if (status !== 'collected') {
+        const parsed = parseFloat(price);
+        if (isNaN(parsed)) {
+          req.flash('error', 'Price must be a valid number');
+          return res.redirect('/dashboard/artworks');
+        }
+        finalPrice = parsed.toFixed(2);
+      }
       const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
       const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
       db.run(stmt, [id, artist_id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
@@ -365,7 +373,14 @@ app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
     try {
       const { title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
       const finalMedium = medium === 'other' ? custom_medium : medium;
-      const finalPrice = status === 'collected' ? null : price;
+      let finalPrice = null;
+      if (status !== 'collected') {
+        const parsed = parseFloat(price);
+        if (isNaN(parsed)) {
+          return res.status(400).send('Price must be a valid number');
+        }
+        finalPrice = parsed.toFixed(2);
+      }
       let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?`;
       const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
       if (req.file || imageUrl) {

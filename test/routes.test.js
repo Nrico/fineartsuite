@@ -239,7 +239,7 @@ test('admin artwork routes allow CRUD after login', async () => {
     title: 'NewArt',
     medium: 'Oil',
     dimensions: '1x1',
-    price: '$1',
+    price: '1',
     imageUrl: 'http://example.com',
     _csrf: token
   }, cookie);
@@ -253,7 +253,7 @@ test('admin artwork routes allow CRUD after login', async () => {
     title: 'UpdatedArt',
     medium: 'Acrylic',
     dimensions: '2x2',
-    price: '$2',
+    price: '2',
     imageUrl: 'http://example.com/2'
   }, cookie, token);
   res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${id}`);
