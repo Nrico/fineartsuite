@@ -61,3 +61,7 @@ npm test
 ```
 
 This will start the application in test mode and verify that the homepage and a sample gallery page respond correctly.
+
+## License
+
+FineArtSuite is released under the [ISC License](LICENSE).
