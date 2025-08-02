@@ -25,20 +25,32 @@
       <% } %>
       <form id="add-artist" method="post" action="/dashboard/artists" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium" for="id">ID</label>
-          <input id="id" type="text" name="id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <label class="block text-sm font-medium" for="id">Artist ID</label>
+          <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
         </div>
         <div>
           <label class="block text-sm font-medium" for="gallery_slug">Gallery Slug</label>
-          <input id="gallery_slug" type="text" name="gallery_slug" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <select id="gallery_slug" name="gallery_slug" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+            <% galleries.forEach(function(g){ %>
+              <option value="<%= g.slug %>"><%= g.slug %></option>
+            <% }) %>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium" for="name">Name</label>
           <input id="name" type="text" name="name" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <div>
-          <label class="block text-sm font-medium" for="bio">Bio</label>
-          <input id="bio" type="text" name="bio" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <label class="block text-sm font-medium" for="bio">Brief Bio</label>
+          <textarea id="bio" name="bio" rows="3" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="fullBio">Extended Bio</label>
+          <textarea id="fullBio" name="fullBio" rows="5" class="mt-1 w-full border border-gray-300 rounded px-2 py-1"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="bioImageUrl">Artist Portrait URL</label>
+          <input id="bioImageUrl" type="text" name="bioImageUrl" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Artist</button>
@@ -47,13 +59,22 @@
       <ul class="space-y-4">
         <% artists.forEach(function(a){ %>
           <li>
-            <form class="artist-form flex flex-col sm:flex-row sm:items-center gap-2" data-id="<%= a.id %>">
-              <input name="name" value="<%= a.name %>" class="border border-gray-300 rounded px-2 py-1 flex-1">
-              <input name="bio" value="<%= a.bio %>" class="border border-gray-300 rounded px-2 py-1 flex-1">
-              <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
-              <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
+            <form class="artist-form space-y-2" data-id="<%= a.id %>">
+              <input name="name" value="<%= a.name %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+              <textarea name="bio" rows="3" class="border border-gray-300 rounded px-2 py-1 w-full"><%= a.bio %></textarea>
+              <textarea name="fullBio" rows="5" class="border border-gray-300 rounded px-2 py-1 w-full"><%= a.fullBio %></textarea>
+              <input name="bioImageUrl" value="<%= a.bioImageUrl %>" class="border border-gray-300 rounded px-2 py-1 w-full" placeholder="Portrait URL">
+              <select name="gallery_slug" class="border border-gray-300 rounded px-2 py-1 w-full">
+                <% galleries.forEach(function(g){ %>
+                  <option value="<%= g.slug %>" <%= g.slug === a.gallery_slug ? 'selected' : '' %>><%= g.slug %></option>
+                <% }) %>
+              </select>
+              <div class="flex gap-2">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
+                <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
+              </div>
             </form>
-            <span class="text-sm text-gray-600">(<%= a.gallery_slug %>)</span>
+            <span class="text-sm text-gray-600">ID: <%= a.id %></span>
           </li>
         <% }) %>
       </ul>

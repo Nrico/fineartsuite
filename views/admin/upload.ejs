@@ -22,12 +22,26 @@
       <% } %>
       <form id="upload-form" method="post" action="/dashboard/upload" enctype="multipart/form-data" class="space-y-4">
         <div>
+          <label class="block text-sm font-medium" for="id">Artwork ID</label>
+          <input type="text" id="id" name="id" value="<%= generatedId %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
+        </div>
+        <div>
           <label class="block text-sm font-medium" for="title">Title</label>
           <input type="text" id="title" name="title" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <div>
           <label class="block text-sm font-medium" for="medium">Medium</label>
-          <input type="text" id="medium" name="medium" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <select id="medium" name="medium" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+            <option value="Oil">Oil</option>
+            <option value="Acrylic">Acrylic</option>
+            <option value="Mixed Media">Mixed Media</option>
+            <option value="Ink">Ink</option>
+            <option value="Digital">Digital</option>
+            <option value="Sculpture">Sculpture</option>
+            <option value="Print">Print</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="custom-medium" name="custom_medium" placeholder="Enter medium" class="mt-2 w-full border border-gray-300 rounded px-2 py-1 hidden">
         </div>
         <div>
           <label class="block text-sm font-medium" for="dimensions">Dimensions</label>
@@ -43,11 +57,22 @@
           <img id="preview" src="" alt="Preview" class="mt-2 max-w-full hidden">
         </div>
         <div>
-          <label class="block text-sm font-medium" for="status">Status</label>
+          <label class="block text-sm font-medium" for="status">Availability</label>
           <select id="status" name="status" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-            <option value="available">Available</option>
-            <option value="sold">Sold</option>
+            <option value=""></option>
+            <option value="inquire">Inquire</option>
+            <option value="offer">Make an Offer</option>
+            <option value="available" selected>Available</option>
+            <option value="collected">Red Dot Collected</option>
           </select>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="hide_collected" name="hide_collected" value="1" class="mr-2">
+          <label for="hide_collected" class="text-sm">Hide if collected</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="featured" name="featured" value="1" class="mr-2">
+          <label for="featured" class="text-sm">Featured</label>
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit</button>
@@ -69,12 +94,14 @@
 
   <script>
     const imageInput = document.getElementById('image');
-    const previewImg = document.getElementById('preview');
+  const previewImg = document.getElementById('preview');
+  const mediumSelect = document.getElementById('medium');
+  const customMedium = document.getElementById('custom-medium');
 
-    imageInput.addEventListener('change', function() {
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
+  imageInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
         reader.onload = function(e) {
           previewImg.src = e.target.result;
           previewImg.classList.remove('hidden');
@@ -82,9 +109,17 @@
         reader.readAsDataURL(file);
       } else {
         previewImg.src = '';
-        previewImg.classList.add('hidden');
-      }
-    });
+      previewImg.classList.add('hidden');
+    }
+  });
+
+  mediumSelect.addEventListener('change', function() {
+    if (this.value === 'other') {
+      customMedium.classList.remove('hidden');
+    } else {
+      customMedium.classList.add('hidden');
+    }
+  });
   </script>
 </body>
 </html>
