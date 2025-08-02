@@ -94,13 +94,13 @@ function seed(done) {
     { slug: 'city-gallery', name: 'City Gallery', bio: 'Featuring modern works from local artists.' }
   ];
   const artists = [
-    { id: 'artist1', gallery_slug: 'demo-gallery', name: 'Jane Doe', bio: 'An abstract artist exploring color and form.', bioImageUrl: 'https://picsum.photos/id/250/150/150', fullBio: 'Jane Doe investigates the emotional resonance of color and shape.\n\nHer canvases challenge viewers to find their own narratives within abstract forms.' },
-    { id: 'artist2', gallery_slug: 'demo-gallery', name: 'John Smith', bio: 'Exploring the geometry of urban life.', bioImageUrl: 'https://picsum.photos/id/251/150/150', fullBio: 'John Smith captures cityscapes through precise lines and bold structure.\n\nHis work reflects the tension between order and chaos in metropolitan spaces.' },
-    { id: 'artist3', gallery_slug: 'demo-gallery', name: 'Emily Carter', bio: 'Mixed media artist inspired by nature.', bioImageUrl: 'https://picsum.photos/id/252/150/150', fullBio: 'Emily Carter combines found objects and paint to evoke forest serenity.\n\nHer layered textures invite close inspection and contemplation.' },
-    { id: 'artist4', gallery_slug: 'demo-gallery', name: 'Liam Nguyen', bio: 'Digital artist focusing on surreal landscapes.', bioImageUrl: 'https://picsum.photos/id/253/150/150', fullBio: 'Liam Nguyen crafts dreamlike vistas with a digital brush.\n\nHe blends reality and imagination to transport viewers beyond the ordinary.' },
-    { id: 'artist5', gallery_slug: 'city-gallery', name: 'Sophia Martinez', bio: 'Sculptor merging modern and classical motifs.', bioImageUrl: 'https://picsum.photos/id/254/150/150', fullBio: 'Sophia Martinez merges historical influences with contemporary design.\n\nHer sculptures echo timeless narratives through modern materials.' },
-    { id: 'artist6', gallery_slug: 'city-gallery', name: 'Luca Green', bio: 'Painter capturing urban life with bold colors.', bioImageUrl: 'https://picsum.photos/id/255/150/150', fullBio: 'Luca Green paints bustling streets with vibrant energy.\n\nHis dynamic brushwork celebrates the rhythm of city living.' },
-    { id: 'artist7', gallery_slug: 'city-gallery', name: 'Ava Patel', bio: 'Digital artist blending technology and emotion.', bioImageUrl: 'https://picsum.photos/id/256/150/150', fullBio: 'Ava Patel explores human connection through digital mediums.\n\nHer creations blur the line between code and compassion.' }
+    { id: 'artist1', gallery_slug: 'demo-gallery', name: 'Jane Doe', bio: 'An abstract artist exploring color and form.', bioImageUrl: 'https://picsum.photos/id/360/150/150', fullBio: 'Jane Doe investigates the emotional resonance of color and shape.\n\nHer canvases challenge viewers to find their own narratives within abstract forms.' },
+    { id: 'artist2', gallery_slug: 'demo-gallery', name: 'John Smith', bio: 'Exploring the geometry of urban life.', bioImageUrl: 'https://picsum.photos/id/361/150/150', fullBio: 'John Smith captures cityscapes through precise lines and bold structure.\n\nHis work reflects the tension between order and chaos in metropolitan spaces.' },
+    { id: 'artist3', gallery_slug: 'demo-gallery', name: 'Emily Carter', bio: 'Mixed media artist inspired by nature.', bioImageUrl: 'https://picsum.photos/id/362/150/150', fullBio: 'Emily Carter combines found objects and paint to evoke forest serenity.\n\nHer layered textures invite close inspection and contemplation.' },
+    { id: 'artist4', gallery_slug: 'demo-gallery', name: 'Liam Nguyen', bio: 'Digital artist focusing on surreal landscapes.', bioImageUrl: 'https://picsum.photos/id/363/150/150', fullBio: 'Liam Nguyen crafts dreamlike vistas with a digital brush.\n\nHe blends reality and imagination to transport viewers beyond the ordinary.' },
+    { id: 'artist5', gallery_slug: 'city-gallery', name: 'Sophia Martinez', bio: 'Sculptor merging modern and classical motifs.', bioImageUrl: 'https://picsum.photos/id/364/150/150', fullBio: 'Sophia Martinez merges historical influences with contemporary design.\n\nHer sculptures echo timeless narratives through modern materials.' },
+    { id: 'artist6', gallery_slug: 'city-gallery', name: 'Luca Green', bio: 'Painter capturing urban life with bold colors.', bioImageUrl: 'https://picsum.photos/id/365/150/150', fullBio: 'Luca Green paints bustling streets with vibrant energy.\n\nHis dynamic brushwork celebrates the rhythm of city living.' },
+    { id: 'artist7', gallery_slug: 'city-gallery', name: 'Ava Patel', bio: 'Digital artist blending technology and emotion.', bioImageUrl: 'https://picsum.photos/id/366/150/150', fullBio: 'Ava Patel explores human connection through digital mediums.\n\nHer creations blur the line between code and compassion.' }
   ];
 
   const galleryStmt = db.prepare('INSERT INTO galleries (slug, name, bio) VALUES (?,?,?)');
@@ -115,6 +115,15 @@ function seed(done) {
 
   function randomImage() {
     const id = Math.floor(Math.random() * 90) + 10; // 10-99
+    const r = Math.random();
+    if (r < 0.45) {
+      // landscape
+      return `https://picsum.photos/id/${id}/600/400`;
+    } else if (r < 0.9) {
+      // square
+      return `https://picsum.photos/id/${id}/500/500`;
+    }
+    // portrait
     return `https://picsum.photos/id/${id}/400/600`;
   }
 
