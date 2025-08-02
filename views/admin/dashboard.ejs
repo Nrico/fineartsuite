@@ -2,15 +2,18 @@
 <html>
 <head>
   <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
-  <h1>Admin Dashboard</h1>
-  <ul>
-    <li><a href="/dashboard/artists">Manage Artists</a></li>
-    <li><a href="/dashboard/artworks">Manage Artworks</a></li>
-    <li><a href="/dashboard/settings">Gallery Settings</a></li>
-    <li><a href="/logout">Logout</a></li>
-  </ul>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-md mx-auto bg-white p-6 rounded shadow text-center">
+    <h1 class="text-2xl mb-4">Admin Dashboard</h1>
+    <ul class="space-y-4">
+      <li><a href="/dashboard/artists" class="block bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Manage Artists</a></li>
+      <li><a href="/dashboard/artworks" class="block bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Manage Artworks</a></li>
+      <li><a href="/dashboard/settings" class="block bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Gallery Settings</a></li>
+      <li><a href="/logout" class="block bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">Logout</a></li>
+    </ul>
+  </div>
 </body>
 </html>
