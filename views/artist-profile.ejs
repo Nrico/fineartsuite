@@ -25,11 +25,23 @@
           <li>
             <a href="/<%= slug %>/artworks/<%= art.id %>" class="block">
               <img src="<%= art.image %>" alt="<%= art.title %>" class="w-full mb-2">
-              <span class="font-semibold"><%= art.title %></span>
+              <span class="font-semibold block"><%= art.title %></span>
+              <span class="text-sm text-gray-600 block"><%= art.medium %> • <%= art.dimensions %> • <%= art.price %></span>
             </a>
           </li>
         <% }) %>
       </ul>
+    </section>
+
+    <section class="mt-16 flex flex-col items-center text-center">
+      <img src="<%= artist.bioImageUrl %>" alt="<%= artist.name %> portrait" class="w-36 h-36 rounded-full mb-4">
+      <div class="space-y-4 max-w-prose">
+        <% if (artist.fullBio) { %>
+          <% artist.fullBio.split('\n\n').forEach(function(par){ %>
+            <p><%= par %></p>
+          <% }) %>
+        <% } %>
+      </div>
     </section>
 
     <div class="mt-12 text-center">
