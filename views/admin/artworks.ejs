@@ -37,8 +37,8 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium" for="artist_id">Artist ID</label>
-          <input id="artist_id" type="text" name="artist_id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <label class="block text-sm font-medium" for="artist_id">Artist</label>
+          <select id="artist_id" name="artist_id" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1"></select>
         </div>
         <div>
           <label class="block text-sm font-medium" for="title">Title</label>
@@ -191,6 +191,28 @@
 
     document.querySelectorAll('.medium-select').forEach(handleMediumSelect);
     document.querySelectorAll('.status-select').forEach(handleStatusSelect);
+
+    async function loadArtists(slug) {
+      try {
+        const res = await fetch('/dashboard/artists?gallery_slug=' + encodeURIComponent(slug), { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return;
+        const artists = await res.json();
+        const select = document.getElementById('artist_id');
+        select.innerHTML = '';
+        artists.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.id;
+          opt.textContent = a.name;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    const gallerySelect = document.getElementById('gallery_slug');
+    gallerySelect.addEventListener('change', e => loadArtists(e.target.value));
+    loadArtists(gallerySelect.value);
 
     const addForm = document.getElementById('add-art');
     addForm.addEventListener('submit', async e => {

@@ -201,6 +201,17 @@ app.get('/dashboard', requireLogin, (req, res) => {
 
 app.get('/dashboard/artists', requireLogin, (req, res) => {
   try {
+    const wantsJson = req.headers.accept && req.headers.accept.includes('application/json');
+    const { gallery_slug } = req.query;
+    if (wantsJson && gallery_slug) {
+      return db.all('SELECT id, name FROM artists WHERE gallery_slug = ?', [gallery_slug], (err, artists) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        res.json(artists);
+      });
+    }
     db.all('SELECT * FROM artists', (err, artists) => {
       if (err) {
         console.error(err);
@@ -322,8 +333,8 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
       return res.redirect('/dashboard/artworks');
     }
     try {
-      const { id, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
-      if (!id || !artist_id || !title || !medium || !dimensions) {
+      const { id, artist_id, gallery_slug, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      if (!id || !artist_id || !gallery_slug || !title || !medium || !dimensions) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
       }
@@ -335,18 +346,26 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
         req.flash('error', 'Image is required');
         return res.redirect('/dashboard/artworks');
       }
-      const finalMedium = medium === 'other' ? custom_medium : medium;
-      const finalPrice = status === 'collected' ? null : price;
-      const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
-      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
-      db.run(stmt, [id, artist_id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
-        if (runErr) {
-          console.error(runErr);
-          req.flash('error', 'Database error');
+
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artist_id], async (aErr, artist) => {
+        if (aErr || !artist || artist.gallery_slug !== gallery_slug) {
+          console.error(aErr);
+          req.flash('error', 'Artist must belong to selected gallery');
           return res.redirect('/dashboard/artworks');
         }
-        req.flash('success', 'Artwork added');
-        res.redirect('/dashboard/artworks');
+        const finalMedium = medium === 'other' ? custom_medium : medium;
+        const finalPrice = status === 'collected' ? null : price;
+        const images = req.file ? await processImages(req.file) : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+        db.run(stmt, [id, artist_id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
+          if (runErr) {
+            console.error(runErr);
+            req.flash('error', 'Database error');
+            return res.redirect('/dashboard/artworks');
+          }
+          req.flash('success', 'Artwork added');
+          res.redirect('/dashboard/artworks');
+        });
       });
     } catch (e) {
       console.error(e);

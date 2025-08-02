@@ -236,6 +236,7 @@ test('admin artwork routes allow CRUD after login', async () => {
   let res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, {
     id,
     artist_id: 'artist1',
+    gallery_slug: 'demo-gallery',
     title: 'NewArt',
     medium: 'Oil',
     dimensions: '1x1',
@@ -330,7 +331,7 @@ test('artist and artwork routes require login', async () => {
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
 
-  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', imageUrl: 'i', _csrf: token }, cookie);
+  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', gallery_slug: 'demo-gallery', title: 't', medium: 'm', dimensions: 'd', price: 'p', imageUrl: 'i', _csrf: token }, cookie);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
   res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artworks/x`, { title: 't' }, cookie, token);
