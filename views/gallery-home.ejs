@@ -25,18 +25,37 @@
 
     <section class="mb-12">
       <h2 class="text-xl font-bold mb-4">Featured Artworks</h2>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <ul class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <% gallery.featuredArtworks.forEach(function(art){ %>
-          <li class="<%= art.isFeatured ? 'md:col-span-2' : '' %>">
-            <a href="/<%= slug %>/artworks/<%= art.id %>" class="block text-center">
-              <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="mx-auto mb-2 transition-opacity duration-700 opacity-0" loading="lazy" onload="this.classList.remove('opacity-0')">
-              <span class="font-semibold block"><%= art.title %></span>
-              <% if (art.status === 'collected') { %>
-                <span class="text-red-500 flex items-center justify-center text-sm">
-                  <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                  Collected
-                </span>
-              <% } %>
+          <li>
+            <a href="/<%= slug %>/artworks/<%= art.id %>" class="group block text-center">
+              <div class="relative w-full h-[300px] overflow-hidden">
+                <img src="<%= art.imageThumb %>" alt="<%= art.title %>" loading="lazy"
+                     class="w-full h-full object-cover aspect-square transition-opacity duration-700 opacity-0" onload="this.classList.remove('opacity-0')">
+                <img src="<%= art.imageStandard %>" alt="<%= art.title %>" loading="lazy"
+                     class="absolute inset-0 w-full h-full object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100 pointer-events-none">
+              </div>
+              <div class="mt-2 space-y-1">
+                <span class="font-semibold block"><%= art.title %></span>
+                <% if (art.status) { %>
+                  <% if (art.status === 'collected') { %>
+                    <span class="text-red-500 flex items-center justify-center text-sm">
+                      <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                      Collected
+                    </span>
+                  <% } else if (art.status === 'available') { %>
+                    <span class="text-sm">Available</span>
+                  <% } else if (art.status === 'inquire') { %>
+                    <button class="mt-1 text-sm px-2 py-1 border rounded">Inquire</button>
+                  <% } else if (art.status === 'make_offer') { %>
+                    <button class="mt-1 text-sm px-2 py-1 border rounded">Make an Offer</button>
+                  <% } %>
+                <% } %>
+                <% const showPrice = !(art.status === 'collected' && art.price); %>
+                <% if (art.price && showPrice) { %>
+                  <span class="text-sm text-gray-600 block"><%= art.price %></span>
+                <% } %>
+              </div>
             </a>
           </li>
         <% }) %>
