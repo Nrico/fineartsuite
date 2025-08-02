@@ -295,7 +295,7 @@ test('upload post requires login', async () => {
   assert.strictEqual(res.headers.location, '/login');
 });
 
-test('authenticated upload stores file and is served', async () => {
+test('authenticated upload stores file, DB entry, and is served', async () => {
   const port = server.address().port;
   const login = await httpPostForm(`http://localhost:${port}/login`, { username: 'admin', password: 'password' });
   const cookie = login.headers['set-cookie'][0].split(';')[0];
@@ -309,6 +309,12 @@ test('authenticated upload stores file and is served', async () => {
   assert.strictEqual(uploadRes.headers.location, '/dashboard/upload?success=1');
   const files = fs.readdirSync(uploadsDir);
   assert.ok(files.length > 0);
+  const row = await new Promise(resolve => {
+    db.get('SELECT * FROM artworks WHERE image=?', [files[0]], (err, r) => resolve(r));
+  });
+  assert.ok(row);
+  assert.strictEqual(row.title, 't');
+  assert.strictEqual(row.status, 'available');
   const fileRes = await httpGet(`http://localhost:${port}/uploads/${files[0]}`);
   assert.strictEqual(fileRes.statusCode, 200);
   fs.unlinkSync(path.join(uploadsDir, files[0]));

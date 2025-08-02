@@ -12,7 +12,8 @@ function getArtwork(gallerySlug, id, cb) {
       medium: row.medium,
       dimensions: row.dimensions,
       price: row.price,
-      image: row.image
+      image: row.image,
+      status: row.status
     };
     cb(null, { artwork, artistId: row.artistId });
   });

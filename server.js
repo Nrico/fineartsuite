@@ -302,7 +302,31 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       req.flash('error', 'No file uploaded');
       return res.status(400).redirect('/dashboard/upload');
     }
-    res.redirect('/dashboard/upload?success=1');
+
+    const { title, medium, dimensions, price, status } = req.body;
+    if (!title || !medium || !dimensions || !price || !status) {
+      req.flash('error', 'All fields are required');
+      return res.status(400).redirect('/dashboard/upload');
+    }
+
+    db.get('SELECT id FROM artists LIMIT 1', (artistErr, artist) => {
+      if (artistErr || !artist) {
+        console.error(artistErr);
+        req.flash('error', 'Artist not found');
+        return res.status(500).redirect('/dashboard/upload');
+      }
+
+      const id = 'art_' + Date.now();
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status) VALUES (?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [id, artist.id, title, medium, dimensions, price, req.file.filename, status], runErr => {
+        if (runErr) {
+          console.error(runErr);
+          req.flash('error', 'Database error');
+          return res.status(500).redirect('/dashboard/upload');
+        }
+        res.redirect('/dashboard/upload?success=1');
+      });
+    });
   });
 });
 
