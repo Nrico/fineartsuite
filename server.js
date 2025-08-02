@@ -28,6 +28,7 @@ try {
     next();
   };
 }
+const csrf = require('./middleware/csrf');
 const { initialize, db } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
 const { getArtist } = require('./models/artistModel');
@@ -82,11 +83,14 @@ if (SQLiteStore) {
   sessionOptions.store = new SQLiteStore();
 }
 app.use(session(sessionOptions));
+const csrfProtection = csrf();
+app.use(csrfProtection);
 
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
 app.use((req, res, next) => {
   res.locals.flash = req.flash();
+  res.locals.csrfToken = req.csrfToken();
   next();
 });
 
@@ -399,6 +403,15 @@ app.get('/:gallerySlug/artworks/:artworkId', (req, res) => {
 // Render custom 404 page for any unmatched routes
 app.use((req, res) => {
   res.status(404).render('404');
+});
+
+// Handle CSRF token errors
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).send('Invalid CSRF token');
+  }
+  console.error(err);
+  res.status(500).send('Server error');
 });
 
 const PORT = process.env.PORT || 3000;

@@ -3,6 +3,7 @@
 <head>
   <title>Manage Artworks</title>
   <link rel="stylesheet" href="/styles.css">
+  <meta name="csrf-token" content="<%= csrfToken %>">
 </head>
 <body>
   <h1>Artwork Management</h1>
@@ -20,6 +21,7 @@
     <label>Dimensions <input type="text" name="dimensions" required></label><br>
     <label>Price <input type="text" name="price" required></label><br>
     <label>Image <input type="text" name="image" required></label><br>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit">Add Artwork</button>
   </form>
   <h2>Existing Artworks</h2>
@@ -41,6 +43,7 @@
   </ul>
   <p><a href="/dashboard">Back to dashboard</a></p>
   <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     document.querySelectorAll('.art-form').forEach(f => {
       const id = f.dataset.id;
       f.addEventListener('submit', async e => {
@@ -48,14 +51,14 @@
         const data = Object.fromEntries(new FormData(f).entries());
         await fetch('/dashboard/artworks/' + id, {
           method: 'PUT',
-          headers: {'Content-Type':'application/json'},
+          headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
           body: JSON.stringify(data)
         });
         location.reload();
       });
       f.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();
-        await fetch('/dashboard/artworks/' + id, { method: 'DELETE' });
+        await fetch('/dashboard/artworks/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
         location.reload();
       });
     });
