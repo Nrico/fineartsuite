@@ -82,9 +82,9 @@ async function processImages(file) {
   if (Jimp) {
     try {
       const image = await Jimp.read(file.path);
-      await image.clone().scaleToFit(1000, 1000).writeAsync(fullPath);
-      await image.clone().scaleToFit(1000, 1000).writeAsync(standardPath);
-      await image.clone().scaleToFit(500, 500).writeAsync(thumbPath);
+      await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
+      await image.clone().scaleToFit(800, 800).writeAsync(standardPath);
+      await image.clone().cover(300, 300).writeAsync(thumbPath);
     } catch {
       fs.copyFileSync(file.path, fullPath);
       fs.copyFileSync(file.path, standardPath);
