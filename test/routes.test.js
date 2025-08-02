@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const http = require('node:http');
 const querystring = require('node:querystring');
 const app = require('../server');
+const { db } = require('../models/db');
 
 let server;
 
@@ -11,6 +12,10 @@ let server;
 test.before(async () => {
   server = await new Promise(resolve => {
     const s = app.listen(0, () => resolve(s));
+  });
+  // Wait for the demo data to be seeded
+  await new Promise(res => {
+    db.get('SELECT 1 FROM galleries WHERE slug = ?', ['demo-gallery'], () => res());
   });
 });
 
@@ -220,7 +225,7 @@ function httpPostMultipart(url, fields, filePath, cookies = '') {
     }
     const fileData = fs.readFileSync(filePath);
     const filename = path.basename(filePath);
-    payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`));
+    payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: image/jpeg\r\n\r\n`));
     payloadParts.push(fileData);
     payloadParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
     const payload = Buffer.concat(payloadParts);
@@ -280,7 +285,7 @@ test('artist and artwork routes require login', async () => {
 
 test('upload post requires login', async () => {
   const port = server.address().port;
-  const temp = path.join(__dirname, 'temp.txt');
+  const temp = path.join(__dirname, 'temp.jpg');
   fs.writeFileSync(temp, 'data');
   const res = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available'
@@ -294,7 +299,7 @@ test('authenticated upload stores file and is served', async () => {
   const port = server.address().port;
   const login = await httpPostForm(`http://localhost:${port}/login`, { username: 'admin', password: 'password' });
   const cookie = login.headers['set-cookie'][0].split(';')[0];
-  const temp = path.join(__dirname, 'upload.txt');
+  const temp = path.join(__dirname, 'upload.jpg');
   fs.writeFileSync(temp, 'image');
   const uploadRes = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available'

@@ -41,7 +41,20 @@ const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
-const upload = multer({ dest: uploadsDir });
+const upload = multer({
+  dest: uploadsDir,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG and PNG images are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -277,11 +290,20 @@ app.get('/dashboard/upload', requireLogin, (req, res) => {
   });
 });
 
-app.post('/dashboard/upload', requireLogin, upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
-  res.redirect('/dashboard/upload?success=1');
+app.post('/dashboard/upload', requireLogin, (req, res) => {
+  upload.single('image')(req, res, err => {
+    if (err) {
+      console.error(err);
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'File too large' : err.message;
+      req.flash('error', message);
+      return res.status(400).redirect('/dashboard/upload');
+    }
+    if (!req.file) {
+      req.flash('error', 'No file uploaded');
+      return res.status(400).redirect('/dashboard/upload');
+    }
+    res.redirect('/dashboard/upload?success=1');
+  });
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {
