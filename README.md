@@ -36,6 +36,14 @@ form for convenience.
 Flash messages are provided using the `connect-flash` middleware. These
 messages give feedback after actions such as logging in or editing records.
 
+### Sessions
+
+Session data is persisted using [`connect-sqlite3`](https://www.npmjs.com/package/connect-sqlite3).
+Running `npm install` will install this dependency and the application will
+create a `sessions.db` file in the project root to store session data. Session
+cookies are configured with the `secure` flag when `NODE_ENV` is set to
+`production` and always use the `httpOnly` flag for improved security.
+
 ## Gallery pages
 
 Navigating to `/demo-gallery` or another gallery slug will display a public gallery page. Gallery, artist and artwork data is loaded from the SQLite database.
