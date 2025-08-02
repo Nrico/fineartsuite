@@ -100,17 +100,27 @@
       btn.disabled = true;
       label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
       const data = Object.fromEntries(new FormData(addForm).entries());
-      await fetch('/dashboard/artists', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'CSRF-Token': csrfToken },
-        body: JSON.stringify(data)
-      });
-      btn.disabled = false;
-      label.textContent = 'Saved!';
-      setTimeout(() => {
-        label.textContent = original;
-        location.reload();
-      }, 2000);
+      try {
+        const res = await fetch('/dashboard/artists', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'CSRF-Token': csrfToken },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || res.statusText);
+        }
+        btn.disabled = false;
+        label.textContent = 'Saved!';
+        setTimeout(() => {
+          label.textContent = original;
+          location.reload();
+        }, 2000);
+      } catch (err) {
+        label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
+        btn.disabled = false;
+        setTimeout(() => { label.textContent = original; }, 2000);
+      }
     });
 
     document.querySelectorAll('.artist-form').forEach(f => {
@@ -123,21 +133,41 @@
         btn.disabled = true;
         label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
         const data = Object.fromEntries(new FormData(f).entries());
-        await fetch('/dashboard/artists/' + id, {
-          method: 'PUT',
-          headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
-          body: JSON.stringify(data)
-        });
-        btn.disabled = false;
-        label.textContent = 'Saved!';
-        setTimeout(() => {
-          label.textContent = original;
-        }, 2000);
+        try {
+          const res = await fetch('/dashboard/artists/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
+            body: JSON.stringify(data)
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || res.statusText);
+          }
+          btn.disabled = false;
+          label.textContent = 'Saved!';
+          setTimeout(() => {
+            label.textContent = original;
+          }, 2000);
+        } catch (err) {
+          label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
+          btn.disabled = false;
+          setTimeout(() => { label.textContent = original; }, 2000);
+        }
       });
       f.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();
-        await fetch('/dashboard/artists/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
-        location.reload();
+        try {
+          const res = await fetch('/dashboard/artists/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || res.statusText);
+          }
+          location.reload();
+        } catch (err) {
+          label.textContent = 'Delete failed' + (err.message ? ': ' + err.message : '');
+          btn.disabled = false;
+          setTimeout(() => { label.textContent = original; }, 2000);
+        }
       });
     });
   </script>
