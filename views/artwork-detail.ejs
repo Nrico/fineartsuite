@@ -16,6 +16,18 @@
   <main class="max-w-3xl mx-auto p-6">
     <header class="text-center mb-8">
       <h1 class="text-4xl font-bold mb-4"><%= artwork.title %></h1>
+
+      <% if (artwork.status) { %>
+        <% if (artwork.status === 'collected') { %>
+          <p class="text-red-500 flex items-center justify-center"><span class="mr-1">&#9679;</span>Collected</p>
+        <% } else if (artwork.status === 'available') { %>
+          <p>Available</p>
+        <% } else if (artwork.status === 'inquire') { %>
+          <button class="mt-2 px-2 py-1 border rounded">Inquire</button>
+        <% } else if (artwork.status === 'make_offer') { %>
+          <button class="mt-2 px-2 py-1 border rounded">Make an Offer</button>
+        <% } %>
+      <% } %>
     </header>
 
     <div class="mb-8">
@@ -25,7 +37,9 @@
     <ul class="max-w-md mx-auto divide-y divide-gray-200 text-center">
       <li class="py-2">Medium: <span class="font-semibold"><%= artwork.medium %></span></li>
       <li class="py-2">Dimensions: <span class="font-semibold"><%= artwork.dimensions %></span></li>
-      <li class="py-2">Price: <span class="font-semibold"><%= artwork.price %></span></li>
+      <% if (!(artwork.status === 'collected' && artwork.price)) { %>
+        <li class="py-2">Price: <span class="font-semibold"><%= artwork.price %></span></li>
+      <% } %>
     </ul>
 
     <div class="mt-8 text-center">
