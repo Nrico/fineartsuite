@@ -1,6 +1,7 @@
 # FineArtSuite
 
-FineArtSuite is a minimal gallery website project. This repository provides a single HTML file that serves as a starting point for displaying art online.
+FineArtSuite is a minimal gallery website project. The repository now ships a
+small Node.js/Express application using EJS templates for rendering pages.
 
 ## Running the site locally
 
@@ -47,7 +48,9 @@ The current page is only a basic landing page. Future improvements may include:
 
 ## Admin upload page
 
-An `admin-upload.html` file is available for uploading new artwork. It provides fields for title, medium, dimensions, price, image upload with preview, and status. Open the file in a browser to use the form.
+After logging in you can upload new artwork at `/dashboard/upload`. The form
+provides fields for the artwork details along with an image preview before
+submitting.
 
 ## Running tests
 
