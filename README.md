@@ -33,6 +33,9 @@ When `USE_DEMO_AUTH` is disabled (the default), all `/dashboard` routes require
 logging in. Set the variable to `true` during development to bypass the login
 form for convenience.
 
+The application uses simple flash messages stored in the session to display
+login errors and form validation feedback.
+
 ## Gallery pages
 
 Navigating to `/demo-gallery` or another gallery slug will display a public gallery page. Gallery, artist and artwork data is loaded from the SQLite database.

@@ -6,6 +6,12 @@
 </head>
 <body>
   <h1>Artwork Management</h1>
+  <% if (flash.error && flash.error.length) { %>
+    <p style="color:red"><%= flash.error[0] %></p>
+  <% } %>
+  <% if (flash.success && flash.success.length) { %>
+    <p style="color:green"><%= flash.success[0] %></p>
+  <% } %>
   <form id="add-art" method="post" action="/dashboard/artworks">
     <label>ID <input type="text" name="id" required></label><br>
     <label>Artist ID <input type="text" name="artist_id" required></label><br>

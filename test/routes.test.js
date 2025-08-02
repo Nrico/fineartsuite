@@ -129,8 +129,8 @@ test('login fails with bad credentials', async () => {
     username: 'admin',
     password: 'wrong'
   });
-  assert.strictEqual(res.statusCode, 200);
-  assert.match(res.body, /Invalid credentials/);
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/login');
 });
 
 test('logout destroys session', async () => {
