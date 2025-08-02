@@ -6,6 +6,7 @@
 </head>
 <body>
   <h1>Login</h1>
+  <% if (flash) { %><p style="color:red"><%= flash %></p><% } %>
   <% if (error) { %><p style="color:red"><%= error %></p><% } %>
   <form method="POST" action="/login">
     <label>Username <input type="text" name="username"></label><br>

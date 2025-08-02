@@ -37,6 +37,7 @@ function simulateAuth(req, res, next) {
 
 function requireLogin(req, res, next) {
   if (req.session.user) return next();
+  req.session.flash = 'Please log in to continue';
   res.redirect('/login');
 }
 
@@ -47,7 +48,9 @@ app.get('/', (req, res) => {
 
 // Auth routes
 app.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  const flash = req.session.flash;
+  delete req.session.flash;
+  res.render('login', { error: null, flash });
 });
 
 app.post('/login', (req, res) => {
@@ -56,7 +59,7 @@ app.post('/login', (req, res) => {
     req.session.user = username;
     return res.redirect('/dashboard');
   }
-  res.render('login', { error: 'Invalid credentials' });
+  res.render('login', { error: 'Invalid credentials', flash: null });
 });
 
 app.get('/logout', (req, res) => {

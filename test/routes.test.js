@@ -109,6 +109,14 @@ test('upload page redirects to login when not authenticated', async () => {
   assert.strictEqual(headers.location, '/login');
 });
 
+test('login page shows flash after unauthorized access', async () => {
+  const port = server.address().port;
+  const res = await httpGet(`http://localhost:${port}/dashboard`);
+  const cookie = res.headers['set-cookie'][0].split(';')[0];
+  const login = await httpRequest('GET', `http://localhost:${port}/login`, null, cookie);
+  assert.match(login.body, /Please log in to continue/);
+});
+
 test('login succeeds with correct credentials', async () => {
   const port = server.address().port;
   const res = await httpPostForm(`http://localhost:${port}/login`, {
