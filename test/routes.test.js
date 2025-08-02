@@ -240,7 +240,7 @@ test('admin artwork routes allow CRUD after login', async () => {
     medium: 'Oil',
     dimensions: '1x1',
     price: '$1',
-    image: 'http://example.com',
+    imageUrl: 'http://example.com',
     _csrf: token
   }, cookie);
   assert.strictEqual(res.statusCode, 302);
@@ -254,7 +254,7 @@ test('admin artwork routes allow CRUD after login', async () => {
     medium: 'Acrylic',
     dimensions: '2x2',
     price: '$2',
-    image: 'http://example.com/2'
+    imageUrl: 'http://example.com/2'
   }, cookie, token);
   res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${id}`);
   assert.match(res.body, /UpdatedArt/);
@@ -330,7 +330,7 @@ test('artist and artwork routes require login', async () => {
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
 
-  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', image: 'i', _csrf: token }, cookie);
+  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', imageUrl: 'i', _csrf: token }, cookie);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
   res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artworks/x`, { title: 't' }, cookie, token);
@@ -377,13 +377,14 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
   assert.strictEqual(uploadRes.headers.location, '/dashboard/upload?success=1');
   const files = fs.readdirSync(uploadsDir);
   assert.ok(files.length > 0);
+  const standard = files.find(f => f.includes('_standard'));
   const row = await new Promise(resolve => {
-    db.get('SELECT * FROM artworks WHERE image=?', [files[0]], (err, r) => resolve(r));
+    db.get('SELECT * FROM artworks WHERE imageStandard=?', ['/uploads/' + standard], (err, r) => resolve(r));
   });
   assert.ok(row);
   assert.strictEqual(row.title, 't');
   assert.strictEqual(row.status, 'available');
-  const fileRes = await httpGet(`http://localhost:${port}/uploads/${files[0]}`);
+  const fileRes = await httpGet(`http://localhost:${port}/uploads/${standard}`);
   assert.strictEqual(fileRes.statusCode, 200);
-  fs.unlinkSync(path.join(uploadsDir, files[0]));
+  fs.unlinkSync(path.join(uploadsDir, standard));
 });

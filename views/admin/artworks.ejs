@@ -23,7 +23,7 @@
       <% if (flash.success && flash.success.length) { %>
         <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
       <% } %>
-      <form id="add-art" method="post" action="/dashboard/artworks" class="space-y-4">
+      <form id="add-art" method="post" action="/dashboard/artworks" enctype="multipart/form-data" class="space-y-4 file-or-url">
         <div>
           <label class="block text-sm font-medium" for="id">Artwork ID</label>
           <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
@@ -49,9 +49,13 @@
           <input id="price" type="text" name="price" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <div>
-          <label class="block text-sm font-medium" for="image">Image</label>
-          <input id="image" type="text" name="image" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+          <label class="block text-sm font-medium" for="imageFile">Upload Image</label>
+          <input id="imageFile" type="file" name="imageFile" accept="image/*" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
+        <details class="text-sm text-gray-600">
+          <summary class="cursor-pointer">Paste URL instead</summary>
+          <input id="imageUrl" type="text" name="imageUrl" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </details>
         <div>
           <label class="block text-sm font-medium" for="status">Availability</label>
           <select id="status" name="status" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
@@ -77,12 +81,16 @@
       <ul class="space-y-4">
         <% artworks.forEach(function(art){ %>
           <li>
-            <form class="art-form space-y-2" data-id="<%= art.id %>">
+            <form class="art-form space-y-2 file-or-url" data-id="<%= art.id %>" enctype="multipart/form-data">
               <input name="title" value="<%= art.title %>" class="border border-gray-300 rounded px-2 py-1 w-full">
               <input name="medium" value="<%= art.medium %>" class="border border-gray-300 rounded px-2 py-1 w-full">
               <input name="dimensions" value="<%= art.dimensions %>" class="border border-gray-300 rounded px-2 py-1 w-full">
               <input name="price" value="<%= art.price %>" class="border border-gray-300 rounded px-2 py-1 w-full">
-              <input name="image" value="<%= art.image %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+              <input type="file" name="imageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
+              <details class="text-sm text-gray-600">
+                <summary class="cursor-pointer">Paste URL instead</summary>
+                <input name="imageUrl" class="border border-gray-300 rounded px-2 py-1 w-full">
+              </details>
               <select name="status" class="border border-gray-300 rounded px-2 py-1 w-full">
                 <option value="" <%= art.status === '' ? 'selected' : '' %>></option>
                 <option value="inquire" <%= art.status === 'inquire' ? 'selected' : '' %>>Inquire</option>
@@ -115,15 +123,29 @@
   </footer>
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function setupFileUrlToggle(container) {
+      const fileInput = container.querySelector('input[type="file"]');
+      const urlInput = container.querySelector('input[name="imageUrl"]');
+      if (!fileInput || !urlInput) return;
+      fileInput.addEventListener('change', () => {
+        urlInput.disabled = fileInput.files.length > 0;
+      });
+      urlInput.addEventListener('input', () => {
+        fileInput.disabled = urlInput.value.trim() !== '';
+      });
+    }
+    document.querySelectorAll('.file-or-url').forEach(setupFileUrlToggle);
+
     document.querySelectorAll('.art-form').forEach(f => {
       const id = f.dataset.id;
       f.addEventListener('submit', async e => {
         e.preventDefault();
-        const data = Object.fromEntries(new FormData(f).entries());
+        const formData = new FormData(f);
         await fetch('/dashboard/artworks/' + id, {
           method: 'PUT',
-          headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
-          body: JSON.stringify(data)
+          headers: { 'CSRF-Token': csrfToken },
+          body: formData
         });
         location.reload();
       });
