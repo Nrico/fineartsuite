@@ -165,14 +165,22 @@ app.get('/dashboard/artists', requireLogin, (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artists', { artists: [] });
+        return res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
       }
-      res.render('admin/artists', { artists });
+      db.all('SELECT slug FROM galleries', (gErr, galleries) => {
+        if (gErr) {
+          console.error(gErr);
+          req.flash('error', 'Database error');
+          return res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
+        }
+        const generatedId = 'artist_' + Date.now();
+        res.render('admin/artists', { artists, galleries, generatedId });
+      });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artists', { artists: [] });
+    res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
   }
 });
 
@@ -182,26 +190,27 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artworks', { artworks: [] });
+        return res.render('admin/artworks', { artworks: [], generatedId: '' });
       }
-      res.render('admin/artworks', { artworks });
+      const generatedId = 'art_' + Date.now();
+      res.render('admin/artworks', { artworks, generatedId });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artworks', { artworks: [] });
+    res.render('admin/artworks', { artworks: [], generatedId: '' });
   }
 });
 
 app.post('/dashboard/artists', requireLogin, (req, res) => {
   try {
-    const { id, gallery_slug, name, bio } = req.body;
+    const { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
     if (!id || !gallery_slug || !name || !bio) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artists');
     }
-    const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio) VALUES (?,?,?,?)';
-    db.run(stmt, [id, gallery_slug, name, bio], err => {
+    const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
+    db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', bioImageUrl || ''], err => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
@@ -219,9 +228,16 @@ app.post('/dashboard/artists', requireLogin, (req, res) => {
 
 app.put('/dashboard/artists/:id', requireLogin, (req, res) => {
   try {
-    const { name, bio } = req.body;
-    const stmt = 'UPDATE artists SET name = ?, bio = ? WHERE id = ?';
-    db.run(stmt, [name, bio, req.params.id], err => {
+    const { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
+    let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
+    const params = [name, bio, fullBio || '', bioImageUrl || ''];
+    if (gallery_slug) {
+      stmt += ', gallery_slug = ?';
+      params.push(gallery_slug);
+    }
+    stmt += ' WHERE id = ?';
+    params.push(req.params.id);
+    db.run(stmt, params, err => {
       if (err) {
         console.error(err);
         return res.status(500).send('Database error');
@@ -253,13 +269,13 @@ app.delete('/dashboard/artists/:id', requireLogin, (req, res) => {
 
 app.post('/dashboard/artworks', requireLogin, (req, res) => {
   try {
-    const { id, artist_id, title, medium, dimensions, price, image } = req.body;
+    const { id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured } = req.body;
     if (!id || !artist_id || !title || !medium || !dimensions || !price || !image) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artworks');
     }
-    const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image) VALUES (?,?,?,?,?,?,?)`;
-    db.run(stmt, [id, artist_id, title, medium, dimensions, price, image], err => {
+    const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?)`;
+    db.run(stmt, [id, artist_id, title, medium, dimensions, price, image, status || '', hide_collected ? 1 : 0, featured ? 1 : 0], err => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
@@ -277,9 +293,9 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
 
 app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
   try {
-    const { title, medium, dimensions, price, image } = req.body;
-    const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=? WHERE id=?`;
-    db.run(stmt, [title, medium, dimensions, price, image, req.params.id], err => {
+    const { title, medium, dimensions, price, image, status, hide_collected, featured } = req.body;
+    const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=?, status=?, hide_collected=?, featured=? WHERE id=?`;
+    db.run(stmt, [title, medium, dimensions, price, image, status || '', hide_collected ? 1 : 0, featured ? 1 : 0, req.params.id], err => {
       if (err) {
         console.error(err);
         return res.status(500).send('Database error');
@@ -313,7 +329,8 @@ app.get('/dashboard/upload', requireLogin, (req, res) => {
   fs.readdir(uploadsDir, (err, files) => {
     if (err) files = [];
     const data = files.map(f => ({ name: f, url: '/uploads/' + f }));
-    res.render('admin/upload', { files: data, success: req.query.success });
+    const generatedId = 'art_' + Date.now();
+    res.render('admin/upload', { files: data, success: req.query.success, generatedId });
   });
 });
 
@@ -330,7 +347,7 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    const { title, medium, dimensions, price, status } = req.body;
+    const { id, title, medium, custom_medium, dimensions, price, status, hide_collected, featured } = req.body;
     if (!title || !medium || !dimensions || !price || !status) {
       req.flash('error', 'All fields are required');
       return res.status(400).redirect('/dashboard/upload');
@@ -343,9 +360,12 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
         return res.status(500).redirect('/dashboard/upload');
       }
 
-      const id = 'art_' + Date.now();
-      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status) VALUES (?,?,?,?,?,?,?,?)`;
-      db.run(stmt, [id, artist.id, title, medium, dimensions, price, req.file.filename, status], runErr => {
+      const artworkId = id && id.trim() !== '' ? id : 'art_' + Date.now();
+      const finalMedium = medium === 'other' ? custom_medium : medium;
+      const hideCollectedVal = hide_collected ? 1 : 0;
+      const featuredVal = featured ? 1 : 0;
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status, hide_collected, featured) VALUES (?,?,?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, price, req.file.filename, status, hideCollectedVal, featuredVal], runErr => {
         if (runErr) {
           console.error(runErr);
           req.flash('error', 'Database error');
@@ -358,7 +378,46 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {
-  res.render('admin/settings');
+  db.get('SELECT * FROM gallery_settings WHERE id = 1', (err, settings) => {
+    if (err) {
+      console.error(err);
+      req.flash('error', 'Database error');
+      return res.render('admin/settings', { settings: {} });
+    }
+    res.render('admin/settings', { settings: settings || {} });
+  });
+});
+
+app.post('/dashboard/settings', requireLogin, (req, res) => {
+  upload.single('logo')(req, res, err => {
+    if (err) {
+      console.error(err);
+      req.flash('error', err.message);
+      return res.redirect('/dashboard/settings');
+    }
+    const { name, slug, phone, email, address, description, owner } = req.body;
+    const logo = req.file ? req.file.filename : req.body.existingLogo || null;
+    const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
+                 VALUES (1,?,?,?,?,?,?,?,?)
+                 ON CONFLICT(id) DO UPDATE SET
+                   name=excluded.name,
+                   slug=excluded.slug,
+                   phone=excluded.phone,
+                   email=excluded.email,
+                   address=excluded.address,
+                   description=excluded.description,
+                   owner=excluded.owner,
+                   logo=excluded.logo`;
+    db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
+      if (runErr) {
+        console.error(runErr);
+        req.flash('error', 'Database error');
+      } else {
+        req.flash('success', 'Settings saved');
+      }
+      res.redirect('/dashboard/settings');
+    });
+  });
 });
 
 // Public gallery routes
