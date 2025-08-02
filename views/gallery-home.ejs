@@ -28,13 +28,9 @@
       <ul class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <% gallery.featuredArtworks.forEach(function(art){ %>
           <li>
-            <a href="/<%= slug %>/artworks/<%= art.id %>" class="group block text-center">
-              <div class="relative w-full h-[300px] overflow-hidden">
-                <img src="<%= art.imageThumb %>" alt="<%= art.title %>" loading="lazy"
-                     class="w-full h-full object-cover aspect-square transition-opacity duration-700 opacity-0" onload="this.classList.remove('opacity-0')">
-                <img src="<%= art.imageStandard %>" alt="<%= art.title %>" loading="lazy"
-                     class="absolute inset-0 w-full h-full object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100 pointer-events-none">
-              </div>
+            <a href="/<%= slug %>/artworks/<%= art.id %>" class="block text-center">
+              <img src="<%= art.imageStandard %>" alt="<%= art.title %>" loading="lazy"
+                   class="block w-full h-auto transition-opacity duration-700 opacity-0" onload="this.classList.remove('opacity-0')">
               <div class="mt-2 space-y-1">
                 <span class="font-semibold block"><%= art.title %></span>
                 <% if (art.status) { %>
