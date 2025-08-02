@@ -199,6 +199,23 @@ app.get('/dashboard', requireLogin, (req, res) => {
   res.render('admin/dashboard');
 });
 
+app.get('/dashboard/galleries', requireLogin, (req, res) => {
+  try {
+    db.all('SELECT slug, name, bio FROM galleries', (err, galleries) => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.render('admin/galleries', { galleries: [] });
+      }
+      res.render('admin/galleries', { galleries });
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
+    res.render('admin/galleries', { galleries: [] });
+  }
+});
+
 app.get('/dashboard/artists', requireLogin, (req, res) => {
   try {
     db.all('SELECT * FROM artists', (err, artists) => {
@@ -246,6 +263,64 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
     console.error(err);
     req.flash('error', 'Server error');
     res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
+  }
+});
+
+app.post('/dashboard/galleries', requireLogin, (req, res) => {
+  try {
+    const { slug, name, bio } = req.body;
+    if (!slug || !name || !bio) {
+      req.flash('error', 'All fields are required');
+      return res.redirect('/dashboard/galleries');
+    }
+    const stmt = 'INSERT INTO galleries (slug, name, bio) VALUES (?,?,?)';
+    db.run(stmt, [slug, name, bio], err => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.redirect('/dashboard/galleries');
+      }
+      req.flash('success', 'Gallery added');
+      res.redirect('/dashboard/galleries');
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
+    res.redirect('/dashboard/galleries');
+  }
+});
+
+app.put('/dashboard/galleries/:slug', requireLogin, (req, res) => {
+  try {
+    const { slug, name, bio } = req.body;
+    const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ? WHERE slug = ?';
+    db.run(stmt, [slug, name, bio, req.params.slug], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Gallery saved');
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.delete('/dashboard/galleries/:slug', requireLogin, (req, res) => {
+  try {
+    db.run('DELETE FROM galleries WHERE slug = ?', [req.params.slug], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Gallery deleted');
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
   }
 });
 
