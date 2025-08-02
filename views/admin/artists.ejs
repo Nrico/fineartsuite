@@ -6,6 +6,12 @@
 </head>
 <body>
   <h1>Artist Management</h1>
+  <% if (flash.error && flash.error.length) { %>
+    <p style="color:red"><%= flash.error[0] %></p>
+  <% } %>
+  <% if (flash.success && flash.success.length) { %>
+    <p style="color:green"><%= flash.success[0] %></p>
+  <% } %>
   <form id="add-artist" method="post" action="/dashboard/artists">
     <label>ID <input type="text" name="id" required></label><br>
     <label>Gallery Slug <input type="text" name="gallery_slug" required></label><br>

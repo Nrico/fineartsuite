@@ -25,6 +25,18 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
 
+// Minimal flash message implementation using the session
+app.use((req, res, next) => {
+  res.locals.flash = req.session.flash || {};
+  req.flash = (type, msg) => {
+    if (!req.session.flash) req.session.flash = {};
+    if (!req.session.flash[type]) req.session.flash[type] = [];
+    req.session.flash[type].push(msg);
+  };
+  delete req.session.flash;
+  next();
+});
+
 // Initialize the SQLite database and seed demo data if needed
 initialize();
 
@@ -47,16 +59,27 @@ app.get('/', (req, res) => {
 
 // Auth routes
 app.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  res.render('login');
 });
 
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    req.session.user = username;
-    return res.redirect('/dashboard');
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      req.flash('error', 'All fields are required');
+      return res.redirect('/login');
+    }
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      req.session.user = username;
+      return res.redirect('/dashboard');
+    }
+    req.flash('error', 'Invalid credentials');
+    res.redirect('/login');
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Login failed');
+    res.redirect('/login');
   }
-  res.render('login', { error: 'Invalid credentials' });
 });
 
 app.get('/logout', (req, res) => {
@@ -76,67 +99,149 @@ app.get('/dashboard', requireLogin, (req, res) => {
 });
 
 app.get('/dashboard/artists', requireLogin, (req, res) => {
-  db.all('SELECT * FROM artists', (err, artists) => {
-    if (err) return res.status(500).send('Database error');
-    res.render('admin/artists', { artists });
-  });
+  try {
+    db.all('SELECT * FROM artists', (err, artists) => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.render('admin/artists', { artists: [] });
+      }
+      res.render('admin/artists', { artists });
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
+    res.render('admin/artists', { artists: [] });
+  }
 });
 
 app.get('/dashboard/artworks', requireLogin, (req, res) => {
-  db.all('SELECT * FROM artworks', (err, artworks) => {
-    if (err) return res.status(500).send('Database error');
-    res.render('admin/artworks', { artworks });
-  });
+  try {
+    db.all('SELECT * FROM artworks', (err, artworks) => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.render('admin/artworks', { artworks: [] });
+      }
+      res.render('admin/artworks', { artworks });
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
+    res.render('admin/artworks', { artworks: [] });
+  }
 });
 
 app.post('/dashboard/artists', requireLogin, (req, res) => {
-  const { id, gallery_slug, name, bio } = req.body;
-  const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio) VALUES (?,?,?,?)';
-  db.run(stmt, [id, gallery_slug, name, bio], err => {
-    if (err) return res.status(500).send('Database error');
+  try {
+    const { id, gallery_slug, name, bio } = req.body;
+    if (!id || !gallery_slug || !name || !bio) {
+      req.flash('error', 'All fields are required');
+      return res.redirect('/dashboard/artists');
+    }
+    const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio) VALUES (?,?,?,?)';
+    db.run(stmt, [id, gallery_slug, name, bio], err => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.redirect('/dashboard/artists');
+      }
+      req.flash('success', 'Artist added');
+      res.redirect('/dashboard/artists');
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
     res.redirect('/dashboard/artists');
-  });
+  }
 });
 
 app.put('/dashboard/artists/:id', requireLogin, (req, res) => {
-  const { name, bio } = req.body;
-  const stmt = 'UPDATE artists SET name = ?, bio = ? WHERE id = ?';
-  db.run(stmt, [name, bio, req.params.id], err => {
-    if (err) return res.status(500).send('Database error');
-    res.sendStatus(204);
-  });
+  try {
+    const { name, bio } = req.body;
+    const stmt = 'UPDATE artists SET name = ?, bio = ? WHERE id = ?';
+    db.run(stmt, [name, bio, req.params.id], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.delete('/dashboard/artists/:id', requireLogin, (req, res) => {
-  db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
-    if (err) return res.status(500).send('Database error');
-    res.sendStatus(204);
-  });
+  try {
+    db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.post('/dashboard/artworks', requireLogin, (req, res) => {
-  const { id, artist_id, title, medium, dimensions, price, image } = req.body;
-  const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image) VALUES (?,?,?,?,?,?,?)`;
-  db.run(stmt, [id, artist_id, title, medium, dimensions, price, image], err => {
-    if (err) return res.status(500).send('Database error');
+  try {
+    const { id, artist_id, title, medium, dimensions, price, image } = req.body;
+    if (!id || !artist_id || !title || !medium || !dimensions || !price || !image) {
+      req.flash('error', 'All fields are required');
+      return res.redirect('/dashboard/artworks');
+    }
+    const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image) VALUES (?,?,?,?,?,?,?)`;
+    db.run(stmt, [id, artist_id, title, medium, dimensions, price, image], err => {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Database error');
+        return res.redirect('/dashboard/artworks');
+      }
+      req.flash('success', 'Artwork added');
+      res.redirect('/dashboard/artworks');
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Server error');
     res.redirect('/dashboard/artworks');
-  });
+  }
 });
 
 app.put('/dashboard/artworks/:id', requireLogin, (req, res) => {
-  const { title, medium, dimensions, price, image } = req.body;
-  const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=? WHERE id=?`;
-  db.run(stmt, [title, medium, dimensions, price, image, req.params.id], err => {
-    if (err) return res.status(500).send('Database error');
-    res.sendStatus(204);
-  });
+  try {
+    const { title, medium, dimensions, price, image } = req.body;
+    const stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, image=? WHERE id=?`;
+    db.run(stmt, [title, medium, dimensions, price, image, req.params.id], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
-  db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
-    if (err) return res.status(500).send('Database error');
-    res.sendStatus(204);
-  });
+  try {
+    db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.get('/dashboard/upload', requireLogin, (req, res) => {
@@ -149,30 +254,45 @@ app.get('/dashboard/settings', requireLogin, (req, res) => {
 
 // Public gallery routes
 app.get('/:gallerySlug', (req, res) => {
-  getGallery(req.params.gallerySlug, (err, gallery) => {
-    if (err) return res.status(404).send('Gallery not found');
-    res.render('gallery-home', { gallery, slug: req.params.gallerySlug });
-  });
+  try {
+    getGallery(req.params.gallerySlug, (err, gallery) => {
+      if (err) return res.status(404).send('Gallery not found');
+      res.render('gallery-home', { gallery, slug: req.params.gallerySlug });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.get('/:gallerySlug/artists/:artistId', (req, res) => {
-  getGallery(req.params.gallerySlug, (err, gallery) => {
-    if (err) return res.status(404).send('Gallery not found');
-    getArtist(req.params.gallerySlug, req.params.artistId, (err2, artist) => {
-      if (err2) return res.status(404).send('Artist not found');
-      res.render('artist-profile', { gallery, artist, slug: req.params.gallerySlug });
+  try {
+    getGallery(req.params.gallerySlug, (err, gallery) => {
+      if (err) return res.status(404).send('Gallery not found');
+      getArtist(req.params.gallerySlug, req.params.artistId, (err2, artist) => {
+        if (err2) return res.status(404).send('Artist not found');
+        res.render('artist-profile', { gallery, artist, slug: req.params.gallerySlug });
+      });
     });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 app.get('/:gallerySlug/artworks/:artworkId', (req, res) => {
-  getGallery(req.params.gallerySlug, (err, gallery) => {
-    if (err) return res.status(404).send('Gallery not found');
-    getArtwork(req.params.gallerySlug, req.params.artworkId, (err2, result) => {
-      if (err2) return res.status(404).send('Artwork not found');
-      res.render('artwork-detail', { gallery, artwork: result.artwork, artistId: result.artistId, slug: req.params.gallerySlug });
+  try {
+    getGallery(req.params.gallerySlug, (err, gallery) => {
+      if (err) return res.status(404).send('Gallery not found');
+      getArtwork(req.params.gallerySlug, req.params.artworkId, (err2, result) => {
+        if (err2) return res.status(404).send('Artwork not found');
+        res.render('artwork-detail', { gallery, artwork: result.artwork, artistId: result.artistId, slug: req.params.gallerySlug });
+      });
     });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 // Render custom 404 page for any unmatched routes
