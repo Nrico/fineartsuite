@@ -25,8 +25,10 @@ function initialize() {
       medium TEXT,
       dimensions TEXT,
       price TEXT,
-      image TEXT
+      image TEXT,
+      status TEXT
     )`);
+    db.run('ALTER TABLE artworks ADD COLUMN status TEXT', () => {});
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;
@@ -46,10 +48,10 @@ function seed() {
   artistStmt.run('artist2', 'city-gallery', 'John Smith', 'Exploring the geometry of urban life.');
   artistStmt.finalize();
 
-  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image) VALUES (?,?,?,?,?,?,?)');
-  artworkStmt.run('art1', 'artist1', 'Dreamscape', 'Oil on Canvas', '30x40', '$4000', 'https://placehold.co/600x400?text=Dreamscape');
-  artworkStmt.run('art2', 'artist1', 'Ocean Depths', 'Acrylic', '24x36', '$2500', 'https://placehold.co/600x400?text=Ocean+Depths');
-  artworkStmt.run('c1', 'artist2', 'City Lights', 'Oil on Canvas', '24x30', '$3500', 'https://via.placeholder.com/600x400?text=City+Lights');
+  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, image, status) VALUES (?,?,?,?,?,?,?,?)');
+  artworkStmt.run('art1', 'artist1', 'Dreamscape', 'Oil on Canvas', '30x40', '$4000', 'https://placehold.co/600x400?text=Dreamscape', 'available');
+  artworkStmt.run('art2', 'artist1', 'Ocean Depths', 'Acrylic', '24x36', '$2500', 'https://placehold.co/600x400?text=Ocean+Depths', 'available');
+  artworkStmt.run('c1', 'artist2', 'City Lights', 'Oil on Canvas', '24x30', '$3500', 'https://via.placeholder.com/600x400?text=City+Lights', 'available');
   artworkStmt.finalize();
 }
 
