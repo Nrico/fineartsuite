@@ -29,7 +29,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium" for="slug">Gallery Slug</label>
-          <input type="text" id="slug" name="slug" value="<%= settings.slug || '' %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
+          <input type="text" id="slug" name="slug" value="<%= settings.slug || '' %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100" readonly pattern="^[a-z0-9-]+$">
         </div>
         <div>
           <label class="block text-sm font-medium" for="phone">Phone</label>

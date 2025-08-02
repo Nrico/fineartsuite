@@ -489,25 +489,46 @@ app.post('/dashboard/settings', requireLogin, (req, res) => {
     }
     const { name, slug, phone, email, address, description, owner } = req.body;
     const logo = req.file ? req.file.filename : req.body.existingLogo || null;
-    const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
-                 VALUES (1,?,?,?,?,?,?,?,?)
-                 ON CONFLICT(id) DO UPDATE SET
-                   name=excluded.name,
-                   slug=excluded.slug,
-                   phone=excluded.phone,
-                   email=excluded.email,
-                   address=excluded.address,
-                   description=excluded.description,
-                   owner=excluded.owner,
-                   logo=excluded.logo`;
-    db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
-      if (runErr) {
-        console.error(runErr);
+    const slugRegex = /^[a-z0-9-]+$/;
+    const reservedRoutes = ['dashboard', 'login', 'logout'];
+    if (!slugRegex.test(slug)) {
+      req.flash('error', 'Invalid slug format. Use lowercase letters, numbers, or hyphens.');
+      return res.redirect('/dashboard/settings');
+    }
+    if (reservedRoutes.includes(slug)) {
+      req.flash('error', 'Slug conflicts with an existing route.');
+      return res.redirect('/dashboard/settings');
+    }
+    db.get('SELECT 1 FROM galleries WHERE slug = ?', [slug], (checkErr, row) => {
+      if (checkErr) {
+        console.error(checkErr);
         req.flash('error', 'Database error');
-      } else {
-        req.flash('success', 'Settings saved');
+        return res.redirect('/dashboard/settings');
       }
-      res.redirect('/dashboard/settings');
+      if (row) {
+        req.flash('error', 'Slug conflicts with an existing gallery.');
+        return res.redirect('/dashboard/settings');
+      }
+      const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
+                   VALUES (1,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(id) DO UPDATE SET
+                     name=excluded.name,
+                     slug=excluded.slug,
+                     phone=excluded.phone,
+                     email=excluded.email,
+                     address=excluded.address,
+                     description=excluded.description,
+                     owner=excluded.owner,
+                     logo=excluded.logo`;
+      db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
+        if (runErr) {
+          console.error(runErr);
+          req.flash('error', 'Database error');
+        } else {
+          req.flash('success', 'Settings saved');
+        }
+        res.redirect('/dashboard/settings');
+      });
     });
   });
 });
