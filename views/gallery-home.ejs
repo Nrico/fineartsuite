@@ -23,6 +23,24 @@
       <div class="text-center">
         <img src="<%= gallery.featuredArtwork.imageStandard %>" alt="<%= gallery.featuredArtwork.title %>" class="mx-auto max-w-sm fade-in" loading="lazy" onload="this.classList.add('loaded')">
         <p class="mt-4 font-semibold"><%= gallery.featuredArtwork.title %></p>
+
+        <% if (gallery.featuredArtwork.status) { %>
+          <% if (gallery.featuredArtwork.status === 'collected') { %>
+            <p class="text-red-500 flex items-center justify-center text-sm"><span class="mr-1">&#9679;</span>Collected</p>
+          <% } else if (gallery.featuredArtwork.status === 'available') { %>
+            <p class="text-sm">Available</p>
+          <% } else if (gallery.featuredArtwork.status === 'inquire') { %>
+            <button class="mt-2 px-2 py-1 text-sm border rounded">Inquire</button>
+          <% } else if (gallery.featuredArtwork.status === 'make_offer') { %>
+            <button class="mt-2 px-2 py-1 text-sm border rounded">Make an Offer</button>
+          <% } %>
+        <% } %>
+
+        <% const showPrice = !(gallery.featuredArtwork.status === 'collected' && gallery.featuredArtwork.price); %>
+        <p class="text-sm text-gray-600">
+          <%= gallery.featuredArtwork.medium %> • <%= gallery.featuredArtwork.dimensions %>
+          <% if (showPrice && gallery.featuredArtwork.price) { %> • <%= gallery.featuredArtwork.price %><% } %>
+        </p>
       </div>
     </section>
 

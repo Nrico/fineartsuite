@@ -26,7 +26,24 @@
             <a href="/<%= slug %>/artworks/<%= art.id %>" class="block">
               <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="w-full mb-2 fade-in" loading="lazy" onload="this.classList.add('loaded')">
               <span class="font-semibold block"><%= art.title %></span>
-              <span class="text-sm text-gray-600 block"><%= art.medium %> • <%= art.dimensions %> • <%= art.price %></span>
+
+              <% if (art.status) { %>
+                <% if (art.status === 'collected') { %>
+                  <span class="text-red-500 flex items-center text-sm"><span class="mr-1">&#9679;</span>Collected</span>
+                <% } else if (art.status === 'available') { %>
+                  <span class="text-sm">Available</span>
+                <% } else if (art.status === 'inquire') { %>
+                  <button class="mt-1 text-sm px-2 py-1 border rounded">Inquire</button>
+                <% } else if (art.status === 'make_offer') { %>
+                  <button class="mt-1 text-sm px-2 py-1 border rounded">Make an Offer</button>
+                <% } %>
+              <% } %>
+
+              <% const showPrice = !(art.status === 'collected' && art.price); %>
+              <span class="text-sm text-gray-600 block">
+                <%= art.medium %> • <%= art.dimensions %>
+                <% if (showPrice && art.price) { %> • <%= art.price %><% } %>
+              </span>
             </a>
           </li>
         <% }) %>
