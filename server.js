@@ -43,6 +43,10 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
 const USE_DEMO_AUTH = process.env.USE_DEMO_AUTH === 'true';
 
 const app = express();
+// Ensure secure cookies work correctly behind reverse proxies
+// so that sessions (and thus CSRF tokens) persist when deployed
+// on platforms like Render or Heroku.
+app.set('trust proxy', 1);
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
