@@ -2,6 +2,8 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { initialize, db } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
 const { getArtist } = require('./models/artistModel');
@@ -16,6 +18,12 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
 const USE_DEMO_AUTH = process.env.USE_DEMO_AUTH === 'true';
 
 const app = express();
+
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+const upload = multer({ dest: uploadsDir });
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -140,7 +148,18 @@ app.delete('/dashboard/artworks/:id', requireLogin, (req, res) => {
 });
 
 app.get('/dashboard/upload', requireLogin, (req, res) => {
-  res.render('admin/upload');
+  fs.readdir(uploadsDir, (err, files) => {
+    if (err) files = [];
+    const data = files.map(f => ({ name: f, url: '/uploads/' + f }));
+    res.render('admin/upload', { files: data, success: req.query.success });
+  });
+});
+
+app.post('/dashboard/upload', requireLogin, upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+  res.redirect('/dashboard/upload?success=1');
 });
 
 app.get('/dashboard/settings', requireLogin, (req, res) => {
