@@ -322,8 +322,8 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
       return res.redirect('/dashboard/artworks');
     }
     try {
-      const { id, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
-      if (!id || !artist_id || !title || !medium || !dimensions) {
+      const { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      if (!id || !gallery_slug || !artist_id || !title || !medium || !dimensions) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
       }
@@ -333,6 +333,24 @@ app.post('/dashboard/artworks', requireLogin, (req, res) => {
       }
       if (!req.file && !imageUrl) {
         req.flash('error', 'Image is required');
+        return res.redirect('/dashboard/artworks');
+      }
+      const gallery = await new Promise((resolve, reject) => {
+        db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
+          if (err) reject(err); else resolve(row);
+        });
+      });
+      if (!gallery) {
+        req.flash('error', 'Gallery not found');
+        return res.redirect('/dashboard/artworks');
+      }
+      const artist = await new Promise((resolve, reject) => {
+        db.get('SELECT id FROM artists WHERE id = ? AND gallery_slug = ?', [artist_id, gallery_slug], (err, row) => {
+          if (err) reject(err); else resolve(row);
+        });
+      });
+      if (!artist) {
+        req.flash('error', 'Artist does not belong to gallery');
         return res.redirect('/dashboard/artworks');
       }
       const finalMedium = medium === 'other' ? custom_medium : medium;
@@ -433,17 +451,27 @@ app.post('/dashboard/upload', requireLogin, (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    const { id, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
-    if (!title || !medium || !dimensions || !status) {
+    const { id, gallery_slug, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
+    if (!gallery_slug || !title || !medium || !dimensions || !status) {
       req.flash('error', 'All fields are required');
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    db.get('SELECT id FROM artists LIMIT 1', async (artistErr, artist) => {
+    const gallery = await new Promise((resolve, reject) => {
+      db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
+        if (err) reject(err); else resolve(row);
+      });
+    });
+    if (!gallery) {
+      req.flash('error', 'Gallery not found');
+      return res.status(400).redirect('/dashboard/upload');
+    }
+
+    db.get('SELECT id FROM artists WHERE gallery_slug = ? LIMIT 1', [gallery_slug], async (artistErr, artist) => {
       if (artistErr || !artist) {
         console.error(artistErr);
-        req.flash('error', 'Artist not found');
-        return res.status(500).redirect('/dashboard/upload');
+        req.flash('error', 'No artist found for gallery');
+        return res.status(400).redirect('/dashboard/upload');
       }
 
       try {

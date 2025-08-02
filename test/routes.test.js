@@ -235,6 +235,7 @@ test('admin artwork routes allow CRUD after login', async () => {
   const id = `testartwork${Date.now()}`;
   let res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, {
     id,
+    gallery_slug: 'demo-gallery',
     artist_id: 'artist1',
     title: 'NewArt',
     medium: 'Oil',
@@ -330,7 +331,7 @@ test('artist and artwork routes require login', async () => {
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
 
-  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', imageUrl: 'i', _csrf: token }, cookie);
+  res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, { id: 'x', gallery_slug: 'demo-gallery', artist_id: 'artist1', title: 't', medium: 'm', dimensions: 'd', price: 'p', imageUrl: 'i', _csrf: token }, cookie);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
   res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artworks/x`, { title: 't' }, cookie, token);
@@ -349,6 +350,7 @@ test('upload post requires login', async () => {
   const token = extractCsrfToken(page.body);
   const cookie = page.headers['set-cookie'][0].split(';')[0];
   const res = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
+    gallery_slug: 'demo-gallery',
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available', _csrf: token
   }, temp, cookie, token);
   fs.unlinkSync(temp);
@@ -370,6 +372,7 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
   const page = await httpGet(`http://localhost:${port}/dashboard/upload`, cookie);
   const token = extractCsrfToken(page.body);
   const uploadRes = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
+    gallery_slug: 'demo-gallery',
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available', _csrf: token
   }, temp, cookie, token);
   fs.unlinkSync(temp);

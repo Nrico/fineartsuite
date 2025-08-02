@@ -17,6 +17,9 @@
   <main class="max-w-lg mx-auto p-6">
     <div class="border border-gray-200 p-6 rounded shadow">
       <h1 class="text-2xl mb-4 text-center">Upload Artwork</h1>
+      <% if (flash.error && flash.error.length) { %>
+        <p class="text-red-600 mb-4 text-center"><%= flash.error[0] %></p>
+      <% } %>
       <% if (success) { %>
         <p id="status" class="text-green-600 mb-4 text-center">Upload successful! Artwork stored.</p>
       <% } %>
