@@ -3,7 +3,7 @@ services:
     name: fineartsuite
     env: node
     branch: main
-    buildCommand: npm install
+    buildCommand: npm install && npm run build:css
     startCommand: npm start
     plan: free
     runtime: node
