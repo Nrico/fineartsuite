@@ -27,7 +27,7 @@ try {
   };
 }
 const csrf = require('./middleware/csrf');
-const { initialize } = require('./models/db');
+const { initialize, migrate } = require('./models/db');
 
 function simulateAuth(req, res, next) {
   if (!req.session.user) {
@@ -85,8 +85,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize the SQLite database and seed demo data if needed
-initialize();
+// Apply any pending migrations then initialize the database and seed demo data if needed
+migrate(() => initialize());
 
 // Route modules
 const authRoutes = require('./routes/auth');
