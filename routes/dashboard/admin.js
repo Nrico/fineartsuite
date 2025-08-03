@@ -12,17 +12,12 @@ try {
 
 const { db } = require('../../models/db');
 
-function requireLogin(req, res, next) {
-  if (req.user) return next();
-  res.redirect('/login');
-}
-
-function requireRole(role) {
+function requireRole(...roles) {
   return function(req, res, next) {
     if (!req.user) {
       return res.redirect('/login');
     }
-    if (req.user.role !== role) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).send('Forbidden');
     }
     next();
@@ -97,9 +92,13 @@ router.get('/', requireRole('admin'), (req, res) => {
   res.render('admin/dashboard', { user: req.session.user });
 });
 
-router.get('/galleries', requireRole('admin'), (req, res) => {
+router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    db.all('SELECT slug, name, bio FROM galleries', (err, galleries) => {
+    const query = req.user.role === 'gallery'
+      ? 'SELECT slug, name, bio FROM galleries WHERE slug = ?'
+      : 'SELECT slug, name, bio FROM galleries';
+    const params = req.user.role === 'gallery' ? [req.user.username] : [];
+    db.all(query, params, (err, galleries) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
@@ -114,15 +113,22 @@ router.get('/galleries', requireRole('admin'), (req, res) => {
   }
 });
 
-router.get('/artists', requireRole('admin'), (req, res) => {
+router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    db.all('SELECT * FROM artists', (err, artists) => {
+    const artistQuery = req.user.role === 'gallery'
+      ? ['SELECT * FROM artists WHERE gallery_slug = ?', [req.user.username]]
+      : ['SELECT * FROM artists', []];
+    db.all(...artistQuery, (err, artists) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
         return res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
       }
-      db.all('SELECT slug FROM galleries', (gErr, galleries) => {
+      const fetchGalleries = cb => {
+        if (req.user.role === 'gallery') return cb(null, [{ slug: req.user.username }]);
+        db.all('SELECT slug FROM galleries', cb);
+      };
+      fetchGalleries((gErr, galleries) => {
         if (gErr) {
           console.error(gErr);
           req.flash('error', 'Database error');
@@ -139,15 +145,21 @@ router.get('/artists', requireRole('admin'), (req, res) => {
   }
 });
 
-router.get('/artworks', requireRole('admin'), (req, res) => {
+router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    db.all('SELECT * FROM artworks', (err, artworks) => {
+    const artQuery = req.user.role === 'gallery'
+      ? ['SELECT * FROM artworks WHERE gallery_slug = ?', [req.user.username]]
+      : ['SELECT * FROM artworks', []];
+    db.all(...artQuery, (err, artworks) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
         return res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
       }
-      db.all('SELECT id, name FROM collections', (cErr, collections) => {
+      const collQuery = req.user.role === 'gallery'
+        ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
+        : ['SELECT id, name FROM collections', []];
+      db.all(...collQuery, (cErr, collections) => {
         if (cErr) {
           console.error(cErr);
           req.flash('error', 'Database error');
@@ -164,11 +176,15 @@ router.get('/artworks', requireRole('admin'), (req, res) => {
   }
 });
 
-router.post('/galleries', requireRole('admin'), (req, res) => {
+router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   try {
     const { slug, name, bio } = req.body;
     if (!slug || !name || !bio) {
       req.flash('error', 'All fields are required');
+      return res.redirect('/dashboard/galleries');
+    }
+    if (req.user.role === 'gallery' && slug !== req.user.username) {
+      req.flash('error', 'Forbidden');
       return res.redirect('/dashboard/galleries');
     }
     const stmt = 'INSERT INTO galleries (slug, name, bio) VALUES (?,?,?)';
@@ -188,11 +204,15 @@ router.post('/galleries', requireRole('admin'), (req, res) => {
   }
 });
 
-router.put('/galleries/:slug', requireRole('admin'), (req, res) => {
+router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
   try {
+    if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
+      return res.status(403).send('Forbidden');
+    }
     const { slug, name, bio } = req.body;
+    const newSlug = req.user.role === 'gallery' ? req.user.username : slug;
     const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ? WHERE slug = ?';
-    db.run(stmt, [slug, name, bio, req.params.slug], err => {
+    db.run(stmt, [newSlug, name, bio, req.params.slug], err => {
       if (err) {
         console.error(err);
         return res.status(500).send('Database error');
@@ -206,8 +226,11 @@ router.put('/galleries/:slug', requireRole('admin'), (req, res) => {
   }
 });
 
-router.delete('/galleries/:slug', requireRole('admin'), (req, res) => {
+router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
   try {
+    if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
+      return res.status(403).send('Forbidden');
+    }
     db.run('DELETE FROM galleries WHERE slug = ?', [req.params.slug], err => {
       if (err) {
         console.error(err);
@@ -222,9 +245,12 @@ router.delete('/galleries/:slug', requireRole('admin'), (req, res) => {
   }
 });
 
-router.post('/artists', requireRole('admin'), (req, res) => {
+router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    const { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
+    let { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
+    if (req.user.role === 'gallery') {
+      gallery_slug = req.user.username;
+    }
     if (!id || !gallery_slug || !name || !bio) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artists');
@@ -246,12 +272,22 @@ router.post('/artists', requireRole('admin'), (req, res) => {
   }
 });
 
-router.put('/artists/:id', requireRole('admin'), (req, res) => {
+router.put('/artists/:id', requireRole('admin', 'gallery'), async (req, res) => {
   try {
+    if (req.user.role === 'gallery') {
+      const owner = await new Promise((resolve, reject) => {
+        db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+          if (err) reject(err); else resolve(row);
+        });
+      });
+      if (!owner || owner.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+    }
     const { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
     let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
     const params = [name, bio, fullBio || '', bioImageUrl || ''];
-    if (gallery_slug) {
+    if (req.user.role === 'admin' && gallery_slug) {
       stmt += ', gallery_slug = ?';
       params.push(gallery_slug);
     }
@@ -271,23 +307,35 @@ router.put('/artists/:id', requireRole('admin'), (req, res) => {
   }
 });
 
-router.delete('/artists/:id', requireRole('admin'), (req, res) => {
+router.delete('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Artist deleted');
-      res.sendStatus(204);
-    });
+    const handleDelete = () => {
+      db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artist deleted');
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleDelete();
+      });
+    } else {
+      handleDelete();
+    }
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
   }
 });
 
-router.post('/artworks', requireRole('admin'), (req, res) => {
+router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('imageFile')(req, res, async err => {
     if (err) {
       console.error(err);
@@ -295,7 +343,10 @@ router.post('/artworks', requireRole('admin'), (req, res) => {
       return res.redirect('/dashboard/artworks');
     }
     try {
-      const { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      if (req.user.role === 'gallery') {
+        gallery_slug = req.user.username;
+      }
       if (!id || !gallery_slug || !artist_id || !title || !medium || !dimensions) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
@@ -359,13 +410,21 @@ router.post('/artworks', requireRole('admin'), (req, res) => {
   });
 });
 
-router.put('/artworks/:id', requireRole('admin'), (req, res) => {
+router.put('/artworks/:id', requireRole('admin', 'gallery'), async (req, res) => {
   upload.single('imageFile')(req, res, async err => {
     if (err) {
       console.error(err);
       return res.status(400).send(err.message);
     }
     try {
+      if (req.user.role === 'gallery') {
+        const owner = await new Promise((resolve, reject) => {
+          db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (e, row) => e ? reject(e) : resolve(row));
+        });
+        if (!owner || owner.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+      }
       const { title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
       const finalMedium = medium === 'other' ? custom_medium : medium;
       let finalPrice = null;
@@ -405,23 +464,35 @@ router.put('/artworks/:id', requireRole('admin'), (req, res) => {
   });
 });
 
-router.delete('/artworks/:id', requireRole('admin'), (req, res) => {
+router.delete('/artworks/:id', requireRole('admin', 'gallery'), (req, res) => {
   try {
-    db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Artwork deleted');
-      res.sendStatus(204);
-    });
+    const handleDelete = () => {
+      db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artwork deleted');
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleDelete();
+      });
+    } else {
+      handleDelete();
+    }
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
   }
 });
 
-router.get('/upload', requireLogin, (req, res) => {
+router.get('/upload', requireRole('admin', 'gallery'), (req, res) => {
   fs.readdir(uploadsDir, (err, files) => {
     if (err) files = [];
     db.all('SELECT slug FROM galleries', (gErr, galleries) => {
@@ -432,7 +503,7 @@ router.get('/upload', requireLogin, (req, res) => {
   });
 });
 
-router.post('/upload', requireLogin, (req, res) => {
+router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('image')(req, res, async err => {
     if (err) {
       console.error(err);
@@ -491,7 +562,7 @@ router.post('/upload', requireLogin, (req, res) => {
   });
 });
 
-router.get('/settings', requireLogin, (req, res) => {
+router.get('/settings', requireRole('admin', 'gallery'), (req, res) => {
   db.get('SELECT * FROM gallery_settings WHERE id = 1', (err, settings) => {
     if (err) {
       console.error(err);
@@ -502,7 +573,7 @@ router.get('/settings', requireLogin, (req, res) => {
   });
 });
 
-router.post('/settings', requireLogin, (req, res) => {
+router.post('/settings', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('logo')(req, res, err => {
     if (err) {
       console.error(err);
