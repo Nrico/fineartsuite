@@ -33,4 +33,29 @@ function updateArtworkCollection(id, collectionId, cb) {
   db.run('UPDATE artworks SET collection_id = ? WHERE id = ?', [collectionId, id], cb);
 }
 
-module.exports = { getArtwork, getArtworksByArtist, updateArtworkCollection };
+function createArtwork(artistId, title, medium, dimensions, price, images, cb) {
+  db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artistId], (err, row) => {
+    if (err || !row) return cb(err || new Error('Artist not found'));
+    const id = 'art_' + Date.now();
+    const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    const params = [
+      id,
+      artistId,
+      row.gallery_slug,
+      title,
+      medium,
+      dimensions,
+      price || '',
+      images.imageFull,
+      images.imageStandard,
+      images.imageThumb,
+      'available',
+      1,
+      0
+    ];
+    db.run(stmt, params, err2 => cb(err2, id));
+  });
+}
+
+module.exports = { getArtwork, getArtworksByArtist, updateArtworkCollection, createArtwork };
