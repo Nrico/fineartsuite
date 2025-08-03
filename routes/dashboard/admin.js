@@ -148,8 +148,8 @@ router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
 router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
   try {
     const artQuery = req.user.role === 'gallery'
-      ? ['SELECT * FROM artworks WHERE gallery_slug = ?', [req.user.username]]
-      : ['SELECT * FROM artworks', []];
+      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]]
+      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id', []];
     db.all(...artQuery, (err, artworks) => {
       if (err) {
         console.error(err);
@@ -351,6 +351,16 @@ router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
       }
+      let priceValue = '';
+      if (price && price.trim() !== '') {
+        const sanitized = price.replace(/[^0-9.]/g, '');
+        const parsed = parseFloat(sanitized);
+        if (isNaN(parsed)) {
+          req.flash('error', 'Price must be a valid number');
+          return res.redirect('/dashboard/artworks');
+        }
+        priceValue = parsed.toFixed(2);
+      }
       if (req.file && imageUrl) {
         req.flash('error', 'Choose either an upload or a URL');
         return res.redirect('/dashboard/artworks');
@@ -392,7 +402,7 @@ router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
         images.imageThumb = imageUrl;
       }
       const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-      const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, price || '', images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
+      const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
       db.run(stmt, params, runErr => {
         if (runErr) {
           console.error(runErr);
@@ -429,11 +439,16 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), async (req, res) =>
       const finalMedium = medium === 'other' ? custom_medium : medium;
       let finalPrice = null;
       if (status !== 'collected') {
-        const parsed = parseFloat(price);
-        if (isNaN(parsed)) {
-          return res.status(400).send('Price must be a valid number');
+        if (price && price.trim() !== '') {
+          const sanitized = price.replace(/[^0-9.]/g, '');
+          const parsed = parseFloat(sanitized);
+          if (isNaN(parsed)) {
+            return res.status(400).send('Price must be a valid number');
+          }
+          finalPrice = parsed.toFixed(2);
+        } else {
+          finalPrice = '';
         }
-        finalPrice = parsed.toFixed(2);
       }
       let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?`;
       const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
