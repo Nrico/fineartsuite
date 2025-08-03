@@ -164,4 +164,14 @@ router.post('/artworks/:id/collection', requireRole('artist'), (req, res) => {
   });
 });
 
+// Handle CSRF token errors specifically for artist dashboard routes
+router.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    console.error('CSRF token mismatch on artist route', err);
+    req.flash('error', 'Invalid CSRF token. Please try again.');
+    return res.redirect('/dashboard/artist');
+  }
+  next(err);
+});
+
 module.exports = router;
