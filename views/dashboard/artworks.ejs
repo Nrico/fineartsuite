@@ -18,7 +18,7 @@
               <span class="flex-1"><span class="font-semibold"><%= art.artist_name %></span> - <%= art.title %></span>
             </button>
             <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-              <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>">
+              <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <label class="block text-sm font-medium">Title
                   <input name="title" value="<%= art.title %>" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -45,6 +45,13 @@
                   <% }) %>
                 </select>
               </label>
+              <label class="block text-sm font-medium">Replace Image
+                <input type="file" name="imageFile" accept="image/*" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Image URL
+                <input type="url" name="imageUrl" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <p class="text-xs text-gray-500">Choose either an upload or a URL</p>
               <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="isVisible" value="1" <%= art.isVisible ? 'checked' : '' %>>
                 Visible
@@ -63,7 +70,7 @@
         <span class="font-semibold flex-1">Untitled</span>
       </button>
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-        <form class="p-4 space-y-2 art-form" data-id="<%= generatedId %>" data-new="true">
+        <form class="p-4 space-y-2 art-form" data-id="<%= generatedId %>" data-new="true" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <label class="block text-sm font-medium">Title
             <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -90,6 +97,13 @@
               <% }) %>
             </select>
           </label>
+          <label class="block text-sm font-medium">Image File
+            <input type="file" name="imageFile" accept="image/*" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <label class="block text-sm font-medium">Image URL
+            <input type="url" name="imageUrl" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <p class="text-xs text-gray-500">Provide an image file or a URL</p>
           <label class="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isVisible" value="1" checked>
             Visible

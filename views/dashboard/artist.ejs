@@ -36,7 +36,9 @@
         <input type="text" name="medium" placeholder="Medium" required class="border border-gray-300 rounded px-2 py-1 w-full">
         <input type="text" name="dimensions" placeholder="Dimensions" required class="border border-gray-300 rounded px-2 py-1 w-full">
         <input type="text" name="price" placeholder="Price" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="file" name="imageFile" accept="image/*" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="file" name="imageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="url" name="imageUrl" placeholder="Image URL" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <p class="text-xs text-gray-500">Provide an image file or a URL</p>
         <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Upload</button>
       </form>
       <% artworks.forEach(a => { %>

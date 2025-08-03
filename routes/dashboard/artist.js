@@ -121,17 +121,23 @@ router.post('/artworks', requireRole('artist'), (req, res) => {
       req.flash('error', err.message);
       return res.redirect('/dashboard/artist');
     }
-    const { title, medium, dimensions, price } = req.body;
+    const { title, medium, dimensions, price, imageUrl } = req.body;
     if (!title || !medium || !dimensions) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artist');
     }
-    if (!req.file) {
+    if (req.file && imageUrl) {
+      req.flash('error', 'Choose either an upload or a URL');
+      return res.redirect('/dashboard/artist');
+    }
+    if (!req.file && !imageUrl) {
       req.flash('error', 'Image is required');
       return res.redirect('/dashboard/artist');
     }
     try {
-      const images = await processImages(req.file);
+      const images = req.file
+        ? await processImages(req.file)
+        : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
       createArtwork(req.session.user.id, title, medium, dimensions, price, images, createErr => {
         if (createErr) {
           console.error(createErr);
