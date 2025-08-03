@@ -31,4 +31,9 @@ function getGallery(slug, cb) {
   });
 }
 
-module.exports = { getGallery };
+function createGallery(slug, name, cb) {
+  const stmt = 'INSERT INTO galleries (slug, name) VALUES (?, ?)';
+  db.run(stmt, [slug, name], cb);
+}
+
+module.exports = { getGallery, createGallery };

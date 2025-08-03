@@ -73,7 +73,7 @@
             <form class="p-4 space-y-2 gallery-form" data-new="true" enctype="multipart/form-data">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <label class="block text-sm font-medium">Slug
-                <input name="slug" value="<%= generatedSlug %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                <input name="slug" value="<%= user && user.role === 'gallery' ? user.username : generatedSlug %>" class="mt-1 w-full border rounded px-2 py-1"/>
               </label>
               <label class="block text-sm font-medium">Name
                 <input name="name" class="mt-1 w-full border rounded px-2 py-1"/>
