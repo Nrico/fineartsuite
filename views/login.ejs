@@ -8,10 +8,11 @@
 <body class="font-sans bg-white text-black">
   <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
     <a href="/" class="text-2xl font-bold">FineArtSuite</a>
-    <div class="flex gap-4 mt-2 md:mt-0">
-      <a href="/demo-gallery" class="hover:underline">Demo Gallery</a>
-      <a href="/login" class="hover:underline">Admin</a>
-    </div>
+      <div class="flex gap-4 mt-2 md:mt-0">
+        <a href="/demo-gallery" class="hover:underline">Demo Gallery</a>
+        <a href="/login" class="hover:underline">Login</a>
+        <a href="/signup" class="hover:underline">Sign Up</a>
+      </div>
   </nav>
   <main class="max-w-sm mx-auto p-6">
     <div class="bg-white border border-gray-200 p-6 rounded shadow">
@@ -31,9 +32,13 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-base">Login</button>
       </form>
-      <p class="mt-4 text-center"><a href="/" class="text-blue-600 underline">Back home</a></p>
-    </div>
-  </main>
+        <p class="mt-4 text-center">
+          New here? <a href="/signup/artist" class="text-blue-600 underline">Sign up as Artist</a>
+          or <a href="/signup/gallery" class="text-blue-600 underline">Sign up as Gallery</a>
+        </p>
+        <p class="mt-4 text-center"><a href="/" class="text-blue-600 underline">Back home</a></p>
+      </div>
+    </main>
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>

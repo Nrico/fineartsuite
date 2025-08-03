@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign Up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex gap-4 mt-2 md:mt-0">
+      <a href="/signup/artist" class="hover:underline">Artist Signup</a>
+      <a href="/signup/gallery" class="hover:underline">Gallery Signup</a>
+    </div>
+  </nav>
+  <main class="max-w-2xl mx-auto p-6 text-center">
+    <h1 class="text-xl mb-6">Choose your signup</h1>
+    <div class="flex justify-center gap-4 flex-wrap">
+      <a href="/signup/artist" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded text-base">Sign up as Artist</a>
+      <a href="/signup/gallery" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded text-base">Sign up as Gallery</a>
+    </div>
+  </main>
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
+</body>
+</html>
