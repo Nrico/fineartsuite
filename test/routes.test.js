@@ -48,7 +48,7 @@ function httpRequest(method, url, data = null, cookies = '', csrfToken = '') {
       'Content-Length': payload ? Buffer.byteLength(payload) : 0,
       'Cookie': cookies
     };
-    if (csrfToken) headers['CSRF-Token'] = csrfToken;
+    if (csrfToken) headers['csrf-token'] = csrfToken;
     const options = {
       method,
       hostname: parsed.hostname,
@@ -326,7 +326,7 @@ async function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken 
     'Content-Length': payload.length,
     'Cookie': cookies
   };
-  if (csrfToken) headers['CSRF-Token'] = csrfToken;
+  if (csrfToken) headers['csrf-token'] = csrfToken;
   const options = {
     method: 'POST',
     hostname: parsed.hostname,

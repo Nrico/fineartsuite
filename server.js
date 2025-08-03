@@ -26,7 +26,7 @@ try {
     next();
   };
 }
-const csrf = require('./middleware/csrf');
+const csrf = require('csurf');
 const { initialize, migrate } = require('./models/db');
 
 function simulateAuth(req, res, next) {
@@ -69,8 +69,7 @@ if (SQLiteStore) {
   sessionOptions.store = new SQLiteStore();
 }
 app.use(session(sessionOptions));
-const csrfProtection = csrf();
-app.use(csrfProtection);
+app.use(csrf());
 
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
