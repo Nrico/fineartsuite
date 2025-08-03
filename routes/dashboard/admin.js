@@ -96,8 +96,8 @@ router.get('/', requireRole('admin'), (req, res) => {
 router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   try {
     const query = req.user.role === 'gallery'
-      ? 'SELECT slug, name, bio FROM galleries WHERE slug = ?'
-      : 'SELECT slug, name, bio FROM galleries';
+      ? 'SELECT slug, name, bio, logo_url FROM galleries WHERE slug = ?'
+      : 'SELECT slug, name, bio, logo_url FROM galleries';
     const params = req.user.role === 'gallery' ? [req.user.username] : [];
     db.all(query, params, (err, galleries) => {
       if (err) {
@@ -179,53 +179,87 @@ router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
 });
 
 router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
-  try {
-    const { slug, name, bio } = req.body;
-    if (!slug || !name || !bio) {
-      req.flash('error', 'All fields are required');
+  upload.single('logoFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      req.flash('error', err.message);
       return res.redirect('/dashboard/galleries');
     }
-    if (req.user.role === 'gallery' && slug !== req.user.username) {
-      req.flash('error', 'Forbidden');
-      return res.redirect('/dashboard/galleries');
-    }
-    const stmt = 'INSERT INTO galleries (slug, name, bio) VALUES (?,?,?)';
-    db.run(stmt, [slug, name, bio], err => {
-      if (err) {
-        console.error(err);
-        req.flash('error', 'Database error');
+    try {
+      let { slug, name, bio, logoUrl } = req.body;
+      if (!slug || !name || !bio) {
+        req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/galleries');
       }
-      req.flash('success', 'Gallery added');
+      if (req.user.role === 'gallery' && slug !== req.user.username) {
+        req.flash('error', 'Forbidden');
+        return res.redirect('/dashboard/galleries');
+      }
+      let logo_url = logoUrl || null;
+      if (req.file) {
+        try {
+          const images = await processImages(req.file);
+          logo_url = images.imageStandard;
+        } catch (imageErr) {
+          console.error(imageErr);
+          req.flash('error', 'Image processing failed');
+          return res.redirect('/dashboard/galleries');
+        }
+      }
+      const stmt = 'INSERT INTO galleries (slug, name, bio, logo_url) VALUES (?,?,?,?)';
+      db.run(stmt, [slug, name, bio, logo_url], err2 => {
+        if (err2) {
+          console.error(err2);
+          req.flash('error', 'Database error');
+          return res.redirect('/dashboard/galleries');
+        }
+        req.flash('success', 'Gallery added');
+        res.redirect('/dashboard/galleries');
+      });
+    } catch (err2) {
+      console.error(err2);
+      req.flash('error', 'Server error');
       res.redirect('/dashboard/galleries');
-    });
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Server error');
-    res.redirect('/dashboard/galleries');
-  }
+    }
+  });
 });
 
 router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
-  try {
-    if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
-      return res.status(403).send('Forbidden');
+  upload.single('logoFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      return res.status(400).send(err.message);
     }
-    const { slug, name, bio } = req.body;
-    const newSlug = req.user.role === 'gallery' ? req.user.username : slug;
-    const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ? WHERE slug = ?';
-    db.run(stmt, [newSlug, name, bio, req.params.slug], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
+    try {
+      if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
       }
-      req.flash('success', 'Gallery saved');
-      res.sendStatus(204);
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
+      let { slug, name, bio, logoUrl } = req.body;
+      const newSlug = req.user.role === 'gallery' ? req.user.username : slug;
+      let logo_url = logoUrl || null;
+      if (req.file) {
+        try {
+          const images = await processImages(req.file);
+          logo_url = images.imageStandard;
+        } catch (imageErr) {
+          console.error(imageErr);
+          return res.status(500).send('Image processing failed');
+        }
+      }
+      const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ?, logo_url = ? WHERE slug = ?';
+      db.run(stmt, [newSlug, name, bio, logo_url, req.params.slug], err2 => {
+        if (err2) {
+          console.error(err2);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Gallery saved');
+        res.sendStatus(204);
+      });
+    } catch (err2) {
+      console.error(err2);
+      res.status(500).send('Server error');
+    }
+  });
 });
 
 router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {

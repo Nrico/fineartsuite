@@ -139,8 +139,8 @@ function migrate(done) {
 
 function seed(done) {
   const galleries = [
-    { slug: 'demo-gallery', name: 'Demo Gallery', bio: 'Welcome to the demo gallery showcasing placeholder artwork.' },
-    { slug: 'city-gallery', name: 'City Gallery', bio: 'Featuring modern works from local artists.' }
+    { slug: 'demo-gallery', name: 'Demo Gallery', bio: 'Welcome to the demo gallery showcasing placeholder artwork.', logo_url: randomAvatar() },
+    { slug: 'city-gallery', name: 'City Gallery', bio: 'Featuring modern works from local artists.', logo_url: randomAvatar() }
   ];
   const artists = [
     { id: 'artist1', gallery_slug: 'demo-gallery', name: 'Jane Doe', bio: 'An abstract artist exploring color and form.', bioImageUrl: randomAvatar(), fullBio: 'Jane Doe investigates the emotional resonance of color and shape.\n\nHer canvases challenge viewers to find their own narratives within abstract forms.' },
@@ -152,8 +152,8 @@ function seed(done) {
     { id: 'artist7', gallery_slug: 'city-gallery', name: 'Ava Patel', bio: 'Digital artist blending technology and emotion.', bioImageUrl: randomAvatar(), fullBio: 'Ava Patel explores human connection through digital mediums.\n\nHer creations blur the line between code and compassion.' }
   ];
 
-  const galleryStmt = db.prepare('INSERT INTO galleries (slug, name, bio) VALUES (?,?,?)');
-  galleries.forEach(g => galleryStmt.run(g.slug, g.name, g.bio));
+  const galleryStmt = db.prepare('INSERT INTO galleries (slug, name, bio, logo_url) VALUES (?,?,?,?)');
+  galleries.forEach(g => galleryStmt.run(g.slug, g.name, g.bio, g.logo_url));
   galleryStmt.finalize();
 
   const artistStmt = db.prepare('INSERT INTO artists (id, gallery_slug, name, bio, bioImageUrl, fullBio) VALUES (?,?,?,?,?,?)');
