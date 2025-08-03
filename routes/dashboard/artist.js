@@ -93,6 +93,10 @@ router.get('/', requireRole('artist'), (req, res) => {
   });
 });
 
+router.get('/collections', requireRole('artist'), (req, res) => {
+  res.redirect('/dashboard/artist');
+});
+
 router.post('/collections', requireRole('artist'), (req, res) => {
   const { name } = req.body;
   const slug = slugify(name);
