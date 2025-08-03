@@ -5,6 +5,7 @@ const http = require('node:http');
 const querystring = require('node:querystring');
 const app = require('../server');
 const { db } = require('../models/db');
+const { createUser } = require('../models/userModel');
 
 function extractCsrfToken(html) {
   const match = html.match(/name="_csrf" value="([^"]+)"/);
@@ -187,6 +188,27 @@ test('logout destroys session', async () => {
   const dash = await httpRequest('GET', `http://localhost:${port}/dashboard`, null, cookie);
   assert.strictEqual(dash.statusCode, 302);
   assert.strictEqual(dash.headers.location, '/login');
+});
+
+test('non-admin users cannot access admin routes', async () => {
+  const port = server.address().port;
+  const username = `artist${Date.now()}`;
+  await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', () => resolve()));
+
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const login = await httpPostForm(`http://localhost:${port}/login`, { username, password: 'pass', _csrf: loginCsrf }, cookie);
+  if (login.headers['set-cookie']) {
+    cookie = login.headers['set-cookie'][0].split(';')[0];
+  }
+
+  let res = await httpGet(`http://localhost:${port}/dashboard/galleries`, cookie);
+  assert.strictEqual(res.statusCode, 403);
+  res = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
+  assert.strictEqual(res.statusCode, 403);
+  res = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
+  assert.strictEqual(res.statusCode, 403);
 });
 
 test('admin artist routes allow CRUD after login', async () => {
