@@ -16,6 +16,8 @@ services:
         value: gallerysecret
       - key: USE_DEMO_AUTH
         value: true
+      - key: VALID_PROMO_CODES
+        value: taos
     disk:
       name: gallerydb
       mountPath: /opt/render/project/src

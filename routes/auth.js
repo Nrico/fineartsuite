@@ -8,16 +8,26 @@ const bcrypt = require('../utils/bcrypt');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
-const VALID_PROMO_CODES = ['taos'];
+const VALID_PROMO_CODES = process.env.VALID_PROMO_CODES
+  ? process.env.VALID_PROMO_CODES.split(',').map(c => c.trim()).filter(Boolean)
+  : null;
+if (!VALID_PROMO_CODES) {
+  console.warn('VALID_PROMO_CODES environment variable not set; signup passcodes will be ignored');
+}
 
 function signupHandler(role) {
   return (req, res) => {
     const { display_name, username, password, passcode } = req.body;
-    if (!display_name || !username || !password || !passcode) {
+    if (
+      !display_name ||
+      !username ||
+      !password ||
+      (VALID_PROMO_CODES && !passcode)
+    ) {
       req.flash('error', 'All fields are required');
       return res.redirect(`/signup/${role}`);
     }
-    if (!VALID_PROMO_CODES.includes(passcode)) {
+    if (VALID_PROMO_CODES && !VALID_PROMO_CODES.includes(passcode)) {
       req.flash('error', 'Invalid passcode');
       return res.redirect(`/signup/${role}`);
     }

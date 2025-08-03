@@ -26,6 +26,7 @@ The server reads credentials and session configuration from environment variable
 - `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
 - `SESSION_SECRET` – secret used to sign session cookies (defaults to `gallerysecret`)
 - `USE_DEMO_AUTH` – set to `true` to automatically log into admin pages
+- `VALID_PROMO_CODES` – comma-separated list of passcodes required for signup (e.g. `code1,code2`). When unset, signups skip passcode verification.
 
 Set these variables before starting the server to override the defaults.
 
