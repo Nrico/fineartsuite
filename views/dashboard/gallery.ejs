@@ -9,11 +9,12 @@
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
+    <% const dashBase = '/dashboard'; %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <a href="/dashboard/galleries" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Manage Galleries</a>
-      <a href="/dashboard/artists" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Manage Artists</a>
-      <a href="/dashboard/artworks" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Manage Artworks</a>
-      <a href="/dashboard/settings" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Gallery Settings</a>
+      <a href="<%= dashBase %>/galleries" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Gallery</a>
+      <a href="<%= dashBase %>/artists" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Artists</a>
+      <a href="<%= dashBase %>/artworks" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Artworks</a>
+      <a href="<%= dashBase %>/settings" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Gallery Settings</a>
     </div>
   </main>
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
