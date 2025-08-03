@@ -7,6 +7,9 @@
       <a href="/dashboard/artists" class="hover:underline">Artists</a>
     <% } %>
     <a href="/dashboard/artworks" class="hover:underline">Artworks</a>
+    <% if (user) { %>
+      <a href="/account" class="hover:underline">Account</a>
+    <% } %>
     <a href="/logout" class="hover:underline">Logout</a>
   </div>
 </nav>
