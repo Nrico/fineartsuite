@@ -9,6 +9,7 @@ const bcrypt = require('../utils/bcrypt');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const VALID_PROMO_CODES = ['taos'];
+const USERNAME_REGEX = /^[a-z0-9-]+$/;
 
 function signupHandler(role) {
   return (req, res) => {
@@ -19,6 +20,10 @@ function signupHandler(role) {
     }
     if (!VALID_PROMO_CODES.includes(passcode)) {
       req.flash('error', 'Invalid passcode');
+      return res.redirect(`/signup/${role}`);
+    }
+    if (!USERNAME_REGEX.test(username)) {
+      req.flash('error', 'Username may only contain lowercase letters, numbers, and hyphens');
       return res.redirect(`/signup/${role}`);
     }
     createUser(display_name, username, password, role, passcode, (err, id) => {
