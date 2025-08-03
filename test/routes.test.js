@@ -24,7 +24,13 @@ test.before(async () => {
   });
   // Wait for the demo data to be seeded
   await new Promise(res => {
-    db.get('SELECT 1 FROM galleries WHERE slug = ?', ['demo-gallery'], () => res());
+    const check = () => {
+      db.get('SELECT 1 FROM galleries WHERE slug = ?', ['demo-gallery'], (err, row) => {
+        if (row) return res();
+        setTimeout(check, 50);
+      });
+    };
+    check();
   });
 });
 

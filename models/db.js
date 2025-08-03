@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('../utils/bcrypt');
 
 const db = new sqlite3.Database(path.join(__dirname, '..', 'gallery.db'));
@@ -18,13 +19,6 @@ function initialize() {
       bio_full TEXT,
       logo_url TEXT
     )`);
-    db.run('ALTER TABLE galleries ADD COLUMN contact_email TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN phone TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN address TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN gallarist_name TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN bio_short TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN bio_full TEXT', () => {});
-    db.run('ALTER TABLE galleries ADD COLUMN logo_url TEXT', () => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS artists (
       id TEXT PRIMARY KEY,
@@ -38,12 +32,6 @@ function initialize() {
       portrait_url TEXT,
       gallery_id TEXT
     )`);
-    db.run('ALTER TABLE artists ADD COLUMN bioImageUrl TEXT', () => {});
-    db.run('ALTER TABLE artists ADD COLUMN fullBio TEXT', () => {});
-    db.run('ALTER TABLE artists ADD COLUMN bio_short TEXT', () => {});
-    db.run('ALTER TABLE artists ADD COLUMN bio_full TEXT', () => {});
-    db.run('ALTER TABLE artists ADD COLUMN portrait_url TEXT', () => {});
-    db.run('ALTER TABLE artists ADD COLUMN gallery_id TEXT', () => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS gallery_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -65,8 +53,6 @@ function initialize() {
       role TEXT,
       promo_code TEXT
     )`);
-    db.run('ALTER TABLE users ADD COLUMN role TEXT', () => {});
-    db.run('ALTER TABLE users ADD COLUMN promo_code TEXT', () => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS collections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,22 +79,60 @@ function initialize() {
       isVisible INTEGER DEFAULT 1,
       isFeatured INTEGER DEFAULT 0
     )`);
-    db.run('ALTER TABLE artworks ADD COLUMN imageFull TEXT', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN imageStandard TEXT', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN imageThumb TEXT', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN status TEXT', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN hide_collected INTEGER DEFAULT 0', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN featured INTEGER DEFAULT 0', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN isVisible INTEGER DEFAULT 1', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN isFeatured INTEGER DEFAULT 0', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN collection_id INTEGER', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN gallery_slug TEXT', () => {});
-    db.run('ALTER TABLE artworks ADD COLUMN custom_medium TEXT', () => {});
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;
       if (row.count === 0) seed();
     });
+  });
+}
+
+function migrate(done) {
+  const migrationsDir = path.join(__dirname, '..', 'migrations');
+  if (!fs.existsSync(migrationsDir)) {
+    if (done) done();
+    return;
+  }
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter(f => f.endsWith('.sql'))
+    .sort();
+
+  db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS migrations (
+      id TEXT PRIMARY KEY
+    )`);
+
+    const runNext = index => {
+      if (index >= files.length) {
+        if (done) done();
+        return;
+      }
+      const file = files[index];
+      db.get('SELECT 1 FROM migrations WHERE id = ?', [file], (err, row) => {
+        if (err) {
+          throw err;
+        }
+        if (row) {
+          runNext(index + 1);
+        } else {
+          const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+          db.exec(sql, execErr => {
+            if (execErr && !/no such table/.test(execErr.message)) {
+              throw execErr;
+            }
+            db.run('INSERT INTO migrations (id) VALUES (?)', [file], insertErr => {
+              if (insertErr) {
+                throw insertErr;
+              }
+              runNext(index + 1);
+            });
+          });
+        }
+      });
+    };
+
+    runNext(0);
   });
 }
 
@@ -179,4 +203,4 @@ function seed(done) {
   });
 }
 
-module.exports = { db, initialize, seed };
+module.exports = { db, initialize, seed, migrate };
