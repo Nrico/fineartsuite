@@ -7,9 +7,9 @@
   <meta name="csrf-token" content="<%= csrfToken %>">
 </head>
 <body class="font-sans bg-white text-black">
-    <%- include('../partials/navbar'); %>
-    <% const dashboardUrl = user ? (user.role === 'artist' ? '/dashboard/artist' : user.role === 'gallery' ? '/dashboard/gallery' : '/dashboard') : '/dashboard'; %>
-    <main class="max-w-3xl mx-auto p-6">
+  <%- include('../partials/navbar'); %>
+  <% const dashboardUrl = user ? (user.role === 'artist' ? '/dashboard/artist' : user.role === 'gallery' ? '/dashboard/gallery' : '/dashboard') : '/dashboard'; %>
+  <main class="max-w-3xl mx-auto p-6">
     <div class="border border-gray-200 p-6 rounded shadow">
       <h1 class="text-2xl mb-4 text-center">Artist Management</h1>
       <% if (flash.error && flash.error.length) { %>
@@ -18,70 +18,83 @@
       <% if (flash.success && flash.success.length) { %>
         <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
       <% } %>
-      <form id="add-artist" method="post" action="/dashboard/artists" enctype="multipart/form-data" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium" for="id">Artist ID</label>
-          <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100">
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="gallery_slug">Gallery Slug</label>
-          <select id="gallery_slug" name="gallery_slug" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-            <% galleries.forEach(function(g){ %>
-              <option value="<%= g.slug %>"><%= g.slug %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="name">Name</label>
-          <input id="name" type="text" name="name" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="bio">Brief Bio</label>
-          <textarea id="bio" name="bio" rows="3" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="fullBio">Extended Bio</label>
-          <textarea id="fullBio" name="fullBio" rows="5" class="mt-1 w-full border border-gray-300 rounded px-2 py-1"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="bioImageUrl">Artist Portrait URL</label>
-          <input id="bioImageUrl" type="text" name="bioImageUrl" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-        </div>
-        <div>
-          <label class="block text-sm font-medium" for="bioImageFile">Or Upload Portrait</label>
-          <input id="bioImageFile" type="file" name="bioImageFile" accept="image/*" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
-        </div>
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center justify-center">
-          <span class="status-text">Add Artist</span>
-        </button>
-      </form>
-      <h2 class="text-xl mt-8 mb-4">Existing Artists</h2>
-      <ul class="space-y-4">
+      <button id="new-artist" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artist</button>
+      <ul id="artist-list" class="space-y-4">
         <% artists.forEach(function(a){ %>
-          <li>
-            <form class="artist-form space-y-2" data-id="<%= a.id %>">
-              <input name="name" value="<%= a.name %>" class="border border-gray-300 rounded px-2 py-1 w-full">
-              <textarea name="bio" rows="3" class="border border-gray-300 rounded px-2 py-1 w-full"><%= a.bio %></textarea>
-              <textarea name="fullBio" rows="5" class="border border-gray-300 rounded px-2 py-1 w-full"><%= a.fullBio %></textarea>
-              <input name="bioImageUrl" value="<%= a.bioImageUrl %>" class="border border-gray-300 rounded px-2 py-1 w-full" placeholder="Portrait URL">
-              <select name="gallery_slug" class="border border-gray-300 rounded px-2 py-1 w-full">
-                <% galleries.forEach(function(g){ %>
-                  <option value="<%= g.slug %>" <%= g.slug === a.gallery_slug ? 'selected' : '' %>><%= g.slug %></option>
-                <% }) %>
-              </select>
-              <div class="flex gap-2">
-                <button type="submit" class="save-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded flex items-center justify-center">
-                  <span class="status-text">Save</span>
-                </button>
-                <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
-              </div>
-            </form>
-            <span class="text-sm text-gray-600">ID: <%= a.id %></span>
+          <li class="bg-white shadow-md rounded border">
+            <button class="artist-toggle w-full flex items-center p-4 text-left" data-id="<%= a.id %>">
+              <span class="font-semibold flex-1"><%= a.name %></span>
+            </button>
+            <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+              <form class="p-4 space-y-2 artist-form" data-id="<%= a.id %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label class="block text-sm font-medium">Name
+                  <input name="name" value="<%= a.name %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Brief Bio
+                  <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-2 py-1"><%= a.bio %></textarea>
+                </label>
+                <label class="block text-sm font-medium">Extended Bio
+                  <textarea name="fullBio" rows="5" class="mt-1 w-full border rounded px-2 py-1"><%= a.fullBio %></textarea>
+                </label>
+                <label class="block text-sm font-medium">Portrait URL
+                  <input name="bioImageUrl" value="<%= a.bioImageUrl %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Gallery Slug
+                  <select name="gallery_slug" class="mt-1 w-full border rounded px-2 py-1">
+                    <% galleries.forEach(function(g){ %>
+                      <option value="<%= g.slug %>" <%= g.slug === a.gallery_slug ? 'selected' : '' %>><%= g.slug %></option>
+                    <% }) %>
+                  </select>
+                </label>
+                <div class="flex gap-2">
+                  <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+                  <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete</button>
+                </div>
+              </form>
+            </div>
           </li>
         <% }) %>
       </ul>
-        <p class="mt-6"><a href="<%= dashboardUrl %>" class="text-blue-600 underline">Back to dashboard</a></p>
+      <template id="new-artist-template">
+        <li class="bg-white shadow-md rounded border">
+          <button class="artist-toggle w-full flex items-center p-4 text-left" data-new="true">
+            <span class="font-semibold flex-1">New Artist</span>
+          </button>
+          <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+            <form class="p-4 space-y-2 artist-form" data-new="true">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="block text-sm font-medium">Artist ID
+                <input name="id" value="<%= generatedId %>" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Gallery Slug
+                <select name="gallery_slug" class="mt-1 w-full border rounded px-2 py-1">
+                  <% galleries.forEach(function(g){ %>
+                    <option value="<%= g.slug %>"><%= g.slug %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label class="block text-sm font-medium">Name
+                <input name="name" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Brief Bio
+                <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+              </label>
+              <label class="block text-sm font-medium">Extended Bio
+                <textarea name="fullBio" rows="5" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+              </label>
+              <label class="block text-sm font-medium">Portrait URL
+                <input name="bioImageUrl" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <div class="flex gap-2">
+                <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+                <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete</button>
+              </div>
+            </form>
+          </div>
+        </li>
+      </template>
+      <p class="mt-6"><a href="<%= dashboardUrl %>" class="text-blue-600 underline">Back to dashboard</a></p>
     </div>
   </main>
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
@@ -89,85 +102,88 @@
   </footer>
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    const addForm = document.getElementById('add-artist');
-    addForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const btn = addForm.querySelector('.save-btn');
-      const label = btn.querySelector('.status-text');
-      const original = label.textContent;
-      btn.disabled = true;
-      label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
-      const formData = new FormData(addForm);
-      try {
-        const res = await fetch('/dashboard/artists', {
-          method: 'POST',
-          headers: { 'CSRF-Token': csrfToken },
-          body: formData
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText || res.statusText);
-        }
-        btn.disabled = false;
-        label.textContent = 'Saved!';
-        setTimeout(() => {
-          label.textContent = original;
-          location.reload();
-        }, 2000);
-      } catch (err) {
-        label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
-        btn.disabled = false;
-        setTimeout(() => { label.textContent = original; }, 2000);
+    function toggleWrapper(wrapper) {
+      if (wrapper.style.maxHeight && wrapper.style.maxHeight !== '0px') {
+        wrapper.style.maxHeight = '0px';
+        wrapper.style.opacity = '0';
+      } else {
+        wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+        wrapper.style.opacity = '1';
       }
+    }
+    document.querySelectorAll('.artist-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const wrapper = btn.nextElementSibling;
+        toggleWrapper(wrapper);
+      });
     });
-
-    document.querySelectorAll('.artist-form').forEach(f => {
-      const id = f.dataset.id;
-      const btn = f.querySelector('.save-btn');
-      const label = btn.querySelector('.status-text');
-      const original = label.textContent;
-      f.addEventListener('submit', async e => {
+    function handleForm(form) {
+      const btn = form.querySelector('.save-btn');
+      let id = form.dataset.id;
+      form.addEventListener('submit', async e => {
         e.preventDefault();
+        const isNew = form.dataset.new === 'true';
         btn.disabled = true;
-        label.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Saving…`;
-        const data = Object.fromEntries(new FormData(f).entries());
+        const original = btn.textContent;
+        btn.textContent = 'Saving...';
         try {
-          const res = await fetch('/dashboard/artists/' + id, {
-            method: 'PUT',
-            headers: {'Content-Type':'application/json', 'CSRF-Token': csrfToken},
-            body: JSON.stringify(data)
-          });
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(errText || res.statusText);
+          if (isNew) {
+            const formData = new FormData(form);
+            const res = await fetch('/dashboard/artists', { method: 'POST', headers: { 'CSRF-Token': csrfToken }, body: formData });
+            if (!res.ok) throw new Error(await res.text() || res.statusText);
+            btn.textContent = 'Saved!';
+            id = formData.get('id');
+            form.dataset.id = id;
+            form.dataset.new = 'false';
+            form.closest('li').querySelector('.artist-toggle span').textContent = formData.get('name') || id;
+            setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1000);
+          } else {
+            const dataObj = Object.fromEntries(new FormData(form).entries());
+            const res = await fetch('/dashboard/artists/' + encodeURIComponent(id), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
+              body: JSON.stringify(dataObj)
+            });
+            if (!res.ok) throw new Error(await res.text() || res.statusText);
+            btn.textContent = 'Saved!';
+            setTimeout(() => {
+              btn.textContent = original;
+              btn.disabled = false;
+              toggleWrapper(form.parentElement);
+            }, 1000);
           }
-          btn.disabled = false;
-          label.textContent = 'Saved!';
-          setTimeout(() => {
-            label.textContent = original;
-          }, 2000);
         } catch (err) {
-          label.textContent = 'Save failed' + (err.message ? ': ' + err.message : '');
-          btn.disabled = false;
-          setTimeout(() => { label.textContent = original; }, 2000);
+          btn.textContent = 'Error';
+          setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
         }
       });
-      f.querySelector('.delete').addEventListener('click', async e => {
+      form.querySelector('.delete').addEventListener('click', async e => {
         e.preventDefault();
+        if (!id) {
+          form.closest('li').remove();
+          return;
+        }
+        const url = '/dashboard/artists/' + encodeURIComponent(id);
         try {
-          const res = await fetch('/dashboard/artists/' + id, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(errText || res.statusText);
-          }
-          location.reload();
+          const res = await fetch(url, { method: 'DELETE', headers: { 'CSRF-Token': csrfToken } });
+          if (!res.ok) throw new Error(await res.text() || res.statusText);
+          form.closest('li').remove();
         } catch (err) {
-          label.textContent = 'Delete failed' + (err.message ? ': ' + err.message : '');
-          btn.disabled = false;
-          setTimeout(() => { label.textContent = original; }, 2000);
+          btn.textContent = 'Error';
+          setTimeout(() => { btn.textContent = 'Save'; }, 2000);
         }
       });
+    }
+    document.querySelectorAll('.artist-form').forEach(handleForm);
+    document.getElementById('new-artist').addEventListener('click', () => {
+      const tpl = document.getElementById('new-artist-template');
+      const li = tpl.content.firstElementChild.cloneNode(true);
+      document.getElementById('artist-list').prepend(li);
+      const btn = li.querySelector('.artist-toggle');
+      const wrapper = li.querySelector('.artist-form-wrapper');
+      btn.addEventListener('click', () => toggleWrapper(wrapper));
+      handleForm(li.querySelector('form'));
+      btn.click();
     });
   </script>
 </body>
