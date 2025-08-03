@@ -6,6 +6,7 @@ const querystring = require('node:querystring');
 const app = require('../server');
 const { db } = require('../models/db');
 const { createUser } = require('../models/userModel');
+const { createArtist } = require('../models/artistModel');
 const bcrypt = require('../utils/bcrypt');
 
 function extractCsrfToken(html) {
@@ -307,7 +308,7 @@ test('admin artwork routes allow CRUD after login', async () => {
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-async function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken = '') {
+async function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken = '', fileField = 'image') {
   const boundary = '----WebKitFormBoundary' + Math.random().toString(16);
   const parsed = new URL(url);
   let payloadParts = [];
@@ -316,7 +317,7 @@ async function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken 
   }
   const fileData = await fs.readFile(filePath);
   const filename = path.basename(filePath);
-  payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: image/jpeg\r\n\r\n`));
+  payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${fileField}"; filename="${filename}"\r\nContent-Type: image/jpeg\r\n\r\n`));
   payloadParts.push(fileData);
   payloadParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
   const payload = Buffer.concat(payloadParts);
@@ -378,6 +379,66 @@ test('artist and artwork routes require login', async () => {
   res = await httpRequest('DELETE', `http://localhost:${port}/dashboard/artworks/x`, null, cookie, token);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
+});
+
+test('artist artwork submission rejects invalid CSRF token', async () => {
+  const port = server.address().port;
+  const username = `artist${Date.now()}`;
+  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', () => resolve()));
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(`http://localhost:${port}/login`, { username, password: 'pass', _csrf: loginCsrf }, cookie);
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+  const temp = path.join(__dirname, 'art.jpg');
+  await fs.writeFile(temp, 'img');
+  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artist/artworks`, {
+    title: 'NoCSRF',
+    medium: 'm',
+    dimensions: 'd'
+  }, temp, cookie, '', 'imageFile');
+  await fs.unlink(temp);
+  assert.strictEqual(res.statusCode, 403);
+  assert.strictEqual(res.body, 'Invalid CSRF token');
+});
+
+test('artist artwork submission succeeds with valid CSRF token', async () => {
+  const port = server.address().port;
+  const username = `artist${Date.now()}`;
+  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', () => resolve()));
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(`http://localhost:${port}/login`, { username, password: 'pass', _csrf: loginCsrf }, cookie);
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+  const dash = await httpGet(`http://localhost:${port}/dashboard/artist`, cookie);
+  const token = extractCsrfToken(dash.body);
+  const temp = path.join(__dirname, 'artvalid.jpg');
+  await fs.writeFile(temp, 'img');
+  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artist/artworks`, {
+    title: 'GoodCSRF',
+    medium: 'm',
+    dimensions: 'd',
+    _csrf: token
+  }, temp, cookie, token, 'imageFile');
+  await fs.unlink(temp);
+  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.headers.location, '/dashboard/artist');
+  const row = await new Promise(resolve => {
+    db.get('SELECT id, imageFull, imageStandard, imageThumb FROM artworks WHERE title=?', ['GoodCSRF'], (err, r) => resolve(r));
+  });
+  assert.ok(row);
+  await new Promise(resolve => db.run('DELETE FROM artworks WHERE id=?', [row.id], resolve));
+  await Promise.all(['imageFull','imageStandard','imageThumb'].map(async k => {
+    const p = path.join(__dirname, '..', 'public', row[k].replace(/^\//, ''));
+    try { await fs.unlink(p); } catch {}
+  }));
 });
 
 test('upload post requires login', async () => {
