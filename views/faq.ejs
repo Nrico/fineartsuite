@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FAQ - FineArtSuite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex gap-4 mt-2 md:mt-0">
+      <a href="/demo-gallery" class="hover:underline">Demo Gallery</a>
+      <a href="/login" class="hover:underline">Login</a>
+      <a href="/signup" class="hover:underline">Sign Up</a>
+    </div>
+  </nav>
+  <main class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Frequently Asked Questions</h1>
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold mb-2">How are gallery URLs formed?</h2>
+      <p class="text-base text-gray-700">
+        Each gallery is available at <code>https://{your-domain}/{gallerySlug}</code>.
+        The <code>{gallerySlug}</code> is a unique identifier chosen when creating a gallery.
+        For example, a gallery with the slug <code>modern-art</code> will be served at
+        <code>https://your-domain/modern-art</code>.
+      </p>
+    </section>
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold mb-2">How do I connect a custom domain?</h2>
+      <ol class="list-decimal list-inside space-y-2 text-base text-gray-700">
+        <li>Purchase a domain from your preferred registrar.</li>
+        <li>Create a CNAME record that points your domain (for example,
+          <code>gallery.yourdomain.com</code>) to your gallery URL
+          (for example, <code>yourgallery.fineartsuite.com</code>).</li>
+        <li>Wait for DNS changes to propagate, which may take up to 24 hours.</li>
+      </ol>
+      <p class="text-base text-gray-700 mt-4">
+        For additional help with custom domains, open an issue on the project repository
+        or contact support at <a href="mailto:support@example.com" class="text-blue-600 hover:underline">support@example.com</a>.
+      </p>
+    </section>
+  </main>
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
+</body>
+</html>

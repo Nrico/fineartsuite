@@ -48,6 +48,16 @@ cookies are configured with the `secure` flag when `NODE_ENV` is set to
 
 Navigating to `/demo-gallery` or another gallery slug will display a public gallery page. Gallery, artist and artwork data is loaded from the SQLite database.
 
+## Custom domain setup
+
+Each gallery is served from a URL in the form `https://your-domain/{gallerySlug}`. To use a custom domain for your gallery:
+
+1. Purchase and manage your domain through a DNS provider.
+2. Create a CNAME record pointing your chosen domain (for example, `gallery.yourdomain.com`) to your gallery's default URL (for example, `yourgallery.fineartsuite.com`).
+3. Allow time for DNS propagation. This process can take up to 24 hours.
+
+If you need assistance configuring a custom domain, open an issue in this repository or email the maintainers at [support@example.com](mailto:support@example.com).
+
 ## Planned gallery features
 
 The current page is only a basic landing page. Future improvements may include:
