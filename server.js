@@ -29,6 +29,19 @@ try {
 const csrf = require('./middleware/csrf');
 const { initialize } = require('./models/db');
 
+function simulateAuth(req, res, next) {
+  if (!req.session.user) {
+    if (req.path === '/artist' || req.path.startsWith('/artist/')) {
+      req.session.user = { username: 'demoArtist', role: 'artist', id: 'artist1' };
+    } else if (req.path.startsWith('/gallery')) {
+      req.session.user = { username: 'demoGallery', role: 'gallery' };
+    } else {
+      req.session.user = { username: 'demoAdmin', role: 'admin' };
+    }
+  }
+  next();
+}
+
 // Read session secret from environment variables with development-friendly default
 const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
 
@@ -61,6 +74,9 @@ app.use(csrfProtection);
 
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
+if (process.env.USE_DEMO_AUTH === 'true') {
+  app.use('/dashboard', simulateAuth);
+}
 app.use((req, res, next) => {
   req.user = req.session.user;
   res.locals.user = req.user;
