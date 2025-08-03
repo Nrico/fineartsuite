@@ -34,18 +34,6 @@ function initialize() {
       gallery_id TEXT
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS gallery_settings (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      name TEXT,
-      slug TEXT,
-      phone TEXT,
-      email TEXT,
-      address TEXT,
-      description TEXT,
-      owner TEXT,
-      logo TEXT
-    )`);
-
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       display_name TEXT,

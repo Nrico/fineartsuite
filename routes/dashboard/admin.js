@@ -95,9 +95,10 @@ router.get('/', requireRole('admin'), (req, res) => {
 
 router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   try {
+    const baseQuery = 'SELECT slug, name, bio AS description, contact_email AS email, phone, address, gallarist_name AS owner, logo_url FROM galleries';
     const query = req.user.role === 'gallery'
-      ? 'SELECT slug, name, bio, logo_url FROM galleries WHERE slug = ?'
-      : 'SELECT slug, name, bio, logo_url FROM galleries';
+      ? baseQuery + ' WHERE slug = ?'
+      : baseQuery;
     const params = req.user.role === 'gallery' ? [req.user.username] : [];
     db.all(query, params, (err, galleries) => {
       if (err) {
@@ -186,8 +187,8 @@ router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
       return res.redirect('/dashboard/galleries');
     }
     try {
-      let { slug, name, bio, logoUrl } = req.body;
-      if (!slug || !name || !bio) {
+      let { slug, name, description, email, phone, address, owner, logoUrl } = req.body;
+      if (!slug || !name || !description) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/galleries');
       }
@@ -206,8 +207,8 @@ router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
           return res.redirect('/dashboard/galleries');
         }
       }
-      const stmt = 'INSERT INTO galleries (slug, name, bio, logo_url) VALUES (?,?,?,?)';
-      db.run(stmt, [slug, name, bio, logo_url], err2 => {
+      const stmt = 'INSERT INTO galleries (slug, name, bio, contact_email, phone, address, gallarist_name, logo_url) VALUES (?,?,?,?,?,?,?,?)';
+      db.run(stmt, [slug, name, description, email || null, phone || null, address || null, owner || null, logo_url], err2 => {
         if (err2) {
           console.error(err2);
           req.flash('error', 'Database error');
@@ -234,7 +235,7 @@ router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
       if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      let { slug, name, bio, logoUrl } = req.body;
+      let { slug, name, description, email, phone, address, owner, logoUrl } = req.body;
       const newSlug = req.user.role === 'gallery' ? req.user.username : slug;
       let logo_url = logoUrl || null;
       if (req.file) {
@@ -246,8 +247,8 @@ router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
           return res.status(500).send('Image processing failed');
         }
       }
-      const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ?, logo_url = ? WHERE slug = ?';
-      db.run(stmt, [newSlug, name, bio, logo_url, req.params.slug], err2 => {
+      const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ?, contact_email = ?, phone = ?, address = ?, gallarist_name = ?, logo_url = ? WHERE slug = ?';
+      db.run(stmt, [newSlug, name, description, email || null, phone || null, address || null, owner || null, logo_url, req.params.slug], err2 => {
         if (err2) {
           console.error(err2);
           return res.status(500).send('Database error');
@@ -658,86 +659,11 @@ router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
 });
 
 router.get('/settings', requireRole('admin', 'gallery'), (req, res) => {
-  db.get('SELECT * FROM gallery_settings WHERE id = 1', (err, settings) => {
-    if (err) {
-      console.error(err);
-      req.flash('error', 'Database error');
-      return res.render('admin/settings', { settings: {} });
-    }
-    res.render('admin/settings', { settings: settings || {} });
-  });
+  res.redirect('/dashboard/galleries');
 });
 
 router.post('/settings', requireRole('admin', 'gallery'), (req, res) => {
-  upload.single('logo')(req, res, err => {
-    if (err) {
-      console.error(err);
-      req.flash('error', err.message);
-      return res.redirect('/dashboard/settings');
-    }
-    const { name, slug, phone, email, address, description, owner } = req.body;
-    const logo = req.file ? req.file.filename : req.body.existingLogo || null;
-    const slugRegex = /^[a-z0-9-]+$/;
-    const reservedRoutes = ['dashboard', 'login', 'logout'];
-    if (!slugRegex.test(slug)) {
-      req.flash('error', 'Invalid slug format. Use lowercase letters, numbers, or hyphens.');
-      return res.redirect('/dashboard/settings');
-    }
-    if (reservedRoutes.includes(slug)) {
-      req.flash('error', 'Slug conflicts with an existing route.');
-      return res.redirect('/dashboard/settings');
-    }
-    db.get('SELECT slug FROM gallery_settings WHERE id = 1', (sErr, current) => {
-      if (sErr) {
-        console.error(sErr);
-        req.flash('error', 'Database error');
-        return res.redirect('/dashboard/settings');
-      }
-      const currentSlug = current ? current.slug : null;
-      db.get('SELECT slug FROM galleries WHERE slug = ?', [slug], (checkErr, row) => {
-        if (checkErr) {
-          console.error(checkErr);
-          req.flash('error', 'Database error');
-          return res.redirect('/dashboard/settings');
-        }
-        if (row && slug !== currentSlug) {
-          req.flash('error', 'Slug conflicts with an existing gallery.');
-          return res.redirect('/dashboard/settings');
-        }
-        const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
-                     VALUES (1,?,?,?,?,?,?,?,?)
-                     ON CONFLICT(id) DO UPDATE SET
-                       name=excluded.name,
-                       slug=excluded.slug,
-                       phone=excluded.phone,
-                       email=excluded.email,
-                       address=excluded.address,
-                       description=excluded.description,
-                       owner=excluded.owner,
-                       logo=excluded.logo`;
-        db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
-          if (runErr) {
-            console.error(runErr);
-            req.flash('error', 'Database error');
-            return res.redirect('/dashboard/settings');
-          }
-          const galleryStmt = currentSlug
-            ? 'UPDATE galleries SET slug = ?, name = ? WHERE slug = ?'
-            : 'INSERT INTO galleries (slug, name) VALUES (?, ?)';
-          const galleryParams = currentSlug ? [slug, name, currentSlug] : [slug, name];
-          db.run(galleryStmt, galleryParams, gErr => {
-            if (gErr) {
-              console.error(gErr);
-              req.flash('error', 'Database error');
-            } else {
-              req.flash('success', `Settings saved. Your gallery URL: /${slug}`);
-            }
-            res.redirect('/dashboard/settings');
-          });
-        });
-      });
-    });
-  });
+  res.redirect('/dashboard/galleries');
 });
 
 module.exports = router;

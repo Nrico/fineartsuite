@@ -26,7 +26,7 @@
               <span class="font-semibold flex-1"><%= g.name %></span>
             </button>
             <div class="gallery-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-              <form class="p-4 space-y-2 gallery-form" data-slug="<%= g.slug %>">
+              <form class="p-4 space-y-2 gallery-form" data-slug="<%= g.slug %>" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <label class="block text-sm font-medium">Slug
                   <input name="slug" value="<%= g.slug %>" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -34,8 +34,26 @@
                 <label class="block text-sm font-medium">Name
                   <input name="name" value="<%= g.name %>" class="mt-1 w-full border rounded px-2 py-1"/>
                 </label>
-                <label class="block text-sm font-medium">Bio
-                  <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-2 py-1"><%= g.bio %></textarea>
+                <label class="block text-sm font-medium">Description
+                  <textarea name="description" rows="3" class="mt-1 w-full border rounded px-2 py-1"><%= g.description %></textarea>
+                </label>
+                <label class="block text-sm font-medium">Phone
+                  <input name="phone" value="<%= g.phone || '' %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Email
+                  <input name="email" value="<%= g.email || '' %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Address
+                  <textarea name="address" rows="2" class="mt-1 w-full border rounded px-2 py-1"><%= g.address || '' %></textarea>
+                </label>
+                <label class="block text-sm font-medium">Owner
+                  <input name="owner" value="<%= g.owner || '' %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Logo URL
+                  <input name="logoUrl" value="<%= g.logo_url || '' %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Logo File
+                  <input type="file" name="logoFile" accept="image/*" class="mt-1 w-full"/>
                 </label>
                 <div class="flex gap-2">
                   <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
@@ -52,7 +70,7 @@
             <span class="font-semibold flex-1">New Gallery</span>
           </button>
           <div class="gallery-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-            <form class="p-4 space-y-2 gallery-form" data-new="true">
+            <form class="p-4 space-y-2 gallery-form" data-new="true" enctype="multipart/form-data">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <label class="block text-sm font-medium">Slug
                 <input name="slug" value="<%= generatedSlug %>" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -60,8 +78,26 @@
               <label class="block text-sm font-medium">Name
                 <input name="name" class="mt-1 w-full border rounded px-2 py-1"/>
               </label>
-              <label class="block text-sm font-medium">Bio
-                <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+              <label class="block text-sm font-medium">Description
+                <textarea name="description" rows="3" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+              </label>
+              <label class="block text-sm font-medium">Phone
+                <input name="phone" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Email
+                <input name="email" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Address
+                <textarea name="address" rows="2" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+              </label>
+              <label class="block text-sm font-medium">Owner
+                <input name="owner" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Logo URL
+                <input name="logoUrl" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Logo File
+                <input type="file" name="logoFile" accept="image/*" class="mt-1 w-full"/>
               </label>
               <div class="flex gap-2">
                 <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
@@ -103,23 +139,23 @@
         btn.disabled = true;
         const original = btn.textContent;
         btn.textContent = 'Saving...';
-        const dataObj = Object.fromEntries(new FormData(form).entries());
+        const formData = new FormData(form);
         const url = isNew ? '/dashboard/galleries' : '/dashboard/galleries/' + encodeURIComponent(slug);
         const method = isNew ? 'POST' : 'PUT';
         try {
           const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
-            body: JSON.stringify(dataObj)
+            headers: { 'CSRF-Token': csrfToken },
+            body: formData
           });
           if (!res.ok) throw new Error(await res.text() || res.statusText);
           btn.textContent = 'Saved!';
-          slug = dataObj.slug;
+          slug = formData.get('slug');
           form.dataset.slug = slug;
           if (isNew) {
             form.dataset.new = 'false';
           }
-          form.closest('li').querySelector('.gallery-toggle span').textContent = dataObj.name || dataObj.slug;
+          form.closest('li').querySelector('.gallery-toggle span').textContent = formData.get('name') || formData.get('slug');
           setTimeout(() => {
             btn.textContent = original;
             btn.disabled = false;
