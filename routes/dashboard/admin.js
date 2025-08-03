@@ -103,14 +103,15 @@ router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/galleries', { galleries: [] });
+        return res.render('admin/galleries', { galleries: [], generatedSlug: '' });
       }
-      res.render('admin/galleries', { galleries });
+      const generatedSlug = 'gallery_' + Date.now();
+      res.render('admin/galleries', { galleries, generatedSlug });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/galleries', { galleries: [] });
+    res.render('admin/galleries', { galleries: [], generatedSlug: '' });
   }
 });
 
