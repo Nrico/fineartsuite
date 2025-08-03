@@ -15,6 +15,7 @@
         <% collections.forEach(c => { %>
           <li>
             <form method="POST" action="/dashboard/artist/collections/<%= c.id %>" class="flex gap-2 items-center">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="text" name="name" value="<%= c.name %>" class="border border-gray-300 rounded px-2 py-1 flex-grow">
               <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
             </form>
@@ -22,16 +23,27 @@
         <% }) %>
       </ul>
       <form method="POST" action="/dashboard/artist/collections" class="mt-6 flex gap-2 items-center">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="text" name="name" placeholder="New collection" class="border border-gray-300 rounded px-2 py-1 flex-grow" required>
         <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Add</button>
       </form>
     </section>
     <section>
       <h2 class="text-xl font-semibold mb-4">Artworks</h2>
+      <form method="POST" action="/dashboard/artist/artworks" enctype="multipart/form-data" class="mb-6 space-y-2">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="text" name="title" placeholder="Title" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="text" name="medium" placeholder="Medium" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="text" name="dimensions" placeholder="Dimensions" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="text" name="price" placeholder="Price" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="file" name="imageFile" accept="image/*" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Upload</button>
+      </form>
       <% artworks.forEach(a => { %>
         <div class="mb-4 p-4 border rounded">
           <div class="font-medium mb-2"><%= a.title %></div>
           <form method="POST" action="/dashboard/artist/artworks/<%= a.id %>/collection" class="flex gap-2 items-center">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <select name="collection_id" class="border border-gray-300 rounded px-2 py-1 flex-grow">
               <option value="">No Collection</option>
               <% collections.forEach(c => { %>
