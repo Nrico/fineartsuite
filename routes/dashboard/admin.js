@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const randomAvatar = require('../../utils/avatar');
 let Jimp;
 try {
   Jimp = require('jimp');
@@ -255,8 +256,9 @@ router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artists');
     }
+    const avatarUrl = bioImageUrl || randomAvatar();
     const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
-    db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', bioImageUrl || ''], err => {
+    db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl], err => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
@@ -285,8 +287,9 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), async (req, res) => 
       }
     }
     const { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
+    const avatarUrl = bioImageUrl || randomAvatar();
     let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
-    const params = [name, bio, fullBio || '', bioImageUrl || ''];
+    const params = [name, bio, fullBio || '', avatarUrl];
     if (req.user.role === 'admin' && gallery_slug) {
       stmt += ', gallery_slug = ?';
       params.push(gallery_slug);
