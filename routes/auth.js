@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createUser, findUserByUsername } = require('../models/userModel');
+const bcrypt = require('../utils/bcrypt');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
@@ -50,9 +51,19 @@ router.post('/login', (req, res) => {
     return res.redirect('/login');
   }
   findUserByUsername(username, (err, user) => {
-    if (user && user.password === password) {
-      req.session.user = { id: user.id, username: user.username, role: user.role };
-      return res.redirect(`/dashboard/${user.role}`);
+    if (user) {
+      return bcrypt.compare(password, user.password, (err2, match) => {
+        if (match) {
+          req.session.user = { id: user.id, username: user.username, role: user.role };
+          return res.redirect(`/dashboard/${user.role}`);
+        }
+        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+          req.session.user = { username, role: 'admin' };
+          return res.redirect('/dashboard');
+        }
+        req.flash('error', 'Invalid credentials');
+        return res.redirect('/login');
+      });
     }
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       req.session.user = { username, role: 'admin' };

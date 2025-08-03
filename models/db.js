@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('../utils/bcrypt');
 
 const db = new sqlite3.Database(path.join(__dirname, '..', 'gallery.db'));
 
@@ -133,6 +134,11 @@ function seed(done) {
   const artistStmt = db.prepare('INSERT INTO artists (id, gallery_slug, name, bio, bioImageUrl, fullBio) VALUES (?,?,?,?,?,?)');
   artists.forEach(a => artistStmt.run(a.id, a.gallery_slug, a.name, a.bio, a.bioImageUrl, a.fullBio));
   artistStmt.finalize();
+
+  const userStmt = db.prepare('INSERT INTO users (display_name, username, password, role, promo_code) VALUES (?,?,?,?,?)');
+  const demoHash = bcrypt.hashSync('password', 10);
+  userStmt.run('Demo User', 'demouser', demoHash, 'artist', 'taos');
+  userStmt.finalize();
 
   const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
 
