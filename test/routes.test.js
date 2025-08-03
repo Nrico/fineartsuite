@@ -413,3 +413,31 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
   assert.strictEqual(fileRes.statusCode, 200);
   fs.unlinkSync(path.join(uploadsDir, standard));
 });
+
+test('demo auth grants access to dashboard routes without login', async () => {
+  process.env.USE_DEMO_AUTH = 'true';
+  delete require.cache[require.resolve('../server')];
+  const demoApp = require('../server');
+  const demoServer = await new Promise(resolve => {
+    const s = demoApp.listen(0, () => resolve(s));
+  });
+  const port = demoServer.address().port;
+
+  const routes = [
+    '/dashboard',
+    '/dashboard/galleries',
+    '/dashboard/artists',
+    '/dashboard/artworks',
+    '/dashboard/upload',
+    '/dashboard/artist'
+  ];
+
+  for (const r of routes) {
+    const res = await httpGet(`http://localhost:${port}${r}`);
+    assert.strictEqual(res.statusCode, 200);
+  }
+
+  await new Promise(resolve => demoServer.close(resolve));
+  delete require.cache[require.resolve('../server')];
+  process.env.USE_DEMO_AUTH = 'false';
+});

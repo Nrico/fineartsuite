@@ -12,13 +12,6 @@ try {
 
 const { db } = require('../../models/db');
 
-function simulateAuth(req, res, next) {
-  if (!req.session.user) {
-    req.session.user = { username: 'demoAdmin', role: 'admin' };
-  }
-  next();
-}
-
 function requireLogin(req, res, next) {
   if (req.user) return next();
   res.redirect('/login');
@@ -90,11 +83,6 @@ async function processImages(file) {
 router.get('/gallery', requireRole('gallery'), (req, res) => {
   res.render('dashboard/gallery', { user: req.session.user });
 });
-
-// Apply fake authentication for admin routes when enabled
-if (process.env.USE_DEMO_AUTH === 'true') {
-  router.use(simulateAuth);
-}
 
 // Admin dashboard
 router.get('/', requireRole('admin'), (req, res) => {
