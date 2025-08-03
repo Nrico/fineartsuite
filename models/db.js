@@ -77,8 +77,10 @@ function initialize() {
     db.run(`CREATE TABLE IF NOT EXISTS artworks (
       id TEXT PRIMARY KEY,
       artist_id TEXT,
+      gallery_slug TEXT,
       title TEXT,
       medium TEXT,
+      custom_medium TEXT,
       dimensions TEXT,
       price TEXT,
       imageFull TEXT,
@@ -99,6 +101,8 @@ function initialize() {
     db.run('ALTER TABLE artworks ADD COLUMN isVisible INTEGER DEFAULT 1', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN isFeatured INTEGER DEFAULT 0', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN collection_id INTEGER', () => {});
+    db.run('ALTER TABLE artworks ADD COLUMN gallery_slug TEXT', () => {});
+    db.run('ALTER TABLE artworks ADD COLUMN custom_medium TEXT', () => {});
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;
