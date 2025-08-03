@@ -121,29 +121,36 @@ router.post('/artworks', requireRole('artist'), (req, res) => {
       req.flash('error', err.message);
       return res.redirect('/dashboard/artist');
     }
-    const { title, medium, dimensions, price, imageUrl } = req.body;
+    const { title, medium, dimensions, price, imageUrl, action = 'upload' } = req.body;
     if (!title || !medium || !dimensions) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artist');
     }
-    if (req.file && imageUrl) {
-      req.flash('error', 'Choose either an upload or a URL');
-      return res.redirect('/dashboard/artist');
-    }
-    if (!req.file && !imageUrl) {
-      req.flash('error', 'Image is required');
-      return res.redirect('/dashboard/artist');
+    if (action !== 'save') {
+      if (req.file && imageUrl) {
+        req.flash('error', 'Choose either an upload or a URL');
+        return res.redirect('/dashboard/artist');
+      }
+      if (!req.file && !imageUrl) {
+        req.flash('error', 'Image is required');
+        return res.redirect('/dashboard/artist');
+      }
     }
     try {
-      const images = req.file
-        ? await processImages(req.file)
-        : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+      let images;
+      if (req.file) {
+        images = await processImages(req.file);
+      } else if (imageUrl) {
+        images = { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+      } else {
+        images = { imageFull: '', imageStandard: '', imageThumb: '' };
+      }
       createArtwork(req.session.user.id, title, medium, dimensions, price, images, createErr => {
         if (createErr) {
           console.error(createErr);
           req.flash('error', 'Could not create artwork');
         } else {
-          req.flash('success', 'Artwork added');
+          req.flash('success', action === 'save' ? 'Artwork saved' : 'Artwork added');
         }
         res.redirect('/dashboard/artist');
       });

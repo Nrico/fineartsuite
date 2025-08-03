@@ -39,7 +39,10 @@
         <input type="file" name="imageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
         <input type="url" name="imageUrl" placeholder="Image URL" class="border border-gray-300 rounded px-2 py-1 w-full">
         <p class="text-xs text-gray-500">Provide an image file or a URL</p>
-        <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Upload</button>
+        <div class="flex gap-2">
+          <button type="submit" name="action" value="upload" class="bg-green-600 text-white px-3 py-1 rounded">Upload</button>
+          <button type="submit" name="action" value="save" class="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
+        </div>
       </form>
       <% artworks.forEach(a => { %>
         <div class="mb-4 p-4 border rounded">
