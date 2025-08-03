@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { requireRole } = require('../../middleware/auth');
 let Jimp;
 try {
   Jimp = require('jimp');
@@ -68,13 +69,6 @@ async function processImages(file) {
     } catch {}
     throw err;
   }
-}
-
-function requireRole(role) {
-  return function(req, res, next) {
-    if (req.user && req.user.role === role) return next();
-    res.redirect('/login');
-  };
 }
 
 function slugify(str) {

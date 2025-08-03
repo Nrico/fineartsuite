@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const randomAvatar = require('../../utils/avatar');
+const { requireRole } = require('../../middleware/auth');
 let Jimp;
 try {
   Jimp = require('jimp');
@@ -12,18 +13,6 @@ try {
 }
 
 const { db } = require('../../models/db');
-
-function requireRole(...roles) {
-  return function(req, res, next) {
-    if (!req.user) {
-      return res.redirect('/login');
-    }
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).send('Forbidden');
-    }
-    next();
-  };
-}
 
 const uploadsDir = path.join(__dirname, '../../public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
