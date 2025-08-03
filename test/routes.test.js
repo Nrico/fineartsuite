@@ -6,6 +6,7 @@ const querystring = require('node:querystring');
 const app = require('../server');
 const { db } = require('../models/db');
 const { createUser } = require('../models/userModel');
+const bcrypt = require('../utils/bcrypt');
 
 function extractCsrfToken(html) {
   const match = html.match(/name="_csrf" value="([^"]+)"/);
@@ -194,6 +195,15 @@ test('non-admin users cannot access admin routes', async () => {
   const port = server.address().port;
   const username = `artist${Date.now()}`;
   await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', () => resolve()));
+  const stored = await new Promise(resolve => {
+    db.get('SELECT password FROM users WHERE username=?', [username], (err, row) => resolve(row));
+  });
+  assert.ok(stored);
+  assert.notStrictEqual(stored.password, 'pass');
+  const matches = await new Promise(resolve => {
+    bcrypt.compare('pass', stored.password, (err, m) => resolve(m));
+  });
+  assert.ok(matches);
 
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
