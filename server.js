@@ -91,12 +91,14 @@ migrate(() => initialize());
 const authRoutes = require('./routes/auth');
 const artistRoutes = require('./routes/dashboard/artist');
 const adminRoutes = require('./routes/dashboard/admin');
+const accountRoutes = require('./routes/account');
 const publicRoutes = require('./routes/public');
 
 // Mount routes
 app.use(authRoutes);
 app.use('/dashboard/artist', artistRoutes);
 app.use('/dashboard', adminRoutes);
+app.use('/account', accountRoutes);
 app.use(publicRoutes);
 
 // Render custom 404 page for any unmatched routes
