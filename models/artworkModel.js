@@ -25,4 +25,12 @@ function getArtwork(gallerySlug, id, cb) {
   });
 }
 
-module.exports = { getArtwork };
+function getArtworksByArtist(artistId, cb) {
+  db.all('SELECT * FROM artworks WHERE artist_id = ?', [artistId], cb);
+}
+
+function updateArtworkCollection(id, collectionId, cb) {
+  db.run('UPDATE artworks SET collection_id = ? WHERE id = ?', [collectionId, id], cb);
+}
+
+module.exports = { getArtwork, getArtworksByArtist, updateArtworkCollection };
