@@ -109,7 +109,11 @@ app.use((req, res) => {
 // Handle CSRF token errors
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).send('Invalid CSRF token');
+    const message = 'Your session has expired or the form was tampered with. Please refresh the page or log in again.';
+    if (req.flash) {
+      req.flash('error', message);
+    }
+    return res.status(403).render('csrf-error', { message });
   }
   console.error(err);
   res.status(500).send('Server error');
