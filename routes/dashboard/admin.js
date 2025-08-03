@@ -333,40 +333,58 @@ router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
   });
 });
 
-router.put('/artists/:id', requireRole('admin', 'gallery'), async (req, res) => {
-  try {
-    if (req.user.role === 'gallery') {
-      const owner = await new Promise((resolve, reject) => {
-        db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
-          if (err) reject(err); else resolve(row);
+router.put('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
+  upload.single('bioImageFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      return res.status(400).send(err.message);
+    }
+    try {
+      if (req.user.role === 'gallery') {
+        const owner = await new Promise((resolve, reject) => {
+          db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (error, row) => {
+            if (error) reject(error); else resolve(row);
+          });
         });
+        if (!owner || owner.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+      }
+      let { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
+      let avatarUrl = bioImageUrl;
+      if (req.file) {
+        try {
+          const images = await processImages(req.file);
+          avatarUrl = images.imageStandard;
+        } catch (imageErr) {
+          console.error(imageErr);
+          return res.status(500).send('Image processing failed');
+        }
+      }
+      if (!avatarUrl) {
+        avatarUrl = randomAvatar();
+      }
+      let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
+      const params = [name, bio, fullBio || '', avatarUrl];
+      if (req.user.role === 'admin' && gallery_slug) {
+        stmt += ', gallery_slug = ?';
+        params.push(gallery_slug);
+      }
+      stmt += ' WHERE id = ?';
+      params.push(req.params.id);
+      db.run(stmt, params, err2 => {
+        if (err2) {
+          console.error(err2);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artist saved');
+        res.sendStatus(204);
       });
-      if (!owner || owner.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+    } catch (err2) {
+      console.error(err2);
+      res.status(500).send('Server error');
     }
-    const { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
-    const avatarUrl = bioImageUrl || randomAvatar();
-    let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
-    const params = [name, bio, fullBio || '', avatarUrl];
-    if (req.user.role === 'admin' && gallery_slug) {
-      stmt += ', gallery_slug = ?';
-      params.push(gallery_slug);
-    }
-    stmt += ' WHERE id = ?';
-    params.push(req.params.id);
-    db.run(stmt, params, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Artist saved');
-      res.sendStatus(204);
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
+  });
 });
 
 router.delete('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
