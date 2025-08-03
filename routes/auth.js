@@ -29,6 +29,10 @@ function signupHandler(role) {
   };
 }
 
+router.get('/signup', (req, res) => {
+  res.render('signup/index');
+});
+
 router.get('/signup/artist', (req, res) => {
   res.render('signup/artist');
 });
