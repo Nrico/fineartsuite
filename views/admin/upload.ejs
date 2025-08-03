@@ -7,14 +7,8 @@
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body class="font-sans bg-white text-black">
-  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
-    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
-    <div class="flex space-x-4 mt-2 md:mt-0">
-      <a href="/dashboard" class="hover:underline">Dashboard</a>
-      <a href="/logout" class="hover:underline">Logout</a>
-    </div>
-  </nav>
-  <main class="max-w-lg mx-auto p-6">
+    <%- include('../partials/navbar'); %>
+    <main class="max-w-lg mx-auto p-6">
     <div class="border border-gray-200 p-6 rounded shadow">
       <h1 class="text-2xl mb-4 text-center">Upload Artwork</h1>
       <% if (flash.error && flash.error.length) { %>
