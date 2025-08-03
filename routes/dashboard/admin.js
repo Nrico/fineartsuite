@@ -247,31 +247,55 @@ router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) =>
 });
 
 router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
-  try {
-    let { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
-    if (req.user.role === 'gallery') {
-      gallery_slug = req.user.username;
-    }
-    if (!id || !gallery_slug || !name || !bio) {
-      req.flash('error', 'All fields are required');
+  upload.single('bioImageFile')(req, res, async err => {
+    if (err) {
+      console.error(err);
+      req.flash('error', err.message);
       return res.redirect('/dashboard/artists');
     }
-    const avatarUrl = bioImageUrl || randomAvatar();
-    const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
-    db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl], err => {
-      if (err) {
-        console.error(err);
-        req.flash('error', 'Database error');
+    try {
+      let { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
+      if (req.user.role === 'gallery') {
+        gallery_slug = req.user.username;
+      }
+      if (!id || !gallery_slug || !name || !bio) {
+        req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artists');
       }
-      req.flash('success', 'Artist added');
+      if (req.file && bioImageUrl) {
+        req.flash('error', 'Choose either an upload or a URL');
+        return res.redirect('/dashboard/artists');
+      }
+      let avatarUrl = bioImageUrl;
+      if (req.file) {
+        try {
+          const images = await processImages(req.file);
+          avatarUrl = images.imageStandard;
+        } catch (imageErr) {
+          console.error(imageErr);
+          req.flash('error', 'Image processing failed');
+          return res.redirect('/dashboard/artists');
+        }
+      }
+      if (!avatarUrl) {
+        avatarUrl = randomAvatar();
+      }
+      const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
+      db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl], err2 => {
+        if (err2) {
+          console.error(err2);
+          req.flash('error', 'Database error');
+          return res.redirect('/dashboard/artists');
+        }
+        req.flash('success', 'Artist added');
+        res.redirect('/dashboard/artists');
+      });
+    } catch (err2) {
+      console.error(err2);
+      req.flash('error', 'Server error');
       res.redirect('/dashboard/artists');
-    });
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Server error');
-    res.redirect('/dashboard/artists');
-  }
+    }
+  });
 });
 
 router.put('/artists/:id', requireRole('admin', 'gallery'), async (req, res) => {
