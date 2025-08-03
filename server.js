@@ -38,7 +38,9 @@ const csrf = require('./middleware/csrf');
 const { initialize, db } = require('./models/db');
 const { getGallery } = require('./models/galleryModel');
 const { getArtist } = require('./models/artistModel');
-const { getArtwork } = require('./models/artworkModel');
+const { getArtwork, getArtworksByArtist, updateArtworkCollection } = require('./models/artworkModel');
+const { createUser, findUserByUsername } = require('./models/userModel');
+const { createCollection, getCollectionsByArtist, updateCollection } = require('./models/collectionModel');
 
 // Read credentials and session secret from environment variables with
 // development-friendly defaults
@@ -47,6 +49,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
 // When true, admin pages are automatically authenticated
 const USE_DEMO_AUTH = process.env.USE_DEMO_AUTH === 'true';
+const VALID_PROMO_CODES = ['taos'];
 
 const app = express();
 // Ensure secure cookies work correctly behind reverse proxies
@@ -140,14 +143,47 @@ initialize();
 
 function simulateAuth(req, res, next) {
   if (!req.session.user) {
-    req.session.user = 'demoAdmin';
+    req.session.user = { username: 'demoAdmin', role: 'admin' };
   }
   next();
 }
 
 function requireLogin(req, res, next) {
-  if (req.session.user) return next();
+  if (req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'gallery')) return next();
   res.redirect('/login');
+}
+
+function requireRole(role) {
+  return function(req, res, next) {
+    if (req.session.user && req.session.user.role === role) return next();
+    res.redirect('/login');
+  };
+}
+
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function signupHandler(role) {
+  return (req, res) => {
+    const { display_name, username, password, passcode } = req.body;
+    if (!display_name || !username || !password || !passcode) {
+      req.flash('error', 'All fields are required');
+      return res.redirect(`/signup/${role}`);
+    }
+    if (!VALID_PROMO_CODES.includes(passcode)) {
+      req.flash('error', 'Invalid passcode');
+      return res.redirect(`/signup/${role}`);
+    }
+    createUser(display_name, username, password, role, passcode, (err, id) => {
+      if (err) {
+        req.flash('error', 'Signup failed');
+        return res.redirect(`/signup/${role}`);
+      }
+      req.session.user = { id, username, role };
+      return res.redirect(`/dashboard/${role}`);
+    });
+  };
 }
 
 // Public routes
@@ -159,34 +195,86 @@ app.get('/', (req, res) => {
 });
 
 // Auth routes
+app.get('/signup/artist', (req, res) => {
+  res.render('signup/artist');
+});
+
+app.get('/signup/gallery', (req, res) => {
+  res.render('signup/gallery');
+});
+
+app.post('/signup/artist', signupHandler('artist'));
+app.post('/signup/gallery', signupHandler('gallery'));
+
 app.get('/login', (req, res) => {
   res.render('login');
 });
 
 app.post('/login', (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      req.flash('error', 'All fields are required');
-      return res.redirect('/login');
+  const { username, password } = req.body;
+  if (!username || !password) {
+    req.flash('error', 'All fields are required');
+    return res.redirect('/login');
+  }
+  findUserByUsername(username, (err, user) => {
+    if (user && user.password === password) {
+      req.session.user = { id: user.id, username: user.username, role: user.role };
+      return res.redirect(`/dashboard/${user.role}`);
     }
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      req.session.user = username;
+      req.session.user = { username, role: 'admin' };
       return res.redirect('/dashboard');
     }
     req.flash('error', 'Invalid credentials');
     res.redirect('/login');
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Login failed');
-    res.redirect('/login');
-  }
+  });
 });
 
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
   res.redirect('/login');
 });
+});
+
+app.get('/dashboard/artist', requireRole('artist'), (req, res) => {
+  getCollectionsByArtist(req.session.user.id, (err, collections) => {
+    getArtworksByArtist(req.session.user.id, (err2, artworks) => {
+      res.render('dashboard/artist', {
+        user: req.session.user,
+        collections: collections || [],
+        artworks: artworks || []
+      });
+    });
+  });
+});
+
+app.post('/dashboard/artist/collections', requireRole('artist'), (req, res) => {
+  const { name } = req.body;
+  const slug = slugify(name);
+  createCollection(name, req.session.user.id, slug, err => {
+    if (err) req.flash('error', 'Could not create collection');
+    res.redirect('/dashboard/artist');
+  });
+});
+
+app.post('/dashboard/artist/collections/:id', requireRole('artist'), (req, res) => {
+  const { name } = req.body;
+  updateCollection(req.params.id, name, err => {
+    if (err) req.flash('error', 'Could not update collection');
+    res.redirect('/dashboard/artist');
+  });
+});
+
+app.post('/dashboard/artist/artworks/:id/collection', requireRole('artist'), (req, res) => {
+  const { collection_id } = req.body;
+  updateArtworkCollection(req.params.id, collection_id || null, err => {
+    if (err) req.flash('error', 'Could not update artwork');
+    res.redirect('/dashboard/artist');
+  });
+});
+
+app.get('/dashboard/gallery', requireRole('gallery'), (req, res) => {
+  res.render('dashboard/gallery', { user: req.session.user });
 });
 
 // Apply fake authentication for all admin routes when enabled
@@ -196,7 +284,7 @@ if (USE_DEMO_AUTH) {
 
 // Admin routes
 app.get('/dashboard', requireLogin, (req, res) => {
-  res.render('admin/dashboard');
+  res.render('admin/dashboard', { user: req.session.user });
 });
 
 app.get('/dashboard/galleries', requireLogin, (req, res) => {

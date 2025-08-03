@@ -56,6 +56,24 @@ function initialize() {
       logo TEXT
     )`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      display_name TEXT,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT,
+      promo_code TEXT
+    )`);
+    db.run('ALTER TABLE users ADD COLUMN role TEXT', () => {});
+    db.run('ALTER TABLE users ADD COLUMN promo_code TEXT', () => {});
+
+    db.run(`CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      artist_id TEXT,
+      slug TEXT
+    )`);
+
     db.run(`CREATE TABLE IF NOT EXISTS artworks (
       id TEXT PRIMARY KEY,
       artist_id TEXT,
@@ -80,6 +98,7 @@ function initialize() {
     db.run('ALTER TABLE artworks ADD COLUMN featured INTEGER DEFAULT 0', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN isVisible INTEGER DEFAULT 1', () => {});
     db.run('ALTER TABLE artworks ADD COLUMN isFeatured INTEGER DEFAULT 0', () => {});
+    db.run('ALTER TABLE artworks ADD COLUMN collection_id INTEGER', () => {});
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;

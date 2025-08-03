@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Artist Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="font-sans bg-white text-black">
+  <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+    <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+    <div class="flex gap-4 mt-2 md:mt-0">
+      <span class="font-semibold"><%= user.role %></span>
+      <a href="/logout" class="hover:underline">Logout</a>
+    </div>
+  </nav>
+  <main class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold mb-4">Collections</h2>
+      <ul class="space-y-4">
+        <% collections.forEach(c => { %>
+          <li>
+            <form method="POST" action="/dashboard/artist/collections/<%= c.id %>" class="flex gap-2 items-center">
+              <input type="text" name="name" value="<%= c.name %>" class="border border-gray-300 rounded px-2 py-1 flex-grow">
+              <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+      <form method="POST" action="/dashboard/artist/collections" class="mt-6 flex gap-2 items-center">
+        <input type="text" name="name" placeholder="New collection" class="border border-gray-300 rounded px-2 py-1 flex-grow" required>
+        <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Add</button>
+      </form>
+    </section>
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Artworks</h2>
+      <% artworks.forEach(a => { %>
+        <div class="mb-4 p-4 border rounded">
+          <div class="font-medium mb-2"><%= a.title %></div>
+          <form method="POST" action="/dashboard/artist/artworks/<%= a.id %>/collection" class="flex gap-2 items-center">
+            <select name="collection_id" class="border border-gray-300 rounded px-2 py-1 flex-grow">
+              <option value="">No Collection</option>
+              <% collections.forEach(c => { %>
+                <option value="<%= c.id %>" <%= a.collection_id === c.id ? 'selected' : '' %>><%= c.name %></option>
+              <% }) %>
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Assign</button>
+          </form>
+        </div>
+      <% }) %>
+    </section>
+  </main>
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
+</body>
+</html>
