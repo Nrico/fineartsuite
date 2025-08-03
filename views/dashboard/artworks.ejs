@@ -11,22 +11,21 @@
   <main class="max-w-4xl mx-auto p-4">
     <button id="new-artwork" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artwork</button>
     <ul id="artwork-list" class="space-y-4">
-      <% artworks.forEach(function(art){ %>
-        <li class="bg-white shadow-md rounded border">
-          <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= art.id %>">
-            <img src="<%= art.imageThumb || art.imageStandard || art.imageFull %>" class="w-16 h-16 object-cover rounded mr-4"/>
-            <span class="font-semibold flex-1"><%= art.title %></span>
-            <span class="text-sm"><%= art.status === 'collected' ? '● Collected' : (art.status || 'Available') %></span>
-          </button>
-          <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-            <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <label class="block text-sm font-medium">Title
-                <input name="title" value="<%= art.title %>" class="mt-1 w-full border rounded px-2 py-1"/>
-              </label>
-              <label class="block text-sm font-medium">Price
-                <input type="number" step="0.01" name="price" value="<%= art.price %>" class="mt-1 w-full border rounded px-2 py-1"/>
-              </label>
+        <% artworks.forEach(function(art){ %>
+          <li class="bg-white shadow-md rounded border">
+            <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= art.id %>">
+              <img src="<%= art.imageThumb || art.imageStandard || art.imageFull %>" class="w-[50px] h-[50px] object-cover rounded mr-4"/>
+              <span class="flex-1"><span class="font-semibold"><%= art.artist_name %></span> - <%= art.title %></span>
+            </button>
+            <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+              <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label class="block text-sm font-medium">Title
+                  <input name="title" value="<%= art.title %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
+                <label class="block text-sm font-medium">Price
+                  <input type="text" name="price" value="<%= art.price %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                </label>
               <label class="block text-sm font-medium">Status
                 <select name="status" class="mt-1 w-full border rounded px-2 py-1">
                   <option value="available" <%= art.status === 'available' ? 'selected' : '' %>>Available</option>
@@ -60,9 +59,8 @@
   <template id="new-artwork-template">
     <li class="bg-white shadow-md rounded border">
       <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= generatedId %>" data-new="true">
-        <div class="w-16 h-16 bg-gray-200 flex items-center justify-center rounded mr-4">New</div>
+        <div class="w-[50px] h-[50px] bg-gray-200 flex items-center justify-center rounded mr-4">New</div>
         <span class="font-semibold flex-1">Untitled</span>
-        <span class="text-sm">New</span>
       </button>
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
         <form class="p-4 space-y-2 art-form" data-id="<%= generatedId %>" data-new="true">
@@ -71,7 +69,7 @@
             <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
           </label>
           <label class="block text-sm font-medium">Price
-            <input type="number" step="0.01" name="price" class="mt-1 w-full border rounded px-2 py-1"/>
+            <input type="text" name="price" class="mt-1 w-full border rounded px-2 py-1"/>
           </label>
           <label class="block text-sm font-medium">Status
             <select name="status" class="mt-1 w-full border rounded px-2 py-1">
