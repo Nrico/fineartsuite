@@ -10,6 +10,19 @@
   <main class="max-w-4xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
     <section class="mb-8">
+      <h2 class="text-xl font-semibold mb-4">Profile</h2>
+      <form method="POST" action="/dashboard/artist/profile" enctype="multipart/form-data" class="space-y-2">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="text" name="name" value="<%= artist.name || '' %>" placeholder="Name" required class="border border-gray-300 rounded px-2 py-1 w-full">
+        <textarea name="bio" placeholder="Short bio" required class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.bio || '' %></textarea>
+        <textarea name="fullBio" placeholder="Full bio" class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.fullBio || '' %></textarea>
+        <input type="file" name="bioImageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="url" name="bioImageUrl" placeholder="Bio image URL" value="<%= artist.bioImageUrl || '' %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <p class="text-xs text-gray-500">Provide an image file or a URL</p>
+        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save Profile</button>
+      </form>
+    </section>
+    <section class="mb-8">
       <h2 class="text-xl font-semibold mb-4">Collections</h2>
       <ul class="space-y-4">
         <% collections.forEach(c => { %>

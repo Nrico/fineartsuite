@@ -16,4 +16,13 @@ function createArtist(id, name, gallerySlug, cb) {
   db.run(stmt, [id, gallerySlug, name], cb);
 }
 
-module.exports = { getArtist, createArtist };
+function getArtistById(id, cb) {
+  db.get('SELECT * FROM artists WHERE id = ?', [id], cb);
+}
+
+function updateArtist(id, name, bio, fullBio, bioImageUrl, cb) {
+  const stmt = `UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ? WHERE id = ?`;
+  db.run(stmt, [name, bio, fullBio, bioImageUrl, id], cb);
+}
+
+module.exports = { getArtist, createArtist, getArtistById, updateArtist };
