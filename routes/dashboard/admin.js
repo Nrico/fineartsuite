@@ -592,35 +592,54 @@ router.post('/settings', requireRole('admin', 'gallery'), (req, res) => {
       req.flash('error', 'Slug conflicts with an existing route.');
       return res.redirect('/dashboard/settings');
     }
-    db.get('SELECT 1 FROM galleries WHERE slug = ?', [slug], (checkErr, row) => {
-      if (checkErr) {
-        console.error(checkErr);
+    db.get('SELECT slug FROM gallery_settings WHERE id = 1', (sErr, current) => {
+      if (sErr) {
+        console.error(sErr);
         req.flash('error', 'Database error');
         return res.redirect('/dashboard/settings');
       }
-      if (row) {
-        req.flash('error', 'Slug conflicts with an existing gallery.');
-        return res.redirect('/dashboard/settings');
-      }
-      const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
-                   VALUES (1,?,?,?,?,?,?,?,?)
-                   ON CONFLICT(id) DO UPDATE SET
-                     name=excluded.name,
-                     slug=excluded.slug,
-                     phone=excluded.phone,
-                     email=excluded.email,
-                     address=excluded.address,
-                     description=excluded.description,
-                     owner=excluded.owner,
-                     logo=excluded.logo`;
-      db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
-        if (runErr) {
-          console.error(runErr);
+      const currentSlug = current ? current.slug : null;
+      db.get('SELECT slug FROM galleries WHERE slug = ?', [slug], (checkErr, row) => {
+        if (checkErr) {
+          console.error(checkErr);
           req.flash('error', 'Database error');
-        } else {
-          req.flash('success', 'Settings saved');
+          return res.redirect('/dashboard/settings');
         }
-        res.redirect('/dashboard/settings');
+        if (row && slug !== currentSlug) {
+          req.flash('error', 'Slug conflicts with an existing gallery.');
+          return res.redirect('/dashboard/settings');
+        }
+        const stmt = `INSERT INTO gallery_settings (id, name, slug, phone, email, address, description, owner, logo)
+                     VALUES (1,?,?,?,?,?,?,?,?)
+                     ON CONFLICT(id) DO UPDATE SET
+                       name=excluded.name,
+                       slug=excluded.slug,
+                       phone=excluded.phone,
+                       email=excluded.email,
+                       address=excluded.address,
+                       description=excluded.description,
+                       owner=excluded.owner,
+                       logo=excluded.logo`;
+        db.run(stmt, [name, slug, phone, email, address, description, owner, logo], runErr => {
+          if (runErr) {
+            console.error(runErr);
+            req.flash('error', 'Database error');
+            return res.redirect('/dashboard/settings');
+          }
+          const galleryStmt = currentSlug
+            ? 'UPDATE galleries SET slug = ?, name = ? WHERE slug = ?'
+            : 'INSERT INTO galleries (slug, name) VALUES (?, ?)';
+          const galleryParams = currentSlug ? [slug, name, currentSlug] : [slug, name];
+          db.run(galleryStmt, galleryParams, gErr => {
+            if (gErr) {
+              console.error(gErr);
+              req.flash('error', 'Database error');
+            } else {
+              req.flash('success', `Settings saved. Your gallery URL: /${slug}`);
+            }
+            res.redirect('/dashboard/settings');
+          });
+        });
       });
     });
   });
