@@ -54,29 +54,37 @@ async function processImages(file) {
   const fullPath = path.join(uploadsDir, `${base}_full${ext}`);
   const standardPath = path.join(uploadsDir, `${base}_standard${ext}`);
   const thumbPath = path.join(uploadsDir, `${base}_thumb${ext}`);
-  if (Jimp) {
-    try {
-      const image = await Jimp.read(file.path);
-      await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
-      await image.clone().scaleToFit(800, 800).writeAsync(standardPath);
-      await image.clone().cover(300, 300).writeAsync(thumbPath);
-    } catch {
-      fs.copyFileSync(file.path, fullPath);
-      fs.copyFileSync(file.path, standardPath);
-      fs.copyFileSync(file.path, thumbPath);
+  try {
+    if (Jimp) {
+      try {
+        const image = await Jimp.read(file.path);
+        await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
+        await image.clone().scaleToFit(800, 800).writeAsync(standardPath);
+        await image.clone().cover(300, 300).writeAsync(thumbPath);
+      } catch {
+        await fs.promises.copyFile(file.path, fullPath);
+        await fs.promises.copyFile(file.path, standardPath);
+        await fs.promises.copyFile(file.path, thumbPath);
+      }
+      await fs.promises.unlink(file.path);
+    } else {
+      await fs.promises.copyFile(file.path, fullPath);
+      await fs.promises.copyFile(file.path, standardPath);
+      await fs.promises.copyFile(file.path, thumbPath);
+      await fs.promises.unlink(file.path);
     }
-    fs.unlinkSync(file.path);
-  } else {
-    fs.copyFileSync(file.path, fullPath);
-    fs.copyFileSync(file.path, standardPath);
-    fs.copyFileSync(file.path, thumbPath);
-    fs.unlinkSync(file.path);
+    return {
+      imageFull: `/uploads/${path.basename(fullPath)}`,
+      imageStandard: `/uploads/${path.basename(standardPath)}`,
+      imageThumb: `/uploads/${path.basename(thumbPath)}`
+    };
+  } catch (err) {
+    console.error('Error processing images:', err);
+    try {
+      await fs.promises.unlink(file.path);
+    } catch {}
+    throw err;
   }
-  return {
-    imageFull: `/uploads/${path.basename(fullPath)}`,
-    imageStandard: `/uploads/${path.basename(standardPath)}`,
-    imageThumb: `/uploads/${path.basename(thumbPath)}`
-  };
 }
 
 // Gallery dashboard for gallery role

@@ -304,37 +304,37 @@ test('admin artwork routes allow CRUD after login', async () => {
 });
 
 // Additional tests for auth-required routes and upload functionality
-const fs = require('node:fs');
+const fs = require('node:fs/promises');
 const path = require('node:path');
 
-function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken = '') {
-  return new Promise((resolve, reject) => {
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(16);
-    const parsed = new URL(url);
-    let payloadParts = [];
-    for (const [name, value] of Object.entries(fields)) {
-      payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
-    }
-    const fileData = fs.readFileSync(filePath);
-    const filename = path.basename(filePath);
-    payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: image/jpeg\r\n\r\n`));
-    payloadParts.push(fileData);
-    payloadParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
-    const payload = Buffer.concat(payloadParts);
+async function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken = '') {
+  const boundary = '----WebKitFormBoundary' + Math.random().toString(16);
+  const parsed = new URL(url);
+  let payloadParts = [];
+  for (const [name, value] of Object.entries(fields)) {
+    payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
+  }
+  const fileData = await fs.readFile(filePath);
+  const filename = path.basename(filePath);
+  payloadParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: image/jpeg\r\n\r\n`));
+  payloadParts.push(fileData);
+  payloadParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+  const payload = Buffer.concat(payloadParts);
 
-    const headers = {
-      'Content-Type': 'multipart/form-data; boundary=' + boundary,
-      'Content-Length': payload.length,
-      'Cookie': cookies
-    };
-    if (csrfToken) headers['CSRF-Token'] = csrfToken;
-    const options = {
-      method: 'POST',
-      hostname: parsed.hostname,
-      port: parsed.port,
-      path: parsed.pathname,
-      headers
-    };
+  const headers = {
+    'Content-Type': 'multipart/form-data; boundary=' + boundary,
+    'Content-Length': payload.length,
+    'Cookie': cookies
+  };
+  if (csrfToken) headers['CSRF-Token'] = csrfToken;
+  const options = {
+    method: 'POST',
+    hostname: parsed.hostname,
+    port: parsed.port,
+    path: parsed.pathname,
+    headers
+  };
+  return new Promise((resolve, reject) => {
     const req = http.request(options, res => {
       let body = '';
       res.on('data', c => body += c);
@@ -349,9 +349,9 @@ function httpPostMultipart(url, fields, filePath, cookies = '', csrfToken = '') 
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
 
 // Clean uploads directory before tests
-test.before(() => {
-  fs.rmSync(uploadsDir, { recursive: true, force: true });
-  fs.mkdirSync(uploadsDir, { recursive: true });
+test.before(async () => {
+  await fs.rm(uploadsDir, { recursive: true, force: true });
+  await fs.mkdir(uploadsDir, { recursive: true });
 });
 
 test('artist and artwork routes require login', async () => {
@@ -383,7 +383,7 @@ test('artist and artwork routes require login', async () => {
 test('upload post requires login', async () => {
   const port = server.address().port;
   const temp = path.join(__dirname, 'temp.jpg');
-  fs.writeFileSync(temp, 'data');
+  await fs.writeFile(temp, 'data');
   const page = await httpGet(`http://localhost:${port}/login`);
   const token = extractCsrfToken(page.body);
   const cookie = page.headers['set-cookie'][0].split(';')[0];
@@ -391,7 +391,7 @@ test('upload post requires login', async () => {
     gallery_slug: 'demo-gallery',
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available', _csrf: token
   }, temp, cookie, token);
-  fs.unlinkSync(temp);
+  await fs.unlink(temp);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
 });
@@ -406,17 +406,17 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
     cookie = login.headers['set-cookie'][0].split(';')[0];
   }
   const temp = path.join(__dirname, 'upload.jpg');
-  fs.writeFileSync(temp, 'image');
+  await fs.writeFile(temp, 'image');
   const page = await httpGet(`http://localhost:${port}/dashboard/upload`, cookie);
   const token = extractCsrfToken(page.body);
   const uploadRes = await httpPostMultipart(`http://localhost:${port}/dashboard/upload`, {
     gallery_slug: 'demo-gallery',
     title: 't', medium: 'm', dimensions: 'd', price: '1', status: 'available', _csrf: token
   }, temp, cookie, token);
-  fs.unlinkSync(temp);
+  await fs.unlink(temp);
   assert.strictEqual(uploadRes.statusCode, 302);
   assert.strictEqual(uploadRes.headers.location, '/dashboard/upload?success=1');
-  const files = fs.readdirSync(uploadsDir);
+  const files = await fs.readdir(uploadsDir);
   assert.ok(files.length > 0);
   const standard = files.find(f => f.includes('_standard'));
   const row = await new Promise(resolve => {
@@ -427,7 +427,7 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
   assert.strictEqual(row.status, 'available');
   const fileRes = await httpGet(`http://localhost:${port}/uploads/${standard}`);
   assert.strictEqual(fileRes.statusCode, 200);
-  fs.unlinkSync(path.join(uploadsDir, standard));
+  await fs.unlink(path.join(uploadsDir, standard));
 });
 
 test('demo auth grants access to dashboard routes without login', async () => {
