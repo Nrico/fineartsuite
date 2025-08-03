@@ -16,6 +16,9 @@ function getGallery(slug, cb) {
       artists.forEach(artist => {
         db.all('SELECT * FROM artworks WHERE artist_id = ? AND isVisible = 1', [artist.id], (err3, artworks) => {
           artist.artworks = artworks || [];
+          (artworks || []).forEach(a => {
+            a.artistName = artist.name;
+          });
           featured.push(...(artworks || []).filter(a => a.isFeatured));
           if (--remaining === 0) {
             gallery.artists = artists;
