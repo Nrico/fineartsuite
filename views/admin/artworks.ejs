@@ -91,6 +91,7 @@
         <% artworks.forEach(function(art){ %>
           <li>
             <form class="art-form grid grid-cols-1 md:grid-cols-2 gap-4 file-or-url" data-id="<%= art.id %>" enctype="multipart/form-data">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input name="title" value="<%= art.title %>" class="border border-gray-300 rounded px-2 py-1 w-full">
               <div>
                 <select name="medium" class="border border-gray-300 rounded px-2 py-1 w-full medium-select" data-current="<%= art.medium %>">
