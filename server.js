@@ -133,6 +133,8 @@ app.use(csrfProtection);
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
 app.use((req, res, next) => {
+  req.user = req.session.user;
+  res.locals.user = req.user;
   res.locals.flash = req.flash();
   res.locals.csrfToken = req.csrfToken();
   next();
@@ -149,15 +151,20 @@ function simulateAuth(req, res, next) {
 }
 
 function requireLogin(req, res, next) {
-  if (req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'gallery')) return next();
+  if (req.user) return next();
   res.redirect('/login');
 }
 
 function requireRole(role) {
   return function(req, res, next) {
-    if (req.session.user && req.session.user.role === role) return next();
+    if (req.user && req.user.role === role) return next();
     res.redirect('/login');
   };
+}
+
+function blockArtist(req, res, next) {
+  if (req.user && req.user.role === 'artist') return res.redirect('/dashboard/artist');
+  next();
 }
 
 function slugify(str) {
@@ -287,7 +294,7 @@ app.get('/dashboard', requireLogin, (req, res) => {
   res.render('admin/dashboard', { user: req.session.user });
 });
 
-app.get('/dashboard/galleries', requireLogin, (req, res) => {
+app.get('/dashboard/galleries', requireLogin, blockArtist, (req, res) => {
   try {
     db.all('SELECT slug, name, bio FROM galleries', (err, galleries) => {
       if (err) {
@@ -304,7 +311,7 @@ app.get('/dashboard/galleries', requireLogin, (req, res) => {
   }
 });
 
-app.get('/dashboard/artists', requireLogin, (req, res) => {
+app.get('/dashboard/artists', requireLogin, blockArtist, (req, res) => {
   try {
     db.all('SELECT * FROM artists', (err, artists) => {
       if (err) {
@@ -335,22 +342,22 @@ app.get('/dashboard/artworks', requireLogin, (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
+        return res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
       }
-      db.all('SELECT slug FROM galleries', (gErr, galleries) => {
-        if (gErr) {
-          console.error(gErr);
+      db.all('SELECT id, name FROM collections', (cErr, collections) => {
+        if (cErr) {
+          console.error(cErr);
           req.flash('error', 'Database error');
-          return res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
+          return res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
         }
         const generatedId = 'art_' + Date.now();
-        res.render('admin/artworks', { artworks, galleries, generatedId });
+        res.render('dashboard/artworks', { artworks, collections, generatedId });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artworks', { artworks: [], galleries: [], generatedId: '' });
+    res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
   }
 });
 

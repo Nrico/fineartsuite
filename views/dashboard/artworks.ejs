@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Artwork Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+</head>
+<body class="font-sans bg-gray-50 text-black">
+  <%- include('../partials/navbar'); %>
+  <main class="max-w-4xl mx-auto p-4">
+    <button id="new-artwork" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artwork</button>
+    <ul id="artwork-list" class="space-y-4">
+      <% artworks.forEach(function(art){ %>
+        <li class="bg-white shadow-md rounded border">
+          <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= art.id %>">
+            <img src="<%= art.imageThumb || art.imageStandard || art.imageFull %>" class="w-16 h-16 object-cover rounded mr-4"/>
+            <span class="font-semibold flex-1"><%= art.title %></span>
+            <span class="text-sm"><%= art.status === 'collected' ? '● Collected' : (art.status || 'Available') %></span>
+          </button>
+          <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+            <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="block text-sm font-medium">Title
+                <input name="title" value="<%= art.title %>" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Price
+                <input type="number" step="0.01" name="price" value="<%= art.price %>" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Status
+                <select name="status" class="mt-1 w-full border rounded px-2 py-1">
+                  <option value="available" <%= art.status === 'available' ? 'selected' : '' %>>Available</option>
+                  <option value="inquire" <%= art.status === 'inquire' ? 'selected' : '' %>>Inquire</option>
+                  <option value="offer" <%= art.status === 'offer' ? 'selected' : '' %>>Make an Offer</option>
+                  <option value="collected" <%= art.status === 'collected' ? 'selected' : '' %>>Collected</option>
+                </select>
+              </label>
+              <label class="block text-sm font-medium">Medium
+                <input name="medium" value="<%= art.medium %>" class="mt-1 w-full border rounded px-2 py-1"/>
+              </label>
+              <label class="block text-sm font-medium">Collection
+                <select name="collection_id" class="mt-1 w-full border rounded px-2 py-1">
+                  <option value="">None</option>
+                  <% collections.forEach(function(c){ %>
+                    <option value="<%= c.id %>" <%= art.collection_id === c.id ? 'selected' : '' %>><%= c.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="isVisible" value="1" <%= art.isVisible ? 'checked' : '' %>>
+                Visible
+              </label>
+              <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+            </form>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  </main>
+  <template id="new-artwork-template">
+    <li class="bg-white shadow-md rounded border">
+      <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= generatedId %>" data-new="true">
+        <div class="w-16 h-16 bg-gray-200 flex items-center justify-center rounded mr-4">New</div>
+        <span class="font-semibold flex-1">Untitled</span>
+        <span class="text-sm">New</span>
+      </button>
+      <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+        <form class="p-4 space-y-2 art-form" data-id="<%= generatedId %>" data-new="true">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label class="block text-sm font-medium">Title
+            <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <label class="block text-sm font-medium">Price
+            <input type="number" step="0.01" name="price" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <label class="block text-sm font-medium">Status
+            <select name="status" class="mt-1 w-full border rounded px-2 py-1">
+              <option value="available">Available</option>
+              <option value="inquire">Inquire</option>
+              <option value="offer">Make an Offer</option>
+              <option value="collected">Collected</option>
+            </select>
+          </label>
+          <label class="block text-sm font-medium">Medium
+            <input name="medium" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <label class="block text-sm font-medium">Collection
+            <select name="collection_id" class="mt-1 w-full border rounded px-2 py-1">
+              <option value="">None</option>
+              <% collections.forEach(function(c){ %>
+                <option value="<%= c.id %>"><%= c.name %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="isVisible" value="1" checked>
+            Visible
+          </label>
+          <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+        </form>
+      </div>
+    </li>
+  </template>
+  <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    function toggleWrapper(wrapper) {
+      if (wrapper.style.maxHeight && wrapper.style.maxHeight !== '0px') {
+        wrapper.style.maxHeight = '0px';
+        wrapper.style.opacity = '0';
+      } else {
+        wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+        wrapper.style.opacity = '1';
+      }
+    }
+    document.querySelectorAll('.art-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const wrapper = btn.nextElementSibling;
+        toggleWrapper(wrapper);
+      });
+    });
+    function handleForm(form){
+      const btn = form.querySelector('.save-btn');
+      const id = form.dataset.id;
+      const isNew = form.dataset.new === 'true';
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = 'Saving...';
+        const data = new FormData(form);
+        const url = isNew ? '/dashboard/artworks' : '/dashboard/artworks/' + id;
+        const method = isNew ? 'POST' : 'PUT';
+        try {
+          const res = await fetch(url, { method, headers: { 'CSRF-Token': csrfToken }, body: data });
+          if (!res.ok) throw new Error(await res.text() || res.statusText);
+          btn.textContent = 'Saved!';
+          setTimeout(() => {
+            btn.textContent = original;
+            btn.disabled = false;
+            if (!isNew) {
+              toggleWrapper(form.parentElement);
+            }
+          }, 1000);
+        } catch(err) {
+          btn.textContent = 'Error';
+          setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
+        }
+      });
+    }
+    document.querySelectorAll('.art-form').forEach(handleForm);
+    document.getElementById('new-artwork').addEventListener('click', () => {
+      const tpl = document.getElementById('new-artwork-template');
+      const li = tpl.content.firstElementChild.cloneNode(true);
+      document.getElementById('artwork-list').prepend(li);
+      const btn = li.querySelector('.art-toggle');
+      const wrapper = li.querySelector('.art-form-wrapper');
+      btn.addEventListener('click', () => toggleWrapper(wrapper));
+      handleForm(li.querySelector('form'));
+      btn.click();
+    });
+  </script>
+</body>
+</html>
