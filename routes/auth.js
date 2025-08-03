@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { createUser, findUserByUsername } = require('../models/userModel');
+const { createArtist } = require('../models/artistModel');
+const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
@@ -23,8 +25,22 @@ function signupHandler(role) {
         req.flash('error', 'Signup failed');
         return res.redirect(`/signup/${role}`);
       }
-      req.session.user = { id, username, role };
-      return res.redirect(`/dashboard/${role}`);
+      if (role === 'artist') {
+        createArtist(id, display_name, '', err2 => {
+          if (err2) {
+            db.run('DELETE FROM users WHERE id = ?', [id], () => {
+              req.flash('error', 'Signup failed');
+              return res.redirect(`/signup/${role}`);
+            });
+            return;
+          }
+          req.session.user = { id, username, role };
+          return res.redirect(`/dashboard/${role}`);
+        });
+      } else {
+        req.session.user = { id, username, role };
+        return res.redirect(`/dashboard/${role}`);
+      }
     });
   };
 }

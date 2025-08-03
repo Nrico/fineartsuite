@@ -11,4 +11,9 @@ function getArtist(gallerySlug, id, cb) {
   });
 }
 
-module.exports = { getArtist };
+function createArtist(id, name, gallerySlug, cb) {
+  const stmt = `INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)`;
+  db.run(stmt, [id, gallerySlug, name], cb);
+}
+
+module.exports = { getArtist, createArtist };
