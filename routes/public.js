@@ -13,6 +13,11 @@ router.get('/', (req, res) => {
   });
 });
 
+// FAQ page
+router.get('/faq', (req, res) => {
+  res.render('faq');
+});
+
 // Public gallery home page
 router.get('/:gallerySlug', (req, res) => {
   try {
