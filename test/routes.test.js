@@ -676,10 +676,27 @@ test('archiving artist cascades to artworks', async () => {
     )
   );
 
+  // Ensure items appear in active lists and public pages
+  let artistRow = await new Promise(resolve =>
+    db.get('SELECT archived FROM artists WHERE id=?', [artistId], (err, r) => resolve(r))
+  );
+  let artworkRow = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(artistRow.archived, 0);
+  assert.strictEqual(artworkRow.archived, 0);
+  let res = await httpGet(`http://localhost:${port}/demo-gallery`);
+  assert.ok(res.body.includes('Temp'));
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 200);
+  assert.ok(res.body.includes('A'));
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 200);
+
   const page = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
   const token = extractCsrfToken(page.body);
 
-  let res = await httpRequest(
+  res = await httpRequest(
     'PATCH',
     `http://localhost:${port}/dashboard/artists/${artistId}/archive`,
     {},
@@ -687,14 +704,20 @@ test('archiving artist cascades to artworks', async () => {
     token
   );
   assert.strictEqual(res.statusCode, 204);
-  const artistRow = await new Promise(resolve =>
+  artistRow = await new Promise(resolve =>
     db.get('SELECT archived FROM artists WHERE id=?', [artistId], (err, r) => resolve(r))
   );
-  const artworkRow = await new Promise(resolve =>
+  artworkRow = await new Promise(resolve =>
     db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
   );
   assert.strictEqual(artistRow.archived, 1);
   assert.strictEqual(artworkRow.archived, 1);
+  res = await httpGet(`http://localhost:${port}/demo-gallery`);
+  assert.ok(!res.body.includes('Temp'));
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 404);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 404);
 
   res = await httpRequest(
     'PATCH',
@@ -704,14 +727,100 @@ test('archiving artist cascades to artworks', async () => {
     token
   );
   assert.strictEqual(res.statusCode, 204);
-  const artistRow2 = await new Promise(resolve =>
+  artistRow = await new Promise(resolve =>
     db.get('SELECT archived FROM artists WHERE id=?', [artistId], (err, r) => resolve(r))
   );
-  const artworkRow2 = await new Promise(resolve =>
+  artworkRow = await new Promise(resolve =>
     db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
   );
-  assert.strictEqual(artistRow2.archived, 0);
-  assert.strictEqual(artworkRow2.archived, 0);
+  assert.strictEqual(artistRow.archived, 0);
+  assert.strictEqual(artworkRow.archived, 0);
+  res = await httpGet(`http://localhost:${port}/demo-gallery`);
+  assert.ok(res.body.includes('Temp'));
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 200);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 200);
+
+  await new Promise(resolve => db.run('DELETE FROM artworks WHERE id=?', [artworkId], resolve));
+  await new Promise(resolve => db.run('DELETE FROM artists WHERE id=?', [artistId], resolve));
+});
+
+test('archiving artwork toggles public visibility', async () => {
+  const port = server.address().port;
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(
+    `http://localhost:${port}/login`,
+    { username: 'admin', password: 'password', _csrf: loginCsrf },
+    cookie
+  );
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+
+  const artistId = 'test-artist-art-' + Date.now();
+  await new Promise(resolve =>
+    db.run('INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)', [artistId, 'demo-gallery', 'ArtArch'], resolve)
+  );
+  const artworkId = 'test-only-artwork-' + Date.now();
+  await new Promise(resolve =>
+    db.run(
+      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [artworkId, artistId, 'demo-gallery', 'Piece', 'oil', '1x1', '', '', '', '', 'available', 1, 0, '', 0, 0],
+      resolve
+    )
+  );
+
+  let row = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(row.archived, 0);
+  let res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 200);
+  assert.ok(res.body.includes('Piece'));
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 200);
+
+  const artPage = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
+  const token = extractCsrfToken(artPage.body);
+
+  res = await httpRequest(
+    'PATCH',
+    `http://localhost:${port}/dashboard/artworks/${artworkId}/archive`,
+    {},
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 204);
+  row = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(row.archived, 1);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 404);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 200);
+  assert.ok(!res.body.includes('Piece'));
+
+  res = await httpRequest(
+    'PATCH',
+    `http://localhost:${port}/dashboard/artworks/${artworkId}/unarchive`,
+    {},
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 204);
+  row = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(row.archived, 0);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${artworkId}`);
+  assert.strictEqual(res.statusCode, 200);
+  res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${artistId}`);
+  assert.strictEqual(res.statusCode, 200);
+  assert.ok(res.body.includes('Piece'));
 
   await new Promise(resolve => db.run('DELETE FROM artworks WHERE id=?', [artworkId], resolve));
   await new Promise(resolve => db.run('DELETE FROM artists WHERE id=?', [artistId], resolve));
