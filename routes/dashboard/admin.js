@@ -16,6 +16,8 @@ try {
 }
 
 const { db } = require('../../models/db');
+const { archiveArtist, unarchiveArtist } = require('../../models/artistModel');
+const { archiveArtwork, unarchiveArtwork } = require('../../models/artworkModel');
 
 const uploadsDir = path.join(__dirname, '../../public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -410,6 +412,52 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (
   }
 });
 
+router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const handle = () => {
+    archiveArtist(req.params.id, err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Artist archived');
+      res.sendStatus(204);
+    });
+  };
+  if (req.user.role === 'gallery') {
+    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+      if (err || !row || row.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+      handle();
+    });
+  } else {
+    handle();
+  }
+});
+
+router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const handle = () => {
+    unarchiveArtist(req.params.id, err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Artist unarchived');
+      res.sendStatus(204);
+    });
+  };
+  if (req.user.role === 'gallery') {
+    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+      if (err || !row || row.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+      handle();
+    });
+  } else {
+    handle();
+  }
+});
+
 router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
   try {
     let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
@@ -541,6 +589,52 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imag
   } catch (e) {
     console.error(e);
     res.status(500).send('Server error');
+  }
+});
+
+router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const handle = () => {
+    archiveArtwork(req.params.id, err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Artwork archived');
+      res.sendStatus(204);
+    });
+  };
+  if (req.user.role === 'gallery') {
+    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+      if (err || !row || row.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+      handle();
+    });
+  } else {
+    handle();
+  }
+});
+
+router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const handle = () => {
+    unarchiveArtwork(req.params.id, err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Artwork unarchived');
+      res.sendStatus(204);
+    });
+  };
+  if (req.user.role === 'gallery') {
+    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+      if (err || !row || row.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+      handle();
+    });
+  } else {
+    handle();
   }
 });
 
