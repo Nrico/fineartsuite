@@ -21,10 +21,6 @@
       <% } %>
       <form id="add-art" method="post" action="/dashboard/artworks" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 file-or-url">
         <div>
-          <label class="block text-sm font-medium" for="id">Artwork ID</label>
-          <input id="id" type="text" name="id" value="<%= generatedId %>" required class="mt-1 w-full border border-gray-300 rounded px-2 py-1 bg-gray-100 text-gray-600">
-        </div>
-        <div>
           <label class="block text-sm font-medium" for="gallery_slug">Gallery</label>
           <select id="gallery_slug" name="gallery_slug" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
             <% galleries.forEach(function(g){ %>

@@ -66,12 +66,12 @@
   </main>
   <template id="new-artwork-template">
     <li class="bg-white shadow-md rounded border">
-      <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= generatedId %>" data-new="true">
+      <button class="art-toggle w-full flex items-center p-4 text-left" data-new="true">
         <div class="w-[50px] h-[50px] bg-gray-200 flex items-center justify-center rounded mr-4">New</div>
         <span class="font-semibold flex-1">Untitled</span>
       </button>
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-        <form class="p-4 space-y-2 art-form" data-id="<%= generatedId %>" data-new="true" enctype="multipart/form-data">
+        <form class="p-4 space-y-2 art-form" data-new="true" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <label class="block text-sm font-medium">Title
             <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -133,8 +133,9 @@
     });
     function handleForm(form){
       const btn = form.querySelector('.save-btn');
-      const id = form.dataset.id;
-      const isNew = form.dataset.new === 'true';
+      const toggleBtn = form.closest('li').querySelector('.art-toggle');
+      let id = form.dataset.id;
+      let isNew = form.dataset.new === 'true';
       form.addEventListener('submit', async e => {
         e.preventDefault();
         btn.disabled = true;
@@ -147,6 +148,14 @@
           const res = await fetch(url, { method, headers: { 'CSRF-Token': csrfToken }, body: data });
           if (!res.ok) throw new Error(await res.text() || res.statusText);
           btn.textContent = 'Saved!';
+          if (isNew) {
+            const out = await res.json();
+            id = out.id;
+            form.dataset.id = id;
+            toggleBtn.dataset.id = id;
+            form.dataset.new = 'false';
+            isNew = false;
+          }
           setTimeout(() => {
             btn.textContent = original;
             btn.disabled = false;

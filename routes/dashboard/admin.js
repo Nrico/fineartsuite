@@ -5,6 +5,7 @@ const fs = require('fs');
 const multer = require('multer');
 const randomAvatar = require('../../utils/avatar');
 const { requireRole } = require('../../middleware/auth');
+const { generateUniqueSlug } = require('../../utils/slug');
 let Jimp;
 try {
   Jimp = require('jimp');
@@ -93,15 +94,14 @@ router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/galleries', { galleries: [], generatedSlug: '' });
+        return res.render('admin/galleries', { galleries: [] });
       }
-      const generatedSlug = 'gallery_' + Date.now();
-      res.render('admin/galleries', { galleries, generatedSlug });
+      res.render('admin/galleries', { galleries });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/galleries', { galleries: [], generatedSlug: '' });
+    res.render('admin/galleries', { galleries: [] });
   }
 });
 
@@ -114,7 +114,7 @@ router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
+        return res.render('admin/artists', { artists: [], galleries: [] });
       }
       const fetchGalleries = cb => {
         if (req.user.role === 'gallery') return cb(null, [{ slug: req.user.username }]);
@@ -124,16 +124,15 @@ router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
         if (gErr) {
           console.error(gErr);
           req.flash('error', 'Database error');
-          return res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
+          return res.render('admin/artists', { artists: [], galleries: [] });
         }
-        const generatedId = 'artist_' + Date.now();
-        res.render('admin/artists', { artists, galleries, generatedId });
+        res.render('admin/artists', { artists, galleries });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artists', { artists: [], galleries: [], generatedId: '' });
+    res.render('admin/artists', { artists: [], galleries: [] });
   }
 });
 
@@ -146,7 +145,7 @@ router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
+        return res.render('dashboard/artworks', { artworks: [], collections: [] });
       }
       const collQuery = req.user.role === 'gallery'
         ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
@@ -155,16 +154,15 @@ router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
         if (cErr) {
           console.error(cErr);
           req.flash('error', 'Database error');
-          return res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
+          return res.render('dashboard/artworks', { artworks: [], collections: [] });
         }
-        const generatedId = 'art_' + Date.now();
-        res.render('dashboard/artworks', { artworks, collections, generatedId });
+        res.render('dashboard/artworks', { artworks, collections });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('dashboard/artworks', { artworks: [], collections: [], generatedId: '' });
+    res.render('dashboard/artworks', { artworks: [], collections: [] });
   }
 });
 
@@ -172,19 +170,16 @@ router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('logoFile')(req, res, async err => {
     if (err) {
       console.error(err);
-      req.flash('error', err.message);
-      return res.redirect('/dashboard/galleries');
+      return handleGalleryResponse(req, res, 400, err.message);
     }
     try {
-      let { slug, name, description, email, phone, address, owner, logoUrl } = req.body;
-      if (!slug || !name || !description) {
-        req.flash('error', 'All fields are required');
-        return res.redirect('/dashboard/galleries');
+      let { name, description, email, phone, address, owner, logoUrl } = req.body;
+      if (!name || !description) {
+        return handleGalleryResponse(req, res, 400, 'All fields are required');
       }
-      if (req.user.role === 'gallery' && slug !== req.user.username) {
-        req.flash('error', 'Forbidden');
-        return res.redirect('/dashboard/galleries');
-      }
+      const slug = req.user.role === 'gallery'
+        ? req.user.username
+        : await generateUniqueSlug(db, 'galleries', 'slug', name);
       let logo_url = logoUrl || null;
       if (req.file) {
         try {
@@ -192,27 +187,36 @@ router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
           logo_url = images.imageStandard;
         } catch (imageErr) {
           console.error(imageErr);
-          req.flash('error', 'Image processing failed');
-          return res.redirect('/dashboard/galleries');
+          return handleGalleryResponse(req, res, 500, 'Image processing failed');
         }
       }
       const stmt = 'INSERT INTO galleries (slug, name, bio, contact_email, phone, address, gallarist_name, logo_url) VALUES (?,?,?,?,?,?,?,?)';
       db.run(stmt, [slug, name, description, email || null, phone || null, address || null, owner || null, logo_url], err2 => {
         if (err2) {
           console.error(err2);
-          req.flash('error', 'Database error');
-          return res.redirect('/dashboard/galleries');
+          return handleGalleryResponse(req, res, 500, 'Database error');
         }
-        req.flash('success', 'Gallery added');
-        res.redirect('/dashboard/galleries');
+        handleGalleryResponse(req, res, 201, { slug });
       });
     } catch (err2) {
       console.error(err2);
-      req.flash('error', 'Server error');
-      res.redirect('/dashboard/galleries');
+      handleGalleryResponse(req, res, 500, 'Server error');
     }
   });
 });
+
+function handleGalleryResponse(req, res, status, data) {
+  if (req.is('application/x-www-form-urlencoded')) {
+    if (status >= 400) {
+      req.flash('error', data);
+      return res.redirect('/dashboard/galleries');
+    }
+    req.flash('success', 'Gallery added');
+    return res.redirect('/dashboard/galleries');
+  }
+  if (status >= 400) return res.status(status).send(data);
+  res.status(status).json(data);
+}
 
 router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('logoFile')(req, res, async err => {
@@ -224,8 +228,7 @@ router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
       if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      let { slug, name, description, email, phone, address, owner, logoUrl } = req.body;
-      const newSlug = req.user.role === 'gallery' ? req.user.username : slug;
+      const { name, description, email, phone, address, owner, logoUrl } = req.body;
       let logo_url = logoUrl || null;
       if (req.file) {
         try {
@@ -236,8 +239,8 @@ router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
           return res.status(500).send('Image processing failed');
         }
       }
-      const stmt = 'UPDATE galleries SET slug = ?, name = ?, bio = ?, contact_email = ?, phone = ?, address = ?, gallarist_name = ?, logo_url = ? WHERE slug = ?';
-      db.run(stmt, [newSlug, name, description, email || null, phone || null, address || null, owner || null, logo_url, req.params.slug], err2 => {
+      const stmt = 'UPDATE galleries SET name = ?, bio = ?, contact_email = ?, phone = ?, address = ?, gallarist_name = ?, logo_url = ? WHERE slug = ?';
+      db.run(stmt, [name, description, email || null, phone || null, address || null, owner || null, logo_url, req.params.slug], err2 => {
         if (err2) {
           console.error(err2);
           return res.status(500).send('Database error');
@@ -275,21 +278,18 @@ router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('bioImageFile')(req, res, async err => {
     if (err) {
       console.error(err);
-      req.flash('error', err.message);
-      return res.redirect('/dashboard/artists');
+      return handleArtistResponse(req, res, 400, err.message);
     }
     try {
       let { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
       if (req.user.role === 'gallery') {
         gallery_slug = req.user.username;
       }
-      if (!id || !gallery_slug || !name || !bio) {
-        req.flash('error', 'All fields are required');
-        return res.redirect('/dashboard/artists');
+      if (!gallery_slug || !name || !bio) {
+        return handleArtistResponse(req, res, 400, 'All fields are required');
       }
       if (req.file && bioImageUrl) {
-        req.flash('error', 'Choose either an upload or a URL');
-        return res.redirect('/dashboard/artists');
+        return handleArtistResponse(req, res, 400, 'Choose either an upload or a URL');
       }
       let avatarUrl = bioImageUrl;
       if (req.file) {
@@ -298,30 +298,42 @@ router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
           avatarUrl = images.imageStandard;
         } catch (imageErr) {
           console.error(imageErr);
-          req.flash('error', 'Image processing failed');
-          return res.redirect('/dashboard/artists');
+          return handleArtistResponse(req, res, 500, 'Image processing failed');
         }
       }
       if (!avatarUrl) {
         avatarUrl = randomAvatar();
       }
+      if (!id) {
+        id = await generateUniqueSlug(db, 'artists', 'id', name);
+      }
       const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
       db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl], err2 => {
         if (err2) {
           console.error(err2);
-          req.flash('error', 'Database error');
-          return res.redirect('/dashboard/artists');
+          return handleArtistResponse(req, res, 500, 'Database error');
         }
-        req.flash('success', 'Artist added');
-        res.redirect('/dashboard/artists');
+        handleArtistResponse(req, res, 201, { id });
       });
     } catch (err2) {
       console.error(err2);
-      req.flash('error', 'Server error');
-      res.redirect('/dashboard/artists');
+      handleArtistResponse(req, res, 500, 'Server error');
     }
   });
 });
+
+function handleArtistResponse(req, res, status, data) {
+  if (req.is('application/x-www-form-urlencoded')) {
+    if (status >= 400) {
+      req.flash('error', data);
+      return res.redirect('/dashboard/artists');
+    }
+    req.flash('success', 'Artist added');
+    return res.redirect('/dashboard/artists');
+  }
+  if (status >= 400) return res.status(status).send(data);
+  res.status(status).json(data);
+}
 
 router.put('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
   upload.single('bioImageFile')(req, res, async err => {
@@ -417,9 +429,12 @@ router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
       if (req.user.role === 'gallery') {
         gallery_slug = req.user.username;
       }
-      if (!id || !gallery_slug || !artist_id || !title || !medium || !dimensions) {
+      if (!gallery_slug || !artist_id || !title || !medium || !dimensions) {
         req.flash('error', 'All fields are required');
         return res.redirect('/dashboard/artworks');
+      }
+      if (!id) {
+        id = await generateUniqueSlug(db, 'artworks', 'id', title);
       }
       let priceValue = '';
       if (price && price.trim() !== '') {
@@ -582,8 +597,7 @@ router.get('/upload', requireRole('admin', 'gallery'), (req, res) => {
     if (err) files = [];
     db.all('SELECT slug FROM galleries', (gErr, galleries) => {
       const data = files.map(f => ({ name: f, url: '/uploads/' + f }));
-      const generatedId = 'art_' + Date.now();
-      res.render('admin/upload', { files: data, galleries: gErr ? [] : galleries, success: req.query.success, generatedId });
+      res.render('admin/upload', { files: data, galleries: gErr ? [] : galleries, success: req.query.success });
     });
   });
 });
@@ -601,7 +615,7 @@ router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    const { id, gallery_slug, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
+    let { id, gallery_slug, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
     if (!gallery_slug || !title || !medium || !dimensions || !status) {
       req.flash('error', 'All fields are required');
       return res.status(400).redirect('/dashboard/upload');
@@ -625,7 +639,7 @@ router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
       }
 
       try {
-        const artworkId = id && id.trim() !== '' ? id : 'art_' + Date.now();
+        const artworkId = id && id.trim() !== '' ? id : await generateUniqueSlug(db, 'artworks', 'id', title);
         const finalMedium = medium === 'other' ? custom_medium : medium;
         const finalPrice = status === 'collected' ? null : price;
         const images = await processImages(req.file);
