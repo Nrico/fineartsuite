@@ -16,6 +16,9 @@
 
   <main class="max-w-4xl mx-auto p-6">
     <header class="text-center mb-12">
+      <% if (gallery.logo_url) { %>
+        <img src="<%= gallery.logo_url %>" alt="<%= gallery.name %> logo" class="mx-auto mb-4 w-16 h-16 object-contain">
+      <% } %>
       <h1 class="text-xl md:text-2xl font-bold mb-4"><%= artist.name %></h1>
       <p class="text-base text-gray-600"><%= artist.bio %></p>
     </header>
@@ -72,6 +75,16 @@
   </main>
 
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <% if (gallery.contact_email || gallery.phone) { %>
+      <div class="mb-2 text-sm">
+        <% if (gallery.contact_email) { %>
+          <p>Contact: <a href="mailto:<%= gallery.contact_email %>" class="underline"><%= gallery.contact_email %></a></p>
+        <% } %>
+        <% if (gallery.phone) { %>
+          <p>Phone: <%= gallery.phone %></p>
+        <% } %>
+      </div>
+    <% } %>
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
   <script src="/js/fade-in.js"></script>
