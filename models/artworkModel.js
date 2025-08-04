@@ -19,7 +19,10 @@ function getArtwork(gallerySlug, id, cb) {
       hide_collected: row.hide_collected,
       featured: row.featured,
       isVisible: row.isVisible,
-      isFeatured: row.isFeatured
+      isFeatured: row.isFeatured,
+      description: row.description,
+      framed: row.framed,
+      readyToHang: row.ready_to_hang
     };
     cb(null, { artwork, artistId: row.artistId });
   });
@@ -33,12 +36,12 @@ function updateArtworkCollection(id, collectionId, cb) {
   db.run('UPDATE artworks SET collection_id = ? WHERE id = ?', [collectionId, id], cb);
 }
 
-function createArtwork(artistId, title, medium, dimensions, price, images, cb) {
+function createArtwork(artistId, title, medium, dimensions, price, description, framed, readyToHang, images, cb) {
   db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artistId], (err, row) => {
     if (err || !row) return cb(err || new Error('Artist not found'));
     const id = 'art_' + Date.now();
-    const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
     const params = [
       id,
       artistId,
@@ -52,7 +55,10 @@ function createArtwork(artistId, title, medium, dimensions, price, images, cb) {
       images.imageThumb,
       'available',
       1,
-      0
+      0,
+      description || '',
+      framed ? 1 : 0,
+      readyToHang ? 1 : 0
     ];
     db.run(stmt, params, err2 => cb(err2, id));
   });

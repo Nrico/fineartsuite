@@ -55,8 +55,8 @@
           <li><span class="font-semibold">Medium:</span> <%= artwork.medium %></li>
           <li><span class="font-semibold">Size:</span> <%= artwork.dimensions %></li>
           <% if (artwork.rarity) { %><li><span class="font-semibold">Rarity:</span> <%= artwork.rarity %></li><% } %>
-          <% if (artwork.framing) { %><li><span class="font-semibold">Framing:</span> <%= artwork.framing %></li><% } %>
-          <% if (artwork.readyToHang) { %><li><span class="font-semibold">Ready to Hang:</span> <%= artwork.readyToHang %></li><% } %>
+          <li><span class="font-semibold">Framed:</span> <%= artwork.framed ? 'Yes' : 'No' %></li>
+          <li><span class="font-semibold">Ready to Hang:</span> <%= artwork.readyToHang ? 'Yes' : 'No' %></li>
         </ul>
       </div>
     </section>

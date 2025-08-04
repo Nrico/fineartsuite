@@ -27,6 +27,17 @@
                 <label class="block text-sm font-medium">Price
                   <input type="text" name="price" value="<%= art.price %>" class="mt-1 w-full border rounded px-2 py-1"/>
                 </label>
+                <label class="block text-sm font-medium">Description
+                  <textarea name="description" class="mt-1 w-full border rounded px-2 py-1"><%= art.description || '' %></textarea>
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="framed" value="1" <%= art.framed ? 'checked' : '' %>>
+                  Framed
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="readyToHang" value="1" <%= art.ready_to_hang ? 'checked' : '' %>>
+                  Ready to Hang
+                </label>
               <label class="block text-sm font-medium">Status
                 <select name="status" class="mt-1 w-full border rounded px-2 py-1">
                   <option value="available" <%= art.status === 'available' ? 'selected' : '' %>>Available</option>
@@ -78,6 +89,17 @@
           </label>
           <label class="block text-sm font-medium">Price
             <input type="text" name="price" class="mt-1 w-full border rounded px-2 py-1"/>
+          </label>
+          <label class="block text-sm font-medium">Description
+            <textarea name="description" class="mt-1 w-full border rounded px-2 py-1"></textarea>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="framed" value="1">
+            Framed
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="readyToHang" value="1">
+            Ready to Hang
           </label>
           <label class="block text-sm font-medium">Status
             <select name="status" class="mt-1 w-full border rounded px-2 py-1">

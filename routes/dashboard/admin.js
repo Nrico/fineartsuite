@@ -425,7 +425,7 @@ router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
       return res.redirect('/dashboard/artworks');
     }
     try {
-      let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
       if (req.user.role === 'gallery') {
         gallery_slug = req.user.username;
       }
@@ -486,8 +486,8 @@ router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
         images.imageStandard = imageUrl;
         images.imageThumb = imageUrl;
       }
-      const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-      const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
+      const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
       db.run(stmt, params, runErr => {
         if (runErr) {
           console.error(runErr);
@@ -520,7 +520,7 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), async (req, res) =>
           return res.status(403).send('Forbidden');
         }
       }
-      const { title, medium, custom_medium, dimensions, price, imageUrl, status, isVisible, isFeatured } = req.body;
+      const { title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
       const finalMedium = medium === 'other' ? custom_medium : medium;
       let finalPrice = null;
       if (status !== 'collected') {
@@ -535,8 +535,8 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), async (req, res) =>
           finalPrice = '';
         }
       }
-      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?`;
-      const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0];
+      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?, description=?, framed=?, ready_to_hang=?`;
+      const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
       if (req.file || imageUrl) {
         if (req.file && imageUrl) {
           return res.status(400).send('Choose either an upload or a URL');
@@ -615,7 +615,7 @@ router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    let { id, gallery_slug, title, medium, custom_medium, dimensions, price, status, isVisible, isFeatured } = req.body;
+    let { id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, status, isVisible, isFeatured } = req.body;
     if (!gallery_slug || !title || !medium || !dimensions || !status) {
       req.flash('error', 'All fields are required');
       return res.status(400).redirect('/dashboard/upload');
@@ -643,8 +643,8 @@ router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
         const finalMedium = medium === 'other' ? custom_medium : medium;
         const finalPrice = status === 'collected' ? null : price;
         const images = await processImages(req.file);
-        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
-        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0], runErr => {
+        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0], runErr => {
           if (runErr) {
             console.error(runErr);
             req.flash('error', 'Database error');
