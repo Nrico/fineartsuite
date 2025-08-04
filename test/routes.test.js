@@ -1,4 +1,5 @@
 process.env.USE_DEMO_AUTH = 'false';
+process.env.SESSION_SECRET = 'testsecret';
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
