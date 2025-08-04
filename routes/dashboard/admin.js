@@ -1,28 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const randomAvatar = require('../../utils/avatar');
 const { requireRole } = require('../../middleware/auth');
 const { generateUniqueSlug } = require('../../utils/slug');
+const { processImages, uploadsDir } = require('../../utils/image');
 const csrf = require('csurf');
 const csrfProtection = csrf();
-let Jimp;
-try {
-  Jimp = require('jimp');
-} catch (err) {
-  console.warn('jimp not installed, images will be copied without resizing');
-}
 
 const { db } = require('../../models/db');
 const { archiveArtist, unarchiveArtist } = require('../../models/artistModel');
 const { archiveArtwork, unarchiveArtwork } = require('../../models/artworkModel');
 
-const uploadsDir = path.join(__dirname, '../../public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
 const upload = multer({
   dest: uploadsDir,
   fileFilter: (req, file, cb) => {
@@ -37,45 +27,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
-
-async function processImages(file) {
-  const ext = path.extname(file.originalname).toLowerCase();
-  const base = path.parse(file.filename).name;
-  const fullPath = path.join(uploadsDir, `${base}_full${ext}`);
-  const standardPath = path.join(uploadsDir, `${base}_standard${ext}`);
-  const thumbPath = path.join(uploadsDir, `${base}_thumb${ext}`);
-  try {
-    if (Jimp) {
-      try {
-        const image = await Jimp.read(file.path);
-        await image.clone().scaleToFit(2000, 2000).writeAsync(fullPath);
-        await image.clone().scaleToFit(800, 800).writeAsync(standardPath);
-        await image.clone().cover(300, 300).writeAsync(thumbPath);
-      } catch {
-        await fs.promises.copyFile(file.path, fullPath);
-        await fs.promises.copyFile(file.path, standardPath);
-        await fs.promises.copyFile(file.path, thumbPath);
-      }
-      await fs.promises.unlink(file.path);
-    } else {
-      await fs.promises.copyFile(file.path, fullPath);
-      await fs.promises.copyFile(file.path, standardPath);
-      await fs.promises.copyFile(file.path, thumbPath);
-      await fs.promises.unlink(file.path);
-    }
-    return {
-      imageFull: `/uploads/${path.basename(fullPath)}`,
-      imageStandard: `/uploads/${path.basename(standardPath)}`,
-      imageThumb: `/uploads/${path.basename(thumbPath)}`
-    };
-  } catch (err) {
-    console.error('Error processing images:', err);
-    try {
-      await fs.promises.unlink(file.path);
-    } catch {}
-    throw err;
-  }
-}
 
 // Gallery dashboard for gallery role
 router.get('/gallery', requireRole('gallery'), (req, res) => {
