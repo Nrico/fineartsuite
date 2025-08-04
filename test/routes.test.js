@@ -105,6 +105,13 @@ test('homepage responds with welcome text', async () => {
   assert.match(body, /FineArtSuite/);
 });
 
+test('homepage lists gallery names instead of slugs', async () => {
+  const port = server.address().port;
+  const { body } = await httpGet(`http://localhost:${port}/`);
+  assert.ok(body.includes('>Demo Gallery</a>'));
+  assert.doesNotMatch(body, />demo-gallery<\/a>/);
+});
+
 test('gallery page responds with gallery name', async () => {
   const port = server.address().port;
   const { statusCode, body } = await httpGet(`http://localhost:${port}/demo-gallery`);
