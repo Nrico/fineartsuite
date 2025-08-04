@@ -36,7 +36,7 @@ function updateArtworkCollection(id, collectionId, cb) {
   db.run('UPDATE artworks SET collection_id = ? WHERE id = ?', [collectionId, id], cb);
 }
 
-function createArtwork(artistId, title, medium, dimensions, price, description, framed, readyToHang, images, cb) {
+function createArtwork(artistId, title, medium, dimensions, price, description, framed, readyToHang, images, isFeatured, cb) {
   db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artistId], (err, row) => {
     if (err || !row) return cb(err || new Error('Artist not found'));
     const id = 'art_' + Date.now();
@@ -55,7 +55,7 @@ function createArtwork(artistId, title, medium, dimensions, price, description, 
       images.imageThumb,
       'available',
       1,
-      0,
+      isFeatured ? 1 : 0,
       description || '',
       framed ? 1 : 0,
       readyToHang ? 1 : 0
