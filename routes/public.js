@@ -7,7 +7,7 @@ const { getArtwork } = require('../models/artworkModel');
 
 // Home route displaying available galleries
 router.get('/', (req, res) => {
-  db.all('SELECT slug FROM galleries', (err, rows) => {
+  db.all('SELECT slug, name FROM galleries', (err, rows) => {
     const galleries = err ? [] : rows;
     res.render('home', { galleries });
   });
