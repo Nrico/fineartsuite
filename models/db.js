@@ -31,7 +31,8 @@ function initialize() {
       bio_short TEXT,
       bio_full TEXT,
       portrait_url TEXT,
-      gallery_id TEXT
+      gallery_id TEXT,
+      archived INTEGER DEFAULT 0
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -69,7 +70,8 @@ function initialize() {
       isFeatured INTEGER DEFAULT 0,
       description TEXT,
       framed INTEGER DEFAULT 0,
-      ready_to_hang INTEGER DEFAULT 0
+      ready_to_hang INTEGER DEFAULT 0,
+      archived INTEGER DEFAULT 0
     )`);
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
