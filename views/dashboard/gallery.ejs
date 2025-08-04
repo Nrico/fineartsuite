@@ -16,6 +16,11 @@
     <% if (flash.success && flash.success.length) { %>
       <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
     <% } %>
+    <p class="mb-4 text-center">Your public gallery is available at
+      <a href="/<%= user.username %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+        /<%= user.username %>
+      </a>
+    </p>
     <% const dashBase = '/dashboard'; %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <a href="<%= dashBase %>/galleries" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Gallery</a>
