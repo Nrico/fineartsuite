@@ -33,13 +33,13 @@ function updateArtist(id, name, bio, fullBio, bioImageUrl, cb) {
   db.run(stmt, [name, bio, fullBio, bioImageUrl, id], cb);
 }
 
-function archiveArtist(id, cb) {
+function toggleArchive(id, archived, cb) {
   db.serialize(() => {
     db.run('BEGIN TRANSACTION');
     const rollback = err => db.run('ROLLBACK', () => cb(err));
-    db.run('UPDATE artists SET archived = 1 WHERE id = ?', [id], err => {
+    db.run('UPDATE artists SET archived = ? WHERE id = ?', [archived, id], err => {
       if (err) return rollback(err);
-      db.run('UPDATE artworks SET archived = 1 WHERE artist_id = ?', [id], err2 => {
+      db.run('UPDATE artworks SET archived = ? WHERE artist_id = ?', [archived, id], err2 => {
         if (err2) return rollback(err2);
         db.run('COMMIT', cb);
       });
@@ -47,18 +47,12 @@ function archiveArtist(id, cb) {
   });
 }
 
+function archiveArtist(id, cb) {
+  toggleArchive(id, 1, cb);
+}
+
 function unarchiveArtist(id, cb) {
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
-    const rollback = err => db.run('ROLLBACK', () => cb(err));
-    db.run('UPDATE artists SET archived = 0 WHERE id = ?', [id], err => {
-      if (err) return rollback(err);
-      db.run('UPDATE artworks SET archived = 0 WHERE artist_id = ?', [id], err2 => {
-        if (err2) return rollback(err2);
-        db.run('COMMIT', cb);
-      });
-    });
-  });
+  toggleArchive(id, 0, cb);
 }
 
 module.exports = {
