@@ -258,14 +258,14 @@ test('admin artist routes allow CRUD after login', async () => {
   const token = extractCsrfToken(page.body);
 
   const id = `testartist${Date.now()}`;
-  let res = await httpPostForm(`http://localhost:${port}/dashboard/artists`, { id, gallery_slug: 'demo-gallery', name: 'Tester', bio: 'Bio', _csrf: token }, cookie);
+  let res = await httpPostForm(`http://localhost:${port}/dashboard/artists`, { id, gallery_slug: 'demo-gallery', name: 'Tester', bio: 'Bio', live: 1, _csrf: token }, cookie);
   assert.strictEqual(res.statusCode, 302);
 
   res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${id}`);
   assert.strictEqual(res.statusCode, 200);
   assert.match(res.body, /Tester/);
 
-  await httpRequest('PUT', `http://localhost:${port}/dashboard/artists/${id}`, { name: 'Edited', bio: 'Bio' }, cookie, token);
+  await httpRequest('PUT', `http://localhost:${port}/dashboard/artists/${id}`, { name: 'Edited', bio: 'Bio', live: 1 }, cookie, token);
   res = await httpGet(`http://localhost:${port}/demo-gallery/artists/${id}`);
   assert.match(res.body, /Edited/);
 
@@ -376,10 +376,10 @@ test('artist and artwork routes require login', async () => {
   const page = await httpGet(`http://localhost:${port}/login`);
   const token = extractCsrfToken(page.body);
   const cookie = page.headers['set-cookie'][0].split(';')[0];
-  let res = await httpPostForm(`http://localhost:${port}/dashboard/artists`, { id: 'x', gallery_slug: 'demo-gallery', name: 'n', bio: 'b', _csrf: token }, cookie);
+  let res = await httpPostForm(`http://localhost:${port}/dashboard/artists`, { id: 'x', gallery_slug: 'demo-gallery', name: 'n', bio: 'b', live: 1, _csrf: token }, cookie);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
-  res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artists/x`, { name: 'n', bio: 'b' }, cookie, token);
+  res = await httpRequest('PUT', `http://localhost:${port}/dashboard/artists/x`, { name: 'n', bio: 'b', live: 1 }, cookie, token);
   assert.strictEqual(res.statusCode, 302);
   assert.strictEqual(res.headers.location, '/login');
   res = await httpRequest('DELETE', `http://localhost:${port}/dashboard/artists/x`, null, cookie, token);
@@ -401,7 +401,7 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${Date.now()}`;
   const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', () => resolve()));
+  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -425,7 +425,7 @@ test('artist cannot access admin dashboard', async () => {
   const port = server.address().port;
   const username = `artist${Date.now()}x`;
   const userId = await new Promise(resolve => createUser('Artist2', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', () => resolve()));
+  await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -442,7 +442,7 @@ test('artist artwork submission succeeds with valid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${Date.now()}`;
   const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', () => resolve()));
+  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -665,7 +665,7 @@ test('archiving artist cascades to artworks', async () => {
 
   const artistId = 'test-artist-' + Date.now();
   await new Promise(resolve =>
-    db.run('INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)', [artistId, 'demo-gallery', 'Temp'], resolve)
+    db.run('INSERT INTO artists (id, gallery_slug, name, live) VALUES (?,?,?,1)', [artistId, 'demo-gallery', 'Temp'], resolve)
   );
   const artworkId = 'test-artwork-' + Date.now();
   await new Promise(resolve =>
@@ -762,7 +762,7 @@ test('archiving artwork toggles public visibility', async () => {
 
   const artistId = 'test-artist-art-' + Date.now();
   await new Promise(resolve =>
-    db.run('INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)', [artistId, 'demo-gallery', 'ArtArch'], resolve)
+    db.run('INSERT INTO artists (id, gallery_slug, name, live) VALUES (?,?,?,1)', [artistId, 'demo-gallery', 'ArtArch'], resolve)
   );
   const artworkId = 'test-only-artwork-' + Date.now();
   await new Promise(resolve =>
