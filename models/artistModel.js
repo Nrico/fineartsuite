@@ -2,7 +2,7 @@ const { db } = require('./db');
 
 function getArtist(gallerySlug, id, cb) {
   const artistSql =
-    'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0';
+    'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
   db.get(artistSql, [id, gallerySlug], (err, artist) => {
     if (err || !artist) return cb(err || new Error('Not found'));
     const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
@@ -14,9 +14,13 @@ function getArtist(gallerySlug, id, cb) {
   });
 }
 
-function createArtist(id, name, gallerySlug, cb) {
-  const stmt = `INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)`;
-  db.run(stmt, [id, gallerySlug, name], cb);
+function createArtist(id, name, gallerySlug, live, cb) {
+  if (typeof live === 'function') {
+    cb = live;
+    live = 0;
+  }
+  const stmt = `INSERT INTO artists (id, gallery_slug, name, live) VALUES (?,?,?,?)`;
+  db.run(stmt, [id, gallerySlug, name, live ? 1 : 0], cb);
 }
 
 function getArtistById(id, cb) {

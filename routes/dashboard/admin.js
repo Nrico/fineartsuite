@@ -276,7 +276,7 @@ router.post('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, r
       return handleArtistResponse(req, res, 400, err.message);
     }
     try {
-      let { id, gallery_slug, name, bio, fullBio, bioImageUrl } = req.body;
+      let { id, gallery_slug, name, bio, fullBio, bioImageUrl, live } = req.body;
       if (req.user.role === 'gallery') {
         gallery_slug = req.user.username;
       }
@@ -302,8 +302,9 @@ router.post('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, r
       if (!id) {
         id = await generateUniqueSlug(db, 'artists', 'id', name);
       }
-      const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl) VALUES (?,?,?,?,?,?)';
-      db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl], err2 => {
+      const liveVal = live === 'on' || live === '1' || live === 1 || live === true || live === 'true' ? 1 : 0;
+      const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl, live) VALUES (?,?,?,?,?,?,?)';
+      db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl, liveVal], err2 => {
         if (err2) {
           console.error(err2);
           return handleArtistResponse(req, res, 500, 'Database error');
@@ -347,7 +348,7 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req
           return res.status(403).send('Forbidden');
         }
       }
-      let { name, bio, fullBio, bioImageUrl, gallery_slug } = req.body;
+      let { name, bio, fullBio, bioImageUrl, gallery_slug, live } = req.body;
       let avatarUrl = bioImageUrl;
       if (req.file) {
         try {
@@ -363,6 +364,11 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req
       }
       let stmt = 'UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ?';
       const params = [name, bio, fullBio || '', avatarUrl];
+      if (typeof live !== 'undefined') {
+        const liveVal = live === 'on' || live === '1' || live === 1 || live === true || live === 'true' ? 1 : 0;
+        stmt += ', live = ?';
+        params.push(liveVal);
+      }
       if (req.user.role === 'admin' && gallery_slug) {
         stmt += ', gallery_slug = ?';
         params.push(gallery_slug);
@@ -382,6 +388,29 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req
       res.status(500).send('Server error');
     }
   });
+});
+
+router.patch('/artists/:id/live', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const liveVal = req.body.live ? 1 : 0;
+  const handle = () => {
+    db.run('UPDATE artists SET live = ? WHERE id = ?', [liveVal, req.params.id], err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  };
+  if (req.user.role === 'gallery') {
+    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+      if (err || !row || row.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+      handle();
+    });
+  } else {
+    handle();
+  }
 });
 
 router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {

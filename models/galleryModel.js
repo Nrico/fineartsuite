@@ -13,6 +13,7 @@ function getGallery(slug, options, cb) {
   db.get(galleryQuery, [slug], (err, gallery) => {
     if (err || !gallery) return cb(err || new Error('Not found'));
     const artistCond = includeArchivedArtists ? '' : 'AND a.archived = 0';
+    const liveCond = 'AND a.live = 1';
     const artworkCond = includeArchivedArtworks ? '' : 'AND w.archived = 0';
     const sql = `SELECT a.id as artistId, a.name as artistName, a.bio, a.bioImageUrl, a.fullBio, a.archived as artistArchived,
                         w.id as artworkId, w.title, w.medium, w.dimensions, w.price, w.imageFull, w.imageStandard, w.imageThumb,
@@ -20,7 +21,7 @@ function getGallery(slug, options, cb) {
                         w.archived as artworkArchived
                  FROM artists a
                  LEFT JOIN artworks w ON w.artist_id = a.id AND w.isVisible = 1 ${artworkCond}
-                 WHERE a.gallery_slug = ? ${artistCond}`;
+                 WHERE a.gallery_slug = ? ${artistCond} ${liveCond}`;
     db.all(sql, [slug], (err2, rows) => {
       if (err2) return cb(err2);
       const artistMap = {};

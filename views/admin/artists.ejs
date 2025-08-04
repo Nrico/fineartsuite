@@ -23,12 +23,17 @@
       <ul id="artist-list" class="space-y-4">
         <% artists.forEach(function(a){ %>
           <li class="bg-white shadow-md rounded border">
-            <button class="artist-toggle w-full flex items-center p-4 text-left" data-id="<%= a.id %>">
+            <div class="artist-toggle w-full flex items-center p-4 cursor-pointer" data-id="<%= a.id %>">
               <span class="font-semibold flex-1"><%= a.name %></span>
-            </button>
+              <label class="flex items-center gap-2">
+                <span class="text-sm">Live</span>
+                <input type="checkbox" class="live-toggle" data-id="<%= a.id %>" <%= a.live ? 'checked' : '' %> />
+              </label>
+            </div>
             <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
               <form class="p-4 space-y-2 artist-form" data-id="<%= a.id %>">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="live" value="<%= a.live ? 1 : 0 %>">
                 <label class="block text-sm font-medium">Name
                   <input name="name" value="<%= a.name %>" class="mt-1 w-full border rounded px-2 py-1"/>
                 </label>
@@ -59,12 +64,17 @@
       </ul>
       <template id="new-artist-template">
         <li class="bg-white shadow-md rounded border">
-          <button class="artist-toggle w-full flex items-center p-4 text-left" data-new="true">
+          <div class="artist-toggle w-full flex items-center p-4 cursor-pointer" data-new="true">
             <span class="font-semibold flex-1">New Artist</span>
-          </button>
+            <label class="flex items-center gap-2">
+              <span class="text-sm">Live</span>
+              <input type="checkbox" class="live-toggle" data-new="true" />
+            </label>
+          </div>
           <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
             <form class="p-4 space-y-2 artist-form" data-new="true">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="live" value="0">
               <label class="block text-sm font-medium">Gallery
                 <select name="gallery_slug" class="mt-1 w-full border rounded px-2 py-1">
                   <% galleries.forEach(function(g){ %>
@@ -115,9 +125,35 @@
         toggleWrapper(wrapper);
       });
     });
+
+    function initLiveToggle(toggle) {
+      toggle.addEventListener('click', e => e.stopPropagation());
+      toggle.addEventListener('change', async () => {
+        const form = toggle.closest('li').querySelector('form');
+        if (form) {
+          const hidden = form.querySelector('input[name="live"]');
+          if (hidden) hidden.value = toggle.checked ? '1' : '0';
+        }
+        if (toggle.dataset.new === 'true') return;
+        const id = toggle.dataset.id;
+        try {
+          const res = await fetch('/dashboard/artists/' + encodeURIComponent(id) + '/live', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
+            body: JSON.stringify({ live: toggle.checked })
+          });
+          if (!res.ok) throw new Error(await res.text() || res.statusText);
+        } catch (err) {
+          toggle.checked = !toggle.checked;
+        }
+      });
+    }
+    document.querySelectorAll('.live-toggle').forEach(initLiveToggle);
     function handleForm(form) {
       const btn = form.querySelector('.save-btn');
       let id = form.dataset.id;
+      const container = form.closest('li').querySelector('.artist-toggle');
+      const liveToggle = container.querySelector('.live-toggle');
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const isNew = form.dataset.new === 'true';
@@ -134,9 +170,10 @@
             id = data.id;
             form.dataset.id = id;
             form.dataset.new = 'false';
-            const toggle = form.closest('li').querySelector('.artist-toggle');
-            toggle.dataset.id = id;
-            toggle.querySelector('span').textContent = formData.get('name') || id;
+            container.dataset.id = id;
+            container.querySelector('span').textContent = formData.get('name') || id;
+            liveToggle.dataset.id = id;
+            liveToggle.dataset.new = 'false';
             setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1000);
           } else {
             const dataObj = Object.fromEntries(new FormData(form).entries());
@@ -183,6 +220,8 @@
       const btn = li.querySelector('.artist-toggle');
       const wrapper = li.querySelector('.artist-form-wrapper');
       btn.addEventListener('click', () => toggleWrapper(wrapper));
+      const toggle = li.querySelector('.live-toggle');
+      initLiveToggle(toggle);
       handleForm(li.querySelector('form'));
       btn.click();
     });
