@@ -252,4 +252,7 @@ function seed(done) {
   });
 }
 
+// Run pending migrations at startup then initialize the database
+migrate(() => initialize());
+
 module.exports = { db, initialize, seed, migrate };
