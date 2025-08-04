@@ -211,7 +211,7 @@ router.post('/artworks/:id/collection', requireRole('artist'), (req, res) => {
 router.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
     console.error('CSRF token mismatch on artist route', err);
-    return res.status(403).send('Invalid CSRF token');
+    return res.status(403).render('403');
   }
   next(err);
 });
