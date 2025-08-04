@@ -47,4 +47,39 @@ document.addEventListener('DOMContentLoaded', () => {
       hideContent(contentDescription);
     });
   }
+
+  // Wishlist, bookmark, and cart buttons
+  const artworkId = document.body.dataset.artworkId;
+  const wishlistBtn = document.getElementById('wishlist-btn');
+  const bookmarkBtn = document.getElementById('bookmark-btn');
+  const cartBtn = document.getElementById('cart-btn');
+
+  const toggleStored = (key) => {
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    const idx = list.indexOf(artworkId);
+    if (idx > -1) {
+      list.splice(idx, 1);
+      localStorage.setItem(key, JSON.stringify(list));
+      return false;
+    }
+    list.push(artworkId);
+    localStorage.setItem(key, JSON.stringify(list));
+    return true;
+  };
+
+  const initActive = (btn, key, activeClass) => {
+    if (!btn) return;
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    if (list.includes(artworkId)) {
+      btn.classList.add(activeClass);
+    }
+    btn.addEventListener('click', () => {
+      const active = toggleStored(key);
+      btn.classList.toggle(activeClass, active);
+    });
+  };
+
+  initActive(wishlistBtn, 'wishlist', 'text-red-500');
+  initActive(bookmarkBtn, 'bookmarks', 'text-blue-500');
+  initActive(cartBtn, 'cart', 'text-green-500');
 });

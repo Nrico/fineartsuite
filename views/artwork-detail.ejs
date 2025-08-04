@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body class="font-sans bg-white text-black">
+<body class="font-sans bg-white text-black" data-artwork-id="<%= artwork.id %>">
   <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
     <a href="/" class="text-2xl font-bold">FineArtSuite</a>
     <div class="flex gap-4 mt-2 md:mt-0">
@@ -20,13 +20,13 @@
       <div class="relative">
         <img id="main-image" src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full cursor-zoom-in transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
         <div class="absolute bottom-2 right-2 flex space-x-2">
-          <button class="p-2 bg-white rounded-full shadow" aria-label="Wishlist">
+          <button id="wishlist-btn" class="p-2 bg-white rounded-full shadow text-gray-600 hover:text-red-500" aria-label="Wishlist" title="Add to wishlist">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
           </button>
-          <button class="p-2 bg-white rounded-full shadow" aria-label="Save">
+          <button id="bookmark-btn" class="p-2 bg-white rounded-full shadow text-gray-600 hover:text-blue-500" aria-label="Save" title="Bookmark">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v14l7-7 7 7V5z"/></svg>
           </button>
-          <button class="p-2 bg-white rounded-full shadow" aria-label="Add to cart">
+          <button id="cart-btn" class="p-2 bg-white rounded-full shadow text-gray-600 hover:text-green-500" aria-label="Add to cart" title="Add to cart">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </button>
         </div>
