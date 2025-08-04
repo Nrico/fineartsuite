@@ -26,7 +26,7 @@ try {
     next();
   };
 }
-const { initialize, migrate } = require('./models/db');
+require('./models/db');
 
 function simulateAuth(req, res, next) {
   if (!req.session.user) {
@@ -81,8 +81,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply any pending migrations then initialize the database and seed demo data if needed
-migrate(() => initialize());
+// Database is initialized (and migrations applied) on module load
 
 // Route modules
 const authRoutes = require('./routes/auth');
