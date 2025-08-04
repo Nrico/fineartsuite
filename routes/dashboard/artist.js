@@ -1,28 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const { requireRole } = require('../../middleware/auth');
 const csrf = require('csurf');
 const csrfProtection = csrf();
-const { processImages, uploadsDir } = require('../../utils/image');
+const { processImages } = require('../../utils/image');
+const upload = require('../../middleware/upload');
 const { createCollection, getCollectionsByArtist, updateCollection } = require('../../models/collectionModel');
 const { getArtworksByArtist, updateArtworkCollection, createArtwork } = require('../../models/artworkModel');
 const { getArtistById, updateArtist } = require('../../models/artistModel');
-
-const upload = multer({
-  dest: uploadsDir,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024
-  }
-});
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');

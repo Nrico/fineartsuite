@@ -1,32 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const multer = require('multer');
 const randomAvatar = require('../../utils/avatar');
 const { requireRole } = require('../../middleware/auth');
 const { generateUniqueSlug } = require('../../utils/slug');
 const { processImages, uploadsDir } = require('../../utils/image');
+const upload = require('../../middleware/upload');
 const csrf = require('csurf');
 const csrfProtection = csrf();
 
 const { db } = require('../../models/db');
 const { archiveArtist, unarchiveArtist } = require('../../models/artistModel');
 const { archiveArtwork, unarchiveArtwork } = require('../../models/artworkModel');
-
-const upload = multer({
-  dest: uploadsDir,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  }
-});
 
 // Gallery dashboard for gallery role
 router.get('/gallery', requireRole('gallery'), (req, res) => {
