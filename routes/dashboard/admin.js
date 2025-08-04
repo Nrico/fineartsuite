@@ -111,63 +111,96 @@ router.get('/galleries', requireRole('admin', 'gallery'), csrfProtection, (req, 
 router.get('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   try {
-    const artistQuery = req.user.role === 'gallery'
-      ? ['SELECT * FROM artists WHERE gallery_slug = ?', [req.user.username]]
-      : ['SELECT * FROM artists', []];
-    db.all(...artistQuery, (err, artists) => {
+    const activeQuery = req.user.role === 'gallery'
+      ? ['SELECT * FROM artists WHERE gallery_slug = ? AND archived = 0 ORDER BY name', [req.user.username]]
+      : ['SELECT * FROM artists WHERE archived = 0 ORDER BY name', []];
+    const archivedQuery = req.user.role === 'gallery'
+      ? ['SELECT * FROM artists WHERE gallery_slug = ? AND archived = 1 ORDER BY name', [req.user.username]]
+      : ['SELECT * FROM artists WHERE archived = 1 ORDER BY name', []];
+
+    db.all(...activeQuery, (err, activeArtists) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('admin/artists', { artists: [], galleries: [] });
+        return res.render('admin/artists', { activeArtists: [], archivedArtists: [], galleries: [] });
       }
-      const fetchGalleries = cb => {
-        if (req.user.role === 'gallery') return cb(null, [{ slug: req.user.username }]);
-        db.all('SELECT slug FROM galleries', cb);
-      };
-      fetchGalleries((gErr, galleries) => {
-        if (gErr) {
-          console.error(gErr);
+      db.all(...archivedQuery, (aErr, archivedArtists) => {
+        if (aErr) {
+          console.error(aErr);
           req.flash('error', 'Database error');
-          return res.render('admin/artists', { artists: [], galleries: [] });
+          return res.render('admin/artists', { activeArtists: [], archivedArtists: [], galleries: [] });
         }
-        res.render('admin/artists', { artists, galleries });
+        const fetchGalleries = cb => {
+          if (req.user.role === 'gallery') return cb(null, [{ slug: req.user.username }]);
+          db.all('SELECT slug FROM galleries', cb);
+        };
+        fetchGalleries((gErr, galleries) => {
+          if (gErr) {
+            console.error(gErr);
+            req.flash('error', 'Database error');
+            return res.render('admin/artists', { activeArtists: [], archivedArtists: [], galleries: [] });
+          }
+          res.render('admin/artists', { activeArtists, archivedArtists, galleries });
+        });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('admin/artists', { artists: [], galleries: [] });
+    res.render('admin/artists', { activeArtists: [], archivedArtists: [], galleries: [] });
   }
 });
 
 router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   try {
-    const artQuery = req.user.role === 'gallery'
-      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]]
-      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id', []];
-    db.all(...artQuery, (err, artworks) => {
+    const activeQuery = req.user.role === 'gallery'
+      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ? AND a.archived = 0 ORDER BY a.title', [req.user.username]]
+      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.archived = 0 ORDER BY a.title', []];
+    const archivedQuery = req.user.role === 'gallery'
+      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ? AND a.archived = 1 ORDER BY a.title', [req.user.username]]
+      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.archived = 1 ORDER BY a.title', []];
+
+    db.all(...activeQuery, (err, activeArtworks) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('dashboard/artworks', { artworks: [], collections: [] });
+        return res.render('admin/artworks', { activeArtworks: [], archivedArtworks: [], collections: [] });
       }
-      const collQuery = req.user.role === 'gallery'
-        ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
-        : ['SELECT id, name FROM collections', []];
-      db.all(...collQuery, (cErr, collections) => {
-        if (cErr) {
-          console.error(cErr);
+      db.all(...archivedQuery, (aErr, archivedArtworks) => {
+        if (aErr) {
+          console.error(aErr);
           req.flash('error', 'Database error');
-          return res.render('dashboard/artworks', { artworks: [], collections: [] });
+          return res.render('admin/artworks', { activeArtworks: [], archivedArtworks: [], collections: [] });
         }
-        res.render('dashboard/artworks', { artworks, collections });
+        const collQuery = req.user.role === 'gallery'
+          ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
+          : ['SELECT id, name FROM collections', []];
+        db.all(...collQuery, (cErr, collections) => {
+          if (cErr) {
+            console.error(cErr);
+            req.flash('error', 'Database error');
+            return res.render('admin/artworks', { activeArtworks: [], archivedArtworks: [], collections: [], galleries: [] });
+          }
+          const fetchGalleries = cb => {
+            if (req.user.role === 'gallery') return cb(null, [{ slug: req.user.username }]);
+            db.all('SELECT slug FROM galleries', cb);
+          };
+          fetchGalleries((gErr, galleries) => {
+            if (gErr) {
+              console.error(gErr);
+              req.flash('error', 'Database error');
+              return res.render('admin/artworks', { activeArtworks: [], archivedArtworks: [], collections: [], galleries: [] });
+            }
+            res.render('admin/artworks', { activeArtworks, archivedArtworks, collections, galleries });
+          });
+        });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('dashboard/artworks', { artworks: [], collections: [] });
+    res.render('admin/artworks', { activeArtworks: [], archivedArtworks: [], collections: [] });
   }
 });
 
@@ -410,6 +443,60 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (
   }
 });
 
+router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  try {
+    const handleArchive = () => {
+      db.run('UPDATE artists SET archived = 1 WHERE id = ?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleArchive();
+      });
+    } else {
+      handleArchive();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  try {
+    const handleUnarchive = () => {
+      db.run('UPDATE artists SET archived = 0 WHERE id = ?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleUnarchive();
+      });
+    } else {
+      handleUnarchive();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
 router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
   try {
     let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
@@ -565,6 +652,60 @@ router.delete('/artworks/:id', requireRole('admin', 'gallery'), csrfProtection, 
       });
     } else {
       handleDelete();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  try {
+    const handleArchive = () => {
+      db.run('UPDATE artworks SET archived = 1 WHERE id = ?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artworks WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleArchive();
+      });
+    } else {
+      handleArchive();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  try {
+    const handleUnarchive = () => {
+      db.run('UPDATE artworks SET archived = 0 WHERE id = ?', [req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artworks WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handleUnarchive();
+      });
+    } else {
+      handleUnarchive();
     }
   } catch (err) {
     console.error(err);

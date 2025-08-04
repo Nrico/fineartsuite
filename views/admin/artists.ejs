@@ -21,7 +21,7 @@
       <% } %>
       <button id="new-artist" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artist</button>
       <ul id="artist-list" class="space-y-4">
-        <% artists.forEach(function(a){ %>
+        <% activeArtists.forEach(function(a){ %>
           <li class="bg-white shadow-md rounded border">
             <button class="artist-toggle w-full flex items-center p-4 text-left" data-id="<%= a.id %>">
               <span class="font-semibold flex-1"><%= a.name %></span>
@@ -51,12 +51,54 @@
                 <div class="flex gap-2">
                   <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
                   <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete</button>
+                  <button type="button" class="archive bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Archive</button>
                 </div>
               </form>
             </div>
           </li>
         <% }) %>
       </ul>
+      <details class="mt-6" id="archived-artists">
+        <summary class="cursor-pointer">Archived Artists (<%= archivedArtists.length %>)</summary>
+        <ul class="space-y-4 mt-4">
+          <% archivedArtists.forEach(function(a){ %>
+            <li class="bg-gray-100 shadow-md rounded border opacity-60">
+              <button class="artist-toggle w-full flex items-center p-4 text-left" data-id="<%= a.id %>">
+                <span class="font-semibold flex-1"><%= a.name %></span>
+              </button>
+              <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+                <form class="p-4 space-y-2 artist-form" data-id="<%= a.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <label class="block text-sm font-medium">Name
+                    <input name="name" value="<%= a.name %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                  </label>
+                  <label class="block text-sm font-medium">Brief Bio
+                    <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-2 py-1"><%= a.bio %></textarea>
+                  </label>
+                  <label class="block text-sm font-medium">Extended Bio
+                    <textarea name="fullBio" rows="5" class="mt-1 w-full border rounded px-2 py-1"><%= a.fullBio %></textarea>
+                  </label>
+                  <label class="block text-sm font-medium">Portrait URL
+                    <input name="bioImageUrl" value="<%= a.bioImageUrl %>" class="mt-1 w-full border rounded px-2 py-1"/>
+                  </label>
+                  <label class="block text-sm font-medium">Gallery
+                    <select name="gallery_slug" class="mt-1 w-full border rounded px-2 py-1">
+                      <% galleries.forEach(function(g){ %>
+                        <option value="<%= g.slug %>" <%= g.slug === a.gallery_slug ? 'selected' : '' %>><%= g.slug %></option>
+                      <% }) %>
+                    </select>
+                  </label>
+                  <div class="flex gap-2">
+                    <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+                    <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete</button>
+                    <button type="button" class="unarchive bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Unarchive</button>
+                  </div>
+                </form>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </details>
       <template id="new-artist-template">
         <li class="bg-white shadow-md rounded border">
           <button class="artist-toggle w-full flex items-center p-4 text-left" data-new="true">
@@ -174,6 +216,34 @@
           setTimeout(() => { btn.textContent = 'Save'; }, 2000);
         }
       });
+      const archiveBtn = form.querySelector('.archive');
+      if (archiveBtn) {
+        archiveBtn.addEventListener('click', async e => {
+          e.preventDefault();
+          try {
+            const res = await fetch('/dashboard/artists/' + encodeURIComponent(id) + '/archive', { method: 'PATCH', headers: { 'CSRF-Token': csrfToken } });
+            if (!res.ok) throw new Error(await res.text() || res.statusText);
+            location.reload();
+          } catch (err) {
+            archiveBtn.textContent = 'Error';
+            setTimeout(() => { archiveBtn.textContent = 'Archive'; }, 2000);
+          }
+        });
+      }
+      const unarchiveBtn = form.querySelector('.unarchive');
+      if (unarchiveBtn) {
+        unarchiveBtn.addEventListener('click', async e => {
+          e.preventDefault();
+          try {
+            const res = await fetch('/dashboard/artists/' + encodeURIComponent(id) + '/unarchive', { method: 'PATCH', headers: { 'CSRF-Token': csrfToken } });
+            if (!res.ok) throw new Error(await res.text() || res.statusText);
+            location.reload();
+          } catch (err) {
+            unarchiveBtn.textContent = 'Error';
+            setTimeout(() => { unarchiveBtn.textContent = 'Unarchive'; }, 2000);
+          }
+        });
+      }
     }
     document.querySelectorAll('.artist-form').forEach(handleForm);
     document.getElementById('new-artist').addEventListener('click', () => {

@@ -95,9 +95,9 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded col-span-full flex items-center justify-center"><span class="status-text">Add Artwork</span></button>
       </form>
-      <h2 class="text-xl mt-8 mb-4">Existing Artworks</h2>
-      <ul class="space-y-4">
-        <% artworks.forEach(function(art){ %>
+      <h2 class="text-xl mt-8 mb-4">Active Artworks</h2>
+      <ul class="space-y-4" id="artwork-list">
+        <% activeArtworks.forEach(function(art){ %>
           <li>
             <form class="art-form grid grid-cols-1 md:grid-cols-2 gap-4 file-or-url" data-id="<%= art.id %>" enctype="multipart/form-data">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -149,12 +149,24 @@
               <div class="flex gap-2">
                 <button type="submit" class="save-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded flex items-center justify-center"><span class="status-text">Save</span></button>
                 <button type="button" class="delete bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Delete</button>
+                <button type="button" class="archive bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded">Archive</button>
               </div>
             </form>
             <span class="text-sm text-gray-600">(<%= art.artist_id %>)</span>
           </li>
         <% }) %>
       </ul>
+      <details class="mt-6" id="archived-artworks">
+        <summary class="cursor-pointer">Archived Artworks (<%= archivedArtworks.length %>)</summary>
+        <ul class="space-y-2 mt-4 text-gray-500">
+          <% archivedArtworks.forEach(function(art){ %>
+            <li class="flex items-center justify-between bg-gray-100 rounded p-2 opacity-60">
+              <span><%= art.title %> (<%= art.artist_id %>)</span>
+              <button type="button" class="unarchive bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded" data-id="<%= art.id %>">Unarchive</button>
+            </li>
+          <% }) %>
+        </ul>
+      </details>
         <p class="mt-6"><a href="<%= dashboardUrl %>" class="text-blue-600 underline">Back to dashboard</a></p>
     </div>
   </main>
@@ -285,6 +297,40 @@
           label.textContent = 'Delete failed' + (err.message ? ': ' + err.message : '');
           btn.disabled = false;
           setTimeout(() => { label.textContent = original; }, 2000);
+        }
+      });
+      const archiveBtn = f.querySelector('.archive');
+      if (archiveBtn) {
+        archiveBtn.addEventListener('click', async e => {
+          e.preventDefault();
+          try {
+            const res = await fetch('/dashboard/artworks/' + id + '/archive', { method: 'PATCH', headers: { 'CSRF-Token': csrfToken } });
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(errText || res.statusText);
+            }
+            location.reload();
+          } catch (err) {
+            label.textContent = 'Archive failed' + (err.message ? ': ' + err.message : '');
+            setTimeout(() => { label.textContent = original; }, 2000);
+          }
+        });
+      }
+    });
+    document.querySelectorAll('#archived-artworks .unarchive').forEach(btn => {
+      const id = btn.getAttribute('data-id');
+      btn.addEventListener('click', async e => {
+        e.preventDefault();
+        try {
+          const res = await fetch('/dashboard/artworks/' + id + '/unarchive', { method: 'PATCH', headers: { 'CSRF-Token': csrfToken } });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || res.statusText);
+          }
+          location.reload();
+        } catch (err) {
+          btn.textContent = 'Error';
+          setTimeout(() => { btn.textContent = 'Unarchive'; }, 2000);
         }
       });
     });
