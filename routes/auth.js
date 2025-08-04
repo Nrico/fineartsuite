@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const csrf = require('csurf');
+const csrfProtection = csrf();
 const { createUser, findUserByUsername } = require('../models/userModel');
 const { createArtist } = require('../models/artistModel');
 const { createGallery } = require('../models/galleryModel');
@@ -63,26 +65,30 @@ function signupHandler(role) {
   };
 }
 
-router.get('/signup', (req, res) => {
+router.get('/signup', csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   res.render('signup/index');
 });
 
-router.get('/signup/artist', (req, res) => {
+router.get('/signup/artist', csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   res.render('signup/artist');
 });
 
-router.get('/signup/gallery', (req, res) => {
+router.get('/signup/gallery', csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   res.render('signup/gallery');
 });
 
-router.post('/signup/artist', signupHandler('artist'));
-router.post('/signup/gallery', signupHandler('gallery'));
+router.post('/signup/artist', csrfProtection, signupHandler('artist'));
+router.post('/signup/gallery', csrfProtection, signupHandler('gallery'));
 
-router.get('/login', (req, res) => {
+router.get('/login', csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   res.render('login');
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', csrfProtection, (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     req.flash('error', 'All fields are required');

@@ -6,6 +6,8 @@ const multer = require('multer');
 const randomAvatar = require('../../utils/avatar');
 const { requireRole } = require('../../middleware/auth');
 const { generateUniqueSlug } = require('../../utils/slug');
+const csrf = require('csurf');
+const csrfProtection = csrf();
 let Jimp;
 try {
   Jimp = require('jimp');
@@ -83,7 +85,8 @@ router.get('/', requireRole('admin'), (req, res) => {
   res.render('admin/dashboard', { user: req.session.user });
 });
 
-router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
+router.get('/galleries', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   try {
     const baseQuery = 'SELECT slug, name, bio AS description, contact_email AS email, phone, address, gallarist_name AS owner, logo_url FROM galleries';
     const query = req.user.role === 'gallery'
@@ -105,7 +108,8 @@ router.get('/galleries', requireRole('admin', 'gallery'), (req, res) => {
   }
 });
 
-router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
+router.get('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   try {
     const artistQuery = req.user.role === 'gallery'
       ? ['SELECT * FROM artists WHERE gallery_slug = ?', [req.user.username]]
@@ -136,7 +140,8 @@ router.get('/artists', requireRole('admin', 'gallery'), (req, res) => {
   }
 });
 
-router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
+router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   try {
     const artQuery = req.user.role === 'gallery'
       ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]]
@@ -166,43 +171,37 @@ router.get('/artworks', requireRole('admin', 'gallery'), (req, res) => {
   }
 });
 
-router.post('/galleries', requireRole('admin', 'gallery'), (req, res) => {
-  upload.single('logoFile')(req, res, async err => {
-    if (err) {
-      console.error(err);
-      return handleGalleryResponse(req, res, 400, err.message);
+router.post('/galleries', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+  try {
+    let { name, description, email, phone, address, owner, logoUrl } = req.body;
+    if (!name || !description) {
+      return handleGalleryResponse(req, res, 400, 'All fields are required');
     }
-    try {
-      let { name, description, email, phone, address, owner, logoUrl } = req.body;
-      if (!name || !description) {
-        return handleGalleryResponse(req, res, 400, 'All fields are required');
+    const slug = req.user.role === 'gallery'
+      ? req.user.username
+      : await generateUniqueSlug(db, 'galleries', 'slug', name);
+    let logo_url = logoUrl || null;
+    if (req.file) {
+      try {
+        const images = await processImages(req.file);
+        logo_url = images.imageStandard;
+      } catch (imageErr) {
+        console.error(imageErr);
+        return handleGalleryResponse(req, res, 500, 'Image processing failed');
       }
-      const slug = req.user.role === 'gallery'
-        ? req.user.username
-        : await generateUniqueSlug(db, 'galleries', 'slug', name);
-      let logo_url = logoUrl || null;
-      if (req.file) {
-        try {
-          const images = await processImages(req.file);
-          logo_url = images.imageStandard;
-        } catch (imageErr) {
-          console.error(imageErr);
-          return handleGalleryResponse(req, res, 500, 'Image processing failed');
-        }
-      }
-      const stmt = 'INSERT INTO galleries (slug, name, bio, contact_email, phone, address, gallarist_name, logo_url) VALUES (?,?,?,?,?,?,?,?)';
-      db.run(stmt, [slug, name, description, email || null, phone || null, address || null, owner || null, logo_url], err2 => {
-        if (err2) {
-          console.error(err2);
-          return handleGalleryResponse(req, res, 500, 'Database error');
-        }
-        handleGalleryResponse(req, res, 201, { slug });
-      });
-    } catch (err2) {
-      console.error(err2);
-      handleGalleryResponse(req, res, 500, 'Server error');
     }
-  });
+    const stmt = 'INSERT INTO galleries (slug, name, bio, contact_email, phone, address, gallarist_name, logo_url) VALUES (?,?,?,?,?,?,?,?)';
+    db.run(stmt, [slug, name, description, email || null, phone || null, address || null, owner || null, logo_url], err2 => {
+      if (err2) {
+        console.error(err2);
+        return handleGalleryResponse(req, res, 500, 'Database error');
+      }
+      handleGalleryResponse(req, res, 201, { slug });
+    });
+  } catch (err) {
+    console.error(err);
+    handleGalleryResponse(req, res, 500, 'Server error');
+  }
 });
 
 function handleGalleryResponse(req, res, status, data) {
@@ -218,41 +217,35 @@ function handleGalleryResponse(req, res, status, data) {
   res.status(status).json(data);
 }
 
-router.put('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
-  upload.single('logoFile')(req, res, async err => {
-    if (err) {
-      console.error(err);
-      return res.status(400).send(err.message);
+router.put('/galleries/:slug', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+  try {
+    if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
+      return res.status(403).send('Forbidden');
     }
-    try {
-      if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
+    const { name, description, email, phone, address, owner, logoUrl } = req.body;
+    let logo_url = logoUrl || null;
+    if (req.file) {
+      try {
+        const images = await processImages(req.file);
+        logo_url = images.imageStandard;
+      } catch (imageErr) {
+        console.error(imageErr);
+        return res.status(500).send('Image processing failed');
       }
-      const { name, description, email, phone, address, owner, logoUrl } = req.body;
-      let logo_url = logoUrl || null;
-      if (req.file) {
-        try {
-          const images = await processImages(req.file);
-          logo_url = images.imageStandard;
-        } catch (imageErr) {
-          console.error(imageErr);
-          return res.status(500).send('Image processing failed');
-        }
-      }
-      const stmt = 'UPDATE galleries SET name = ?, bio = ?, contact_email = ?, phone = ?, address = ?, gallarist_name = ?, logo_url = ? WHERE slug = ?';
-      db.run(stmt, [name, description, email || null, phone || null, address || null, owner || null, logo_url, req.params.slug], err2 => {
-        if (err2) {
-          console.error(err2);
-          return res.status(500).send('Database error');
-        }
-        req.flash('success', 'Gallery saved');
-        res.sendStatus(204);
-      });
-    } catch (err2) {
-      console.error(err2);
-      res.status(500).send('Server error');
     }
-  });
+    const stmt = 'UPDATE galleries SET name = ?, bio = ?, contact_email = ?, phone = ?, address = ?, gallarist_name = ?, logo_url = ? WHERE slug = ?';
+    db.run(stmt, [name, description, email || null, phone || null, address || null, owner || null, logo_url, req.params.slug], err2 => {
+      if (err2) {
+        console.error(err2);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Gallery saved');
+      res.sendStatus(204);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
 router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
@@ -274,7 +267,7 @@ router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) =>
   }
 });
 
-router.post('/artists', requireRole('admin', 'gallery'), (req, res) => {
+router.post('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   upload.single('bioImageFile')(req, res, async err => {
     if (err) {
       console.error(err);
@@ -335,7 +328,7 @@ function handleArtistResponse(req, res, status, data) {
   res.status(status).json(data);
 }
 
-router.put('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
+router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   upload.single('bioImageFile')(req, res, async err => {
     if (err) {
       console.error(err);
@@ -389,7 +382,7 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
   });
 });
 
-router.delete('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
+router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   try {
     const handleDelete = () => {
       db.run('DELETE FROM artists WHERE id = ?', [req.params.id], err => {
@@ -417,154 +410,141 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), (req, res) => {
   }
 });
 
-router.post('/artworks', requireRole('admin', 'gallery'), (req, res) => {
-  upload.single('imageFile')(req, res, async err => {
-    if (err) {
-      console.error(err);
-      req.flash('error', err.message);
+router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
+  try {
+    let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
+    if (req.user.role === 'gallery') {
+      gallery_slug = req.user.username;
+    }
+    if (!gallery_slug || !artist_id || !title || !medium || !dimensions) {
+      req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artworks');
     }
-    try {
-      let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
-      if (req.user.role === 'gallery') {
-        gallery_slug = req.user.username;
-      }
-      if (!gallery_slug || !artist_id || !title || !medium || !dimensions) {
-        req.flash('error', 'All fields are required');
+    if (!id) {
+      id = await generateUniqueSlug(db, 'artworks', 'id', title);
+    }
+    let priceValue = '';
+    if (price && price.trim() !== '') {
+      const sanitized = price.replace(/[^0-9.]/g, '');
+      const parsed = parseFloat(sanitized);
+      if (isNaN(parsed)) {
+        req.flash('error', 'Price must be a valid number');
         return res.redirect('/dashboard/artworks');
       }
-      if (!id) {
-        id = await generateUniqueSlug(db, 'artworks', 'id', title);
+      priceValue = parsed.toFixed(2);
+    }
+    if (req.file && imageUrl) {
+      req.flash('error', 'Choose either an upload or a URL');
+      return res.redirect('/dashboard/artworks');
+    }
+    if (!req.file && !imageUrl) {
+      req.flash('error', 'Image is required');
+      return res.redirect('/dashboard/artworks');
+    }
+    const gallery = await new Promise((resolve, reject) => {
+      db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
+        if (err) reject(err); else resolve(row);
+      });
+    });
+    if (!gallery) {
+      req.flash('error', 'Gallery not found');
+      return res.redirect('/dashboard/artworks');
+    }
+    const artist = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM artists WHERE id = ? AND gallery_slug = ?', [artist_id, gallery_slug], (err, row) => {
+        if (err) reject(err); else resolve(row);
+      });
+    });
+    if (!artist) {
+      req.flash('error', 'Artist not found');
+      return res.redirect('/dashboard/artworks');
+    }
+    let images = {};
+    if (req.file) {
+      try {
+        images = await processImages(req.file);
+      } catch (imageErr) {
+        console.error(imageErr);
+        req.flash('error', 'Image processing failed');
+        return res.status(500).redirect('/dashboard/artworks');
       }
-      let priceValue = '';
+    } else if (imageUrl) {
+      images.imageFull = imageUrl;
+      images.imageStandard = imageUrl;
+      images.imageThumb = imageUrl;
+    }
+    const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
+    db.run(stmt, params, runErr => {
+      if (runErr) {
+        console.error(runErr);
+        req.flash('error', 'Database error');
+        return res.redirect('/dashboard/artworks');
+      }
+      req.flash('success', 'Artwork added');
+      res.redirect('/dashboard/artworks');
+    });
+  } catch (error) {
+    console.error(error);
+    req.flash('error', 'Server error');
+    res.redirect('/dashboard/artworks');
+  }
+});
+
+router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
+  try {
+    if (req.user.role === 'gallery') {
+      const owner = await new Promise((resolve, reject) => {
+        db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (e, row) => e ? reject(e) : resolve(row));
+      });
+      if (!owner || owner.gallery_slug !== req.user.username) {
+        return res.status(403).send('Forbidden');
+      }
+    }
+    const { title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
+    const finalMedium = medium === 'other' ? custom_medium : medium;
+    let finalPrice = null;
+    if (status !== 'collected') {
       if (price && price.trim() !== '') {
         const sanitized = price.replace(/[^0-9.]/g, '');
         const parsed = parseFloat(sanitized);
         if (isNaN(parsed)) {
-          req.flash('error', 'Price must be a valid number');
-          return res.redirect('/dashboard/artworks');
+          return res.status(400).send('Price must be a valid number');
         }
-        priceValue = parsed.toFixed(2);
+        finalPrice = parsed.toFixed(2);
+      } else {
+        finalPrice = '';
       }
+    }
+    let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?, description=?, framed=?, ready_to_hang=?`;
+    const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
+    if (req.file || imageUrl) {
       if (req.file && imageUrl) {
-        req.flash('error', 'Choose either an upload or a URL');
-        return res.redirect('/dashboard/artworks');
+        return res.status(400).send('Choose either an upload or a URL');
       }
-      if (!req.file && !imageUrl) {
-        req.flash('error', 'Image is required');
-        return res.redirect('/dashboard/artworks');
-      }
-      const gallery = await new Promise((resolve, reject) => {
-        db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
-          if (err) reject(err); else resolve(row);
-        });
-      });
-      if (!gallery) {
-        req.flash('error', 'Gallery not found');
-        return res.redirect('/dashboard/artworks');
-      }
-      const artist = await new Promise((resolve, reject) => {
-        db.get('SELECT id FROM artists WHERE id = ? AND gallery_slug = ?', [artist_id, gallery_slug], (err, row) => {
-          if (err) reject(err); else resolve(row);
-        });
-      });
-      if (!artist) {
-        req.flash('error', 'Artist not found');
-        return res.redirect('/dashboard/artworks');
-      }
-      let images = {};
-      if (req.file) {
-        try {
-          images = await processImages(req.file);
-        } catch (imageErr) {
-          console.error(imageErr);
-          req.flash('error', 'Image processing failed');
-          return res.status(500).redirect('/dashboard/artworks');
-        }
-      } else if (imageUrl) {
-        images.imageFull = imageUrl;
-        images.imageStandard = imageUrl;
-        images.imageThumb = imageUrl;
-      }
-      const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-      const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
-      db.run(stmt, params, runErr => {
-        if (runErr) {
-          console.error(runErr);
-          req.flash('error', 'Database error');
-          return res.redirect('/dashboard/artworks');
-        }
-        req.flash('success', 'Artwork added');
-        res.redirect('/dashboard/artworks');
-      });
-    } catch (error) {
-      console.error(error);
-      req.flash('error', 'Server error');
-      res.redirect('/dashboard/artworks');
+      const images = req.file
+        ? await processImages(req.file)
+        : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
+      stmt += ', imageFull=?, imageStandard=?, imageThumb=?';
+      params.push(images.imageFull, images.imageStandard, images.imageThumb);
     }
-  });
+    stmt += ' WHERE id=?';
+    params.push(req.params.id);
+    db.run(stmt, params, dbErr => {
+      if (dbErr) {
+        console.error(dbErr);
+        return res.status(500).send('Database error');
+      }
+      req.flash('success', 'Artwork saved');
+      res.sendStatus(204);
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Server error');
+  }
 });
 
-router.put('/artworks/:id', requireRole('admin', 'gallery'), async (req, res) => {
-  upload.single('imageFile')(req, res, async err => {
-    if (err) {
-      console.error(err);
-      return res.status(400).send(err.message);
-    }
-    try {
-      if (req.user.role === 'gallery') {
-        const owner = await new Promise((resolve, reject) => {
-          db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (e, row) => e ? reject(e) : resolve(row));
-        });
-        if (!owner || owner.gallery_slug !== req.user.username) {
-          return res.status(403).send('Forbidden');
-        }
-      }
-      const { title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
-      const finalMedium = medium === 'other' ? custom_medium : medium;
-      let finalPrice = null;
-      if (status !== 'collected') {
-        if (price && price.trim() !== '') {
-          const sanitized = price.replace(/[^0-9.]/g, '');
-          const parsed = parseFloat(sanitized);
-          if (isNaN(parsed)) {
-            return res.status(400).send('Price must be a valid number');
-          }
-          finalPrice = parsed.toFixed(2);
-        } else {
-          finalPrice = '';
-        }
-      }
-      let stmt = `UPDATE artworks SET title=?, medium=?, dimensions=?, price=?, status=?, isVisible=?, isFeatured=?, description=?, framed=?, ready_to_hang=?`;
-      const params = [title, finalMedium, dimensions, finalPrice, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
-      if (req.file || imageUrl) {
-        if (req.file && imageUrl) {
-          return res.status(400).send('Choose either an upload or a URL');
-        }
-        const images = req.file
-          ? await processImages(req.file)
-          : { imageFull: imageUrl, imageStandard: imageUrl, imageThumb: imageUrl };
-        stmt += ', imageFull=?, imageStandard=?, imageThumb=?';
-        params.push(images.imageFull, images.imageStandard, images.imageThumb);
-      }
-      stmt += ' WHERE id=?';
-      params.push(req.params.id);
-      db.run(stmt, params, dbErr => {
-        if (dbErr) {
-          console.error(dbErr);
-          return res.status(500).send('Database error');
-        }
-        req.flash('success', 'Artwork saved');
-        res.sendStatus(204);
-      });
-    } catch (e) {
-      console.error(e);
-      res.status(500).send('Server error');
-    }
-  });
-});
-
-router.delete('/artworks/:id', requireRole('admin', 'gallery'), (req, res) => {
+router.delete('/artworks/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   try {
     const handleDelete = () => {
       db.run('DELETE FROM artworks WHERE id=?', [req.params.id], err => {
@@ -592,7 +572,8 @@ router.delete('/artworks/:id', requireRole('admin', 'gallery'), (req, res) => {
   }
 });
 
-router.get('/upload', requireRole('admin', 'gallery'), (req, res) => {
+router.get('/upload', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  res.locals.csrfToken = req.csrfToken();
   fs.readdir(uploadsDir, (err, files) => {
     if (err) files = [];
     db.all('SELECT slug FROM galleries', (gErr, galleries) => {
@@ -602,62 +583,54 @@ router.get('/upload', requireRole('admin', 'gallery'), (req, res) => {
   });
 });
 
-router.post('/upload', requireRole('admin', 'gallery'), (req, res) => {
-  upload.single('image')(req, res, async err => {
-    if (err) {
-      console.error(err);
-      const message = err.code === 'LIMIT_FILE_SIZE' ? 'File too large' : err.message;
-      req.flash('error', message);
-      return res.status(400).redirect('/dashboard/upload');
-    }
-    if (!req.file) {
-      req.flash('error', 'No file uploaded');
+router.post('/upload', requireRole('admin', 'gallery'), upload.single('image'), csrfProtection, async (req, res) => {
+  if (!req.file) {
+    req.flash('error', 'No file uploaded');
+    return res.status(400).redirect('/dashboard/upload');
+  }
+
+  let { id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, status, isVisible, isFeatured } = req.body;
+  if (!gallery_slug || !title || !medium || !dimensions || !status) {
+    req.flash('error', 'All fields are required');
+    return res.status(400).redirect('/dashboard/upload');
+  }
+
+  const gallery = await new Promise((resolve, reject) => {
+    db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
+      if (err) reject(err); else resolve(row);
+    });
+  });
+  if (!gallery) {
+    req.flash('error', 'Gallery not found');
+    return res.status(400).redirect('/dashboard/upload');
+  }
+
+  db.get('SELECT id FROM artists WHERE gallery_slug = ? LIMIT 1', [gallery_slug], async (artistErr, artist) => {
+    if (artistErr || !artist) {
+      console.error(artistErr);
+      req.flash('error', 'No artist found for gallery');
       return res.status(400).redirect('/dashboard/upload');
     }
 
-    let { id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, status, isVisible, isFeatured } = req.body;
-    if (!gallery_slug || !title || !medium || !dimensions || !status) {
-      req.flash('error', 'All fields are required');
-      return res.status(400).redirect('/dashboard/upload');
-    }
-
-    const gallery = await new Promise((resolve, reject) => {
-      db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
-        if (err) reject(err); else resolve(row);
+    try {
+      const artworkId = id && id.trim() !== '' ? id : await generateUniqueSlug(db, 'artworks', 'id', title);
+      const finalMedium = medium === 'other' ? custom_medium : medium;
+      const finalPrice = status === 'collected' ? null : price;
+      const images = await processImages(req.file);
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0], runErr => {
+        if (runErr) {
+          console.error(runErr);
+          req.flash('error', 'Database error');
+          return res.status(500).redirect('/dashboard/upload');
+        }
+        res.redirect('/dashboard/upload?success=1');
       });
-    });
-    if (!gallery) {
-      req.flash('error', 'Gallery not found');
-      return res.status(400).redirect('/dashboard/upload');
+    } catch (procErr) {
+      console.error(procErr);
+      req.flash('error', 'Image processing failed');
+      return res.status(500).redirect('/dashboard/upload');
     }
-
-    db.get('SELECT id FROM artists WHERE gallery_slug = ? LIMIT 1', [gallery_slug], async (artistErr, artist) => {
-      if (artistErr || !artist) {
-        console.error(artistErr);
-        req.flash('error', 'No artist found for gallery');
-        return res.status(400).redirect('/dashboard/upload');
-      }
-
-      try {
-        const artworkId = id && id.trim() !== '' ? id : await generateUniqueSlug(db, 'artworks', 'id', title);
-        const finalMedium = medium === 'other' ? custom_medium : medium;
-        const finalPrice = status === 'collected' ? null : price;
-        const images = await processImages(req.file);
-        const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-        db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0], runErr => {
-          if (runErr) {
-            console.error(runErr);
-            req.flash('error', 'Database error');
-            return res.status(500).redirect('/dashboard/upload');
-          }
-          res.redirect('/dashboard/upload?success=1');
-        });
-      } catch (procErr) {
-        console.error(procErr);
-        req.flash('error', 'Image processing failed');
-        return res.status(500).redirect('/dashboard/upload');
-      }
-    });
   });
 });
 
@@ -667,6 +640,20 @@ router.get('/settings', requireRole('admin', 'gallery'), (req, res) => {
 
 router.post('/settings', requireRole('admin', 'gallery'), (req, res) => {
   res.redirect('/dashboard/galleries');
+});
+
+router.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    console.error('CSRF token mismatch on admin route', err);
+    return res.status(403).send('Invalid CSRF token');
+  }
+  if (err.code === 'LIMIT_FILE_SIZE' || err.message === 'Only JPG, PNG, or HEIC images are allowed') {
+    console.error(err);
+    req.flash('error', err.code === 'LIMIT_FILE_SIZE' ? 'File too large' : err.message);
+    const redirectPath = req.originalUrl.includes('/upload') ? '/dashboard/upload' : '/dashboard/artworks';
+    return res.status(400).redirect(redirectPath);
+  }
+  next(err);
 });
 
 module.exports = router;
