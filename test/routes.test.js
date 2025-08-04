@@ -290,7 +290,6 @@ test('admin artwork routes allow CRUD after login', async () => {
   const id = `testartwork${Date.now()}`;
   let res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, {
     id,
-    gallery_slug: 'demo-gallery',
     artist_id: 'artist1',
     title: 'NewArt',
     medium: 'Oil',
@@ -299,7 +298,7 @@ test('admin artwork routes allow CRUD after login', async () => {
     imageUrl: 'http://example.com',
     _csrf: token
   }, cookie);
-  assert.strictEqual(res.statusCode, 302);
+  assert.strictEqual(res.statusCode, 201);
 
   res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${id}`);
   assert.strictEqual(res.statusCode, 200);

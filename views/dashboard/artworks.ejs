@@ -84,6 +84,13 @@
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
         <form class="p-4 space-y-2 art-form" data-new="true" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label class="block text-sm font-medium">Artist
+            <select name="artist_id" class="mt-1 w-full border rounded px-2 py-1 artist-select">
+              <% artists.forEach(function(a){ %>
+                <option value="<%= a.id %>"><%= a.name %></option>
+              <% }) %>
+            </select>
+          </label>
           <label class="block text-sm font-medium">Title
             <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
           </label>
@@ -153,6 +160,13 @@
         toggleWrapper(wrapper);
       });
     });
+    function applyLastArtist(select){
+      const last = localStorage.getItem('lastArtistId');
+      if (last) select.value = last;
+      select.addEventListener('change', () => {
+        localStorage.setItem('lastArtistId', select.value);
+      });
+    }
     function handleForm(form){
       const btn = form.querySelector('.save-btn');
       const toggleBtn = form.closest('li').querySelector('.art-toggle');
@@ -164,6 +178,10 @@
         const original = btn.textContent;
         btn.textContent = 'Saving...';
         const data = new FormData(form);
+        const artistSelect = form.querySelector('.artist-select');
+        if (artistSelect) {
+          localStorage.setItem('lastArtistId', artistSelect.value);
+        }
         const url = isNew ? '/dashboard/artworks' : '/dashboard/artworks/' + id;
         const method = isNew ? 'POST' : 'PUT';
         try {
@@ -191,7 +209,11 @@
         }
       });
     }
-    document.querySelectorAll('.art-form').forEach(handleForm);
+    document.querySelectorAll('.art-form').forEach(f => {
+      const select = f.querySelector('.artist-select');
+      if (select) applyLastArtist(select);
+      handleForm(f);
+    });
     document.getElementById('new-artwork').addEventListener('click', () => {
       const tpl = document.getElementById('new-artwork-template');
       const li = tpl.content.firstElementChild.cloneNode(true);
@@ -199,7 +221,10 @@
       const btn = li.querySelector('.art-toggle');
       const wrapper = li.querySelector('.art-form-wrapper');
       btn.addEventListener('click', () => toggleWrapper(wrapper));
-      handleForm(li.querySelector('form'));
+      const form = li.querySelector('form');
+      const select = form.querySelector('.artist-select');
+      if (select) applyLastArtist(select);
+      handleForm(form);
       btn.click();
     });
   </script>

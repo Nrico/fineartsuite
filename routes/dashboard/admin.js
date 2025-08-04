@@ -152,24 +152,34 @@ router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, r
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
-        return res.render('dashboard/artworks', { artworks: [], collections: [] });
+        return res.render('dashboard/artworks', { artworks: [], collections: [], artists: [] });
       }
       const collQuery = req.user.role === 'gallery'
         ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
         : ['SELECT id, name FROM collections', []];
+      const artistQuery = req.user.role === 'gallery'
+        ? ['SELECT id, name FROM artists WHERE gallery_slug = ? ORDER BY display_order', [req.user.username]]
+        : ['SELECT id, name FROM artists ORDER BY display_order', []];
       db.all(...collQuery, (cErr, collections) => {
         if (cErr) {
           console.error(cErr);
           req.flash('error', 'Database error');
-          return res.render('dashboard/artworks', { artworks: [], collections: [] });
+          return res.render('dashboard/artworks', { artworks: [], collections: [], artists: [] });
         }
-        res.render('dashboard/artworks', { artworks, collections });
+        db.all(...artistQuery, (aErr, artists) => {
+          if (aErr) {
+            console.error(aErr);
+            req.flash('error', 'Database error');
+            return res.render('dashboard/artworks', { artworks: [], collections: [], artists: [] });
+          }
+          res.render('dashboard/artworks', { artworks, collections, artists });
+        });
       });
     });
   } catch (err) {
     console.error(err);
     req.flash('error', 'Server error');
-    res.render('dashboard/artworks', { artworks: [], collections: [] });
+    res.render('dashboard/artworks', { artworks: [], collections: [], artists: [] });
   }
 });
 
@@ -516,13 +526,33 @@ router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProt
 
 router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
   try {
-    let { id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
-    if (req.user.role === 'gallery') {
-      gallery_slug = req.user.username;
-    }
-    if (!gallery_slug || !artist_id || !title || !medium || !dimensions) {
+    let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
+    if (!artist_id || !title || !medium || !dimensions) {
       req.flash('error', 'All fields are required');
-      return res.redirect('/dashboard/artworks');
+      return res.status(400).send('All fields are required');
+    }
+    const artist = await new Promise((resolve, reject) => {
+      db.get('SELECT id, gallery_slug FROM artists WHERE id = ?', [artist_id], (err, row) => {
+        if (err) reject(err); else resolve(row);
+      });
+    });
+    if (!artist) {
+      req.flash('error', 'Artist not found');
+      return res.status(400).send('Artist not found');
+    }
+    if (req.user.role === 'gallery' && artist.gallery_slug !== req.user.username) {
+      req.flash('error', 'Artist not found');
+      return res.status(403).send('Forbidden');
+    }
+    const gallery_slug = artist.gallery_slug;
+    const gallery = await new Promise((resolve, reject) => {
+      db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
+        if (err) reject(err); else resolve(row);
+      });
+    });
+    if (!gallery) {
+      req.flash('error', 'Gallery not found');
+      return res.status(400).send('Gallery not found');
     }
     if (!id) {
       id = await generateUniqueSlug(db, 'artworks', 'id', title);
@@ -533,35 +563,17 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       const parsed = parseFloat(sanitized);
       if (isNaN(parsed)) {
         req.flash('error', 'Price must be a valid number');
-        return res.redirect('/dashboard/artworks');
+        return res.status(400).send('Price must be a valid number');
       }
       priceValue = parsed.toFixed(2);
     }
     if (req.file && imageUrl) {
       req.flash('error', 'Choose either an upload or a URL');
-      return res.redirect('/dashboard/artworks');
+      return res.status(400).send('Choose either an upload or a URL');
     }
     if (!req.file && !imageUrl) {
       req.flash('error', 'Image is required');
-      return res.redirect('/dashboard/artworks');
-    }
-    const gallery = await new Promise((resolve, reject) => {
-      db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {
-        if (err) reject(err); else resolve(row);
-      });
-    });
-    if (!gallery) {
-      req.flash('error', 'Gallery not found');
-      return res.redirect('/dashboard/artworks');
-    }
-    const artist = await new Promise((resolve, reject) => {
-      db.get('SELECT id FROM artists WHERE id = ? AND gallery_slug = ?', [artist_id, gallery_slug], (err, row) => {
-        if (err) reject(err); else resolve(row);
-      });
-    });
-    if (!artist) {
-      req.flash('error', 'Artist not found');
-      return res.redirect('/dashboard/artworks');
+      return res.status(400).send('Image is required');
     }
     let images = {};
     if (req.file) {
@@ -570,7 +582,7 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       } catch (imageErr) {
         console.error(imageErr);
         req.flash('error', 'Image processing failed');
-        return res.status(500).redirect('/dashboard/artworks');
+        return res.status(500).send('Image processing failed');
       }
     } else if (imageUrl) {
       images.imageFull = imageUrl;
@@ -583,15 +595,15 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       if (runErr) {
         console.error(runErr);
         req.flash('error', 'Database error');
-        return res.redirect('/dashboard/artworks');
+        return res.status(500).send('Database error');
       }
       req.flash('success', 'Artwork added');
-      res.redirect('/dashboard/artworks');
+      res.status(201).json({ id });
     });
   } catch (error) {
     console.error(error);
     req.flash('error', 'Server error');
-    res.redirect('/dashboard/artworks');
+    res.status(500).send('Server error');
   }
 });
 
