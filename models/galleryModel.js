@@ -21,7 +21,8 @@ function getGallery(slug, options, cb) {
                         w.archived as artworkArchived
                  FROM artists a
                  LEFT JOIN artworks w ON w.artist_id = a.id AND w.isVisible = 1 ${artworkCond}
-                 WHERE a.gallery_slug = ? ${artistCond} ${liveCond}`;
+                 WHERE a.gallery_slug = ? ${artistCond} ${liveCond}
+                 ORDER BY a.display_order`; 
     db.all(sql, [slug], (err2, rows) => {
       if (err2) return cb(err2);
       const artistMap = {};

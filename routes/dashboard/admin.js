@@ -114,8 +114,8 @@ router.get('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, re
   res.locals.csrfToken = req.csrfToken();
   try {
     const artistQuery = req.user.role === 'gallery'
-      ? ['SELECT * FROM artists WHERE gallery_slug = ?', [req.user.username]]
-      : ['SELECT * FROM artists', []];
+      ? ['SELECT * FROM artists WHERE gallery_slug = ? ORDER BY display_order', [req.user.username]]
+      : ['SELECT * FROM artists ORDER BY display_order', []];
     db.all(...artistQuery, (err, artists) => {
       if (err) {
         console.error(err);
@@ -303,13 +303,19 @@ router.post('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, r
         id = await generateUniqueSlug(db, 'artists', 'id', name);
       }
       const liveVal = live === 'on' || live === '1' || live === 1 || live === true || live === 'true' ? 1 : 0;
-      const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl, live) VALUES (?,?,?,?,?,?,?)';
-      db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl, liveVal], err2 => {
-        if (err2) {
-          console.error(err2);
+      db.get('SELECT COALESCE(MAX(display_order), -1) + 1 AS ord FROM artists WHERE gallery_slug = ?', [gallery_slug], (oErr, row) => {
+        if (oErr) {
+          console.error(oErr);
           return handleArtistResponse(req, res, 500, 'Database error');
         }
-        handleArtistResponse(req, res, 201, { id });
+        const stmt = 'INSERT INTO artists (id, gallery_slug, name, bio, fullBio, bioImageUrl, live, display_order) VALUES (?,?,?,?,?,?,?,?)';
+        db.run(stmt, [id, gallery_slug, name, bio, fullBio || '', avatarUrl, liveVal, row.ord], err2 => {
+          if (err2) {
+            console.error(err2);
+            return handleArtistResponse(req, res, 500, 'Database error');
+          }
+          handleArtistResponse(req, res, 201, { id });
+        });
       });
     } catch (err2) {
       console.error(err2);
@@ -411,6 +417,27 @@ router.patch('/artists/:id/live', requireRole('admin', 'gallery'), csrfProtectio
   } else {
     handle();
   }
+});
+
+router.patch('/artists/order', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) return res.status(400).send('Invalid order');
+  const stmt = req.user.role === 'gallery'
+    ? db.prepare('UPDATE artists SET display_order = ? WHERE id = ? AND gallery_slug = ?')
+    : db.prepare('UPDATE artists SET display_order = ? WHERE id = ?');
+  db.serialize(() => {
+    order.forEach((id, idx) => {
+      const params = req.user.role === 'gallery' ? [idx, id, req.user.username] : [idx, id];
+      stmt.run(params);
+    });
+    stmt.finalize(err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  });
 });
 
 router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
