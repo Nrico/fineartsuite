@@ -15,40 +15,98 @@
     </div>
   </nav>
 
-  <main class="max-w-3xl mx-auto p-6">
-    <header class="text-center mb-8">
-      <h1 class="text-xl md:text-2xl font-bold mb-4"><%= artwork.title %></h1>
-
-      <% if (artwork.status) { %>
-        <% if (artwork.status === 'collected') { %>
-          <p class="text-red-500 flex items-center justify-center">
-            <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-            Collected
-          </p>
-        <% } else if (artwork.status === 'available') { %>
-          <p>Available</p>
-        <% } else if (artwork.status === 'inquire') { %>
-          <button class="mt-2 px-2 py-1 border rounded">Inquire</button>
-        <% } else if (artwork.status === 'make_offer') { %>
-          <button class="mt-2 px-2 py-1 border rounded">Make an Offer</button>
+  <main class="max-w-5xl mx-auto p-6">
+    <section class="mb-6">
+      <div class="relative">
+        <img id="main-image" src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full cursor-zoom-in transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
+        <div class="absolute bottom-2 right-2 flex space-x-2">
+          <button class="p-2 bg-white rounded-full shadow" aria-label="Wishlist">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          </button>
+          <button class="p-2 bg-white rounded-full shadow" aria-label="Save">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v14l7-7 7 7V5z"/></svg>
+          </button>
+          <button class="p-2 bg-white rounded-full shadow" aria-label="Add to cart">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="mt-4 text-center">
+        <h1 class="text-2xl md:text-3xl font-bold mb-1"><%= artwork.title %></h1>
+        <% if (artwork.status !== 'collected' && artwork.price) { %>
+          <p class="text-xl font-semibold"><%= artwork.price %></p>
         <% } %>
-      <% } %>
-    </header>
+        <% if (artwork.status) { %>
+          <p class="text-sm text-gray-600 capitalize"><%= artwork.status %></p>
+        <% } %>
+      </div>
+    </section>
 
-    <div class="mb-8">
-      <img src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
-    </div>
+    <section class="mt-8">
+      <div class="flex border-b">
+        <button id="tab-about" class="px-4 py-2 font-medium border-b-2 border-black">About the Work</button>
+        <button id="tab-details" class="px-4 py-2 font-medium text-gray-500">Details/Dimensions</button>
+      </div>
+      <div id="content-about" class="mt-4">
+        <p class="text-base text-gray-700"><%= artwork.description || 'No description available.' %></p>
+      </div>
+      <div id="content-details" class="mt-4 hidden">
+        <ul class="space-y-2 text-base text-gray-700">
+          <li><span class="font-semibold">Medium:</span> <%= artwork.medium %></li>
+          <li><span class="font-semibold">Size:</span> <%= artwork.dimensions %></li>
+          <% if (artwork.rarity) { %><li><span class="font-semibold">Rarity:</span> <%= artwork.rarity %></li><% } %>
+          <% if (artwork.framing) { %><li><span class="font-semibold">Framing:</span> <%= artwork.framing %></li><% } %>
+          <% if (artwork.readyToHang) { %><li><span class="font-semibold">Ready to Hang:</span> <%= artwork.readyToHang %></li><% } %>
+        </ul>
+      </div>
+    </section>
 
-    <ul class="max-w-md mx-auto divide-y divide-gray-200 text-center text-base">
-      <li class="py-2">Medium: <span class="font-semibold"><%= artwork.medium %></span></li>
-      <li class="py-2">Dimensions: <span class="font-semibold"><%= artwork.dimensions %></span></li>
-      <% if (!(artwork.status === 'collected' && artwork.price)) { %>
-        <li class="py-2">Price: <span class="font-semibold"><%= artwork.price %></span></li>
-      <% } %>
-    </ul>
+    <section class="mt-10 p-4 bg-gray-100 flex items-center">
+      <img src="<%= artist.bioImageUrl %>" alt="<%= artist.name %> portrait" class="w-16 h-16 rounded-full mr-4 object-cover">
+      <div>
+        <h3 class="font-semibold"><%= artist.name %></h3>
+        <p class="text-sm text-gray-700 mb-1"><%= artist.bio %></p>
+        <a href="/<%= slug %>/artists/<%= artist.id %>" class="text-sm text-blue-600 underline">View full profile</a>
+      </div>
+    </section>
 
-    <div class="mt-8 text-center">
-      <a class="underline" href="/<%= slug %>/artists/<%= artistId %>">Back to artist</a>
+    <% if (moreFromArtist && moreFromArtist.length) { %>
+    <section class="mt-10">
+      <h2 class="text-xl font-semibold mb-4">More from <%= artist.name %></h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <% moreFromArtist.forEach(a => { %>
+          <a href="/<%= slug %>/artworks/<%= a.id %>" class="block bg-gray-100 p-2 text-center">
+            <div class="flex items-center justify-center mb-2 bg-white">
+              <img src="<%= a.imageThumb %>" alt="<%= a.title %>" class="h-48 object-cover" loading="lazy">
+            </div>
+            <div class="text-sm font-medium"><%= a.title %></div>
+            <div class="text-xs text-gray-600"><%= a.medium %>, <%= a.dimensions %></div>
+          </a>
+        <% }); %>
+      </div>
+    </section>
+    <% } %>
+
+    <% if (relatedArtworks && relatedArtworks.length) { %>
+    <section class="mt-10">
+      <h2 class="text-xl font-semibold mb-4">Related Artworks</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <% relatedArtworks.forEach(r => { %>
+          <a href="/<%= slug %>/artworks/<%= r.id %>" class="block text-center">
+            <div class="bg-gray-100 mb-2 flex items-center justify-center">
+              <img src="<%= r.imageThumb %>" alt="<%= r.title %>" class="h-40 object-cover" loading="lazy">
+            </div>
+            <div class="text-sm font-medium"><%= r.title %></div>
+            <div class="text-xs text-gray-600"><%= r.artistName %></div>
+            <div class="text-xs text-gray-600"><%= r.medium %>, <%= r.dimensions %></div>
+          </a>
+        <% }); %>
+      </div>
+    </section>
+    <% } %>
+
+    <div id="lightbox" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
+      <img src="<%= artwork.imageFull %>" alt="<%= artwork.title %> full view" class="max-w-full max-h-full">
     </div>
   </main>
 
@@ -56,5 +114,6 @@
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
   <script src="/js/fade-in.js"></script>
+  <script src="/js/artwork-detail.js"></script>
 </body>
 </html>
