@@ -418,7 +418,24 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
   }, temp, cookie, '', 'imageFile');
   await fs.unlink(temp);
   assert.strictEqual(res.statusCode, 403);
-  assert.strictEqual(res.body, 'Invalid CSRF token');
+  assert.match(res.body, /Access Forbidden/);
+});
+
+test('artist cannot access admin dashboard', async () => {
+  const port = server.address().port;
+  const username = `artist${Date.now()}x`;
+  const userId = await new Promise(resolve => createUser('Artist2', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', () => resolve()));
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(`http://localhost:${port}/login`, { username, password: 'pass', _csrf: loginCsrf }, cookie);
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+  const res = await httpGet(`http://localhost:${port}/dashboard`, cookie);
+  assert.strictEqual(res.statusCode, 403);
+  assert.match(res.body, /Access Forbidden/);
 });
 
 test('artist artwork submission succeeds with valid CSRF token', async () => {
