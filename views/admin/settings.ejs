@@ -44,11 +44,15 @@
           <input type="text" id="owner" name="owner" value="<%= settings.owner || '' %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
         </div>
         <div>
-          <label class="block text-sm font-medium" for="logo">Logo (optional)</label>
-          <input type="file" id="logo" name="logo" accept="image/*" class="mt-1 w-full">
-          <% if (settings.logo) { %>
-            <img src="/uploads/<%= settings.logo %>" alt="Logo" class="mt-2 max-h-24">
-            <input type="hidden" name="existingLogo" value="<%= settings.logo %>">
+          <label class="block text-sm font-medium" for="logoUrl">Logo URL</label>
+          <input type="text" id="logoUrl" name="logoUrl" value="<%= settings.logo_url || '' %>" class="mt-1 w-full border border-gray-300 rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium" for="logoFile">Logo File</label>
+          <input type="file" id="logoFile" name="logoFile" accept="image/*" class="mt-1 w-full">
+          <% if (settings.logo_url) { %>
+            <img src="<%= settings.logo_url %>" alt="Logo" class="mt-2 max-h-24">
+            <input type="hidden" name="existingLogo" value="<%= settings.logo_url %>">
           <% } %>
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">

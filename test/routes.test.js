@@ -524,6 +524,131 @@ test('authenticated upload stores file, DB entry, and is served', async () => {
   await fs.unlink(path.join(uploadsDir, standard));
 });
 
+test('uploaded gallery logo appears on gallery page', async () => {
+  const port = server.address().port;
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const login = await httpPostForm(
+    `http://localhost:${port}/login`,
+    { username: 'admin', password: 'password', _csrf: loginCsrf },
+    cookie
+  );
+  if (login.headers['set-cookie']) {
+    cookie = login.headers['set-cookie'][0].split(';')[0];
+  }
+  const page = await httpGet(`http://localhost:${port}/dashboard/galleries`, cookie);
+  const token = extractCsrfToken(page.body);
+  const temp = path.join(__dirname, 'logo.jpg');
+  await fs.writeFile(temp, 'img');
+  const res = await httpPostMultipart(
+    `http://localhost:${port}/dashboard/galleries`,
+    { name: 'Logo Gallery', description: 'desc', _csrf: token },
+    temp,
+    cookie,
+    token,
+    'logoFile'
+  );
+  await fs.unlink(temp);
+  assert.strictEqual(res.statusCode, 201);
+  const slug = JSON.parse(res.body).slug;
+  const gpage = await httpGet(`http://localhost:${port}/${slug}`);
+  assert.match(gpage.body, /<img src="\/uploads\//);
+  const row = await new Promise(resolve => {
+    db.get('SELECT logo_url FROM galleries WHERE slug=?', [slug], (err, r) => resolve(r));
+  });
+  await new Promise(resolve => db.run('DELETE FROM galleries WHERE slug=?', [slug], resolve));
+  if (row && row.logo_url) {
+    const base = row.logo_url.replace(/^\/uploads\//, '').replace('_standard', '');
+    const ext = path.extname(row.logo_url);
+    for (const size of ['_standard', '_full', '_thumb']) {
+      try {
+        await fs.unlink(path.join(uploadsDir, base + size + ext));
+      } catch {}
+    }
+  }
+});
+
+test('gallery uses logo URL when no file uploaded', async () => {
+  const port = server.address().port;
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const login = await httpPostForm(
+    `http://localhost:${port}/login`,
+    { username: 'admin', password: 'password', _csrf: loginCsrf },
+    cookie
+  );
+  if (login.headers['set-cookie']) {
+    cookie = login.headers['set-cookie'][0].split(';')[0];
+  }
+  const page = await httpGet(`http://localhost:${port}/dashboard/galleries`, cookie);
+  const token = extractCsrfToken(page.body);
+  const res = await httpPostForm(
+    `http://localhost:${port}/dashboard/galleries`,
+    {
+      name: 'URL Gallery',
+      description: 'desc',
+      logoUrl: 'http://example.com/logo.png',
+      _csrf: token
+    },
+    cookie
+  );
+  assert.strictEqual(res.statusCode, 302);
+  const slugRow = await new Promise(resolve => {
+    db.get('SELECT slug FROM galleries WHERE name=?', ['URL Gallery'], (err, r) => resolve(r));
+  });
+  const gpage = await httpGet(`http://localhost:${port}/${slugRow.slug}`);
+  assert.match(gpage.body, /<img src="http:\/\/example\.com\/logo.png"/);
+  await new Promise(resolve => db.run('DELETE FROM galleries WHERE slug=?', [slugRow.slug], resolve));
+});
+
+test('gallery settings save contact info', async () => {
+  const port = server.address().port;
+  const signupPage = await httpGet(`http://localhost:${port}/signup/gallery`);
+  const signupCsrf = extractCsrfToken(signupPage.body);
+  let cookie = signupPage.headers['set-cookie'][0].split(';')[0];
+  let res = await httpPostForm(
+    `http://localhost:${port}/signup/gallery`,
+    {
+      display_name: 'Setting Gallery',
+      username: 'setting-gallery',
+      password: 'pass',
+      passcode: 'taos',
+      _csrf: signupCsrf
+    },
+    cookie
+  );
+  if (res.headers['set-cookie']) cookie = res.headers['set-cookie'][0].split(';')[0];
+  const page = await httpGet(`http://localhost:${port}/dashboard/settings`, cookie);
+  const token = extractCsrfToken(page.body);
+  res = await httpPostForm(
+    `http://localhost:${port}/dashboard/settings`,
+    {
+      name: 'Setting Gallery',
+      phone: '123',
+      email: 'a@b.c',
+      address: '123 Street',
+      description: 'd',
+      owner: 'Owner',
+      _csrf: token
+    },
+    cookie
+  );
+  assert.strictEqual(res.statusCode, 302);
+  const row = await new Promise(resolve => {
+    db.get(
+      'SELECT address, gallarist_name FROM galleries WHERE slug=?',
+      ['setting-gallery'],
+      (err, r) => resolve(r)
+    );
+  });
+  assert.strictEqual(row.address, '123 Street');
+  assert.strictEqual(row.gallarist_name, 'Owner');
+  await new Promise(resolve => db.run('DELETE FROM galleries WHERE slug=?', ['setting-gallery'], resolve));
+  await new Promise(resolve => db.run('DELETE FROM users WHERE username=?', ['setting-gallery'], resolve));
+});
+
 test('demo auth grants access to dashboard routes without login', async () => {
   process.env.USE_DEMO_AUTH = 'true';
   delete require.cache[require.resolve('../server')];
