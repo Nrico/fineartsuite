@@ -8,36 +8,7 @@ try {
 }
 const bodyParser = require('body-parser');
 const path = require('path');
-let flash;
-try {
-  flash = require('connect-flash');
-} catch (err) {
-  // Fallback implementation when connect-flash is not installed
-  flash = () => (req, res, next) => {
-    req.flash = function(type, msg) {
-      if (!req.session) throw new Error('flash requires sessions');
-      const flash = req.session.flash || {};
-
-      if (type && msg) {
-        flash[type] = flash[type] || [];
-        flash[type].push(msg);
-        req.session.flash = flash;
-        return flash[type];
-      }
-
-      if (type) {
-        const msgs = flash[type] || [];
-        delete flash[type];
-        req.session.flash = flash;
-        return msgs;
-      }
-
-      req.session.flash = {};
-      return flash;
-    };
-    next();
-  };
-}
+const flash = require('./middleware/flashFallback');
 require('./models/db');
 
 function simulateAuth(req, res, next) {
