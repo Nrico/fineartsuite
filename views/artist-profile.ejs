@@ -27,28 +27,28 @@
             <a href="/<%= slug %>/artworks/<%= art.id %>" class="block">
               <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="w-full mb-2 transition-opacity duration-700 opacity-0" loading="lazy" onload="this.classList.remove('opacity-0')">
               <span class="font-semibold block"><%= art.title %></span>
-
-              <% if (art.status) { %>
-                <% if (art.status === 'collected') { %>
-                  <span class="text-red-500 flex items-center text-sm">
-                    <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                    Collected
-                  </span>
-                <% } else if (art.status === 'available') { %>
-                  <span class="text-sm">Available</span>
-                <% } else if (art.status === 'inquire') { %>
-                  <button class="mt-1 text-sm px-2 py-1 border rounded">Inquire</button>
-                <% } else if (art.status === 'make_offer') { %>
-                  <button class="mt-1 text-sm px-2 py-1 border rounded">Make an Offer</button>
-                <% } %>
-              <% } %>
-
-              <% const showPrice = !(art.status === 'collected' && art.price); %>
-              <span class="text-sm text-gray-600 block">
-                <%= art.medium %> • <%= art.dimensions %>
-                <% if (showPrice && art.price) { %> • <%= art.price %><% } %>
-              </span>
             </a>
+
+            <% if (art.status) { %>
+              <% if (art.status === 'collected') { %>
+                <span class="text-red-500 flex items-center text-sm">
+                  <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                  Collected
+                </span>
+              <% } else if (art.status === 'available') { %>
+                <span class="text-sm">Available</span>
+              <% } else if (art.status === 'inquire') { %>
+                <button class="mt-1 text-sm px-2 py-1 border rounded">Inquire</button>
+              <% } else if (art.status === 'make_offer') { %>
+                <button class="mt-1 text-sm px-2 py-1 border rounded">Make an Offer</button>
+              <% } %>
+            <% } %>
+
+            <% const showPrice = !(art.status === 'collected' && art.price); %>
+            <span class="text-sm text-gray-600 block">
+              <%= art.medium %> • <%= art.dimensions %>
+              <% if (showPrice && art.price) { %> • <%= art.price %><% } %>
+            </span>
           </li>
         <% }) %>
       </ul>
