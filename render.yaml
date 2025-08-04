@@ -9,9 +9,9 @@ services:
     runtime: node
     envVars:
       - key: ADMIN_USERNAME
-        value: admin
+        sync: false
       - key: ADMIN_PASSWORD
-        value: password
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: USE_DEMO_AUTH

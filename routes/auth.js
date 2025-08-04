@@ -8,8 +8,12 @@ const { createGallery } = require('../models/galleryModel');
 const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+  throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD environment variables must be set');
+}
 const VALID_PROMO_CODES = ['taos'];
 const USERNAME_REGEX = /^[a-z0-9-]+$/;
 

@@ -20,14 +20,14 @@ After running the server, visit `http://localhost:3000` in your browser to view 
 
 ### Configuration
 
-The server reads credentials and session configuration from environment variables. Most have development-friendly defaults, but `SESSION_SECRET` must always be provided:
+The server reads credentials and session configuration from environment variables. `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `SESSION_SECRET` must always be provided:
 
-- `ADMIN_USERNAME` – username for the admin login (defaults to `admin`)
-- `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
-- `SESSION_SECRET` – secret used to sign session cookies (required; set to a secure value)
+- `ADMIN_USERNAME` – username for the admin login
+- `ADMIN_PASSWORD` – password for the admin login
+- `SESSION_SECRET` – secret used to sign session cookies (set to a secure value)
 - `USE_DEMO_AUTH` – set to `true` to automatically log into admin pages
 
-Set these variables before starting the server. The application will refuse to start if `SESSION_SECRET` is not defined.
+Set these variables before starting the server. Use strong, unique values for the admin credentials. For production deployments, choose a username that is not easily guessable and a password of at least 12 characters that includes letters, numbers and symbols. The application will refuse to start if any required variables are missing.
 
 When `USE_DEMO_AUTH` is disabled (the default), all `/dashboard` routes require
 logging in. Set the variable to `true` during development to bypass the login
