@@ -19,7 +19,6 @@ function getArtwork(gallerySlug, id, cb) {
       imageThumb: row.imageThumb,
       status: row.status,
       hide_collected: row.hide_collected,
-      featured: row.featured,
       isVisible: row.isVisible,
       isFeatured: row.isFeatured,
       description: row.description,
