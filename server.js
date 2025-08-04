@@ -41,8 +41,11 @@ function simulateAuth(req, res, next) {
   next();
 }
 
-// Read session secret from environment variables with development-friendly default
-const SESSION_SECRET = process.env.SESSION_SECRET || 'gallerysecret';
+// Read session secret from environment variables and require it to be set
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error('SESSION_SECRET must be set to a secure value');
+}
 
 const app = express();
 // Ensure secure cookies work correctly behind reverse proxies

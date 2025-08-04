@@ -13,7 +13,7 @@ services:
       - key: ADMIN_PASSWORD
         value: password
       - key: SESSION_SECRET
-        value: gallerysecret
+        generateValue: true
       - key: USE_DEMO_AUTH
         value: true
     disk:

@@ -20,14 +20,14 @@ After running the server, visit `http://localhost:3000` in your browser to view 
 
 ### Configuration
 
-The server reads credentials and session configuration from environment variables. These are optional and default to development-friendly values:
+The server reads credentials and session configuration from environment variables. Most have development-friendly defaults, but `SESSION_SECRET` must always be provided:
 
 - `ADMIN_USERNAME` – username for the admin login (defaults to `admin`)
 - `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
-- `SESSION_SECRET` – secret used to sign session cookies (defaults to `gallerysecret`)
+- `SESSION_SECRET` – secret used to sign session cookies (required; set to a secure value)
 - `USE_DEMO_AUTH` – set to `true` to automatically log into admin pages
 
-Set these variables before starting the server to override the defaults.
+Set these variables before starting the server. The application will refuse to start if `SESSION_SECRET` is not defined.
 
 When `USE_DEMO_AUTH` is disabled (the default), all `/dashboard` routes require
 logging in. Set the variable to `true` during development to bypass the login
@@ -125,7 +125,8 @@ The repository includes a `render.yaml` file for deploying the app to
 [Render](https://render.com). Create a new Web Service using this repository
 and Render will apply the provided build and start commands. The configuration
 sets default environment variables and mounts a small persistent disk for the
-SQLite database.
+SQLite database. Be sure to configure a strong `SESSION_SECRET` environment
+variable in your Render service; the application will not start without one.
 
 ## License
 
