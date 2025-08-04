@@ -29,11 +29,31 @@ function updateArtist(id, name, bio, fullBio, bioImageUrl, cb) {
 }
 
 function archiveArtist(id, cb) {
-  db.run('UPDATE artists SET archived = 1 WHERE id = ?', [id], cb);
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    const rollback = err => db.run('ROLLBACK', () => cb(err));
+    db.run('UPDATE artists SET archived = 1 WHERE id = ?', [id], err => {
+      if (err) return rollback(err);
+      db.run('UPDATE artworks SET archived = 1 WHERE artist_id = ?', [id], err2 => {
+        if (err2) return rollback(err2);
+        db.run('COMMIT', cb);
+      });
+    });
+  });
 }
 
 function unarchiveArtist(id, cb) {
-  db.run('UPDATE artists SET archived = 0 WHERE id = ?', [id], cb);
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    const rollback = err => db.run('ROLLBACK', () => cb(err));
+    db.run('UPDATE artists SET archived = 0 WHERE id = ?', [id], err => {
+      if (err) return rollback(err);
+      db.run('UPDATE artworks SET archived = 0 WHERE artist_id = ?', [id], err2 => {
+        if (err2) return rollback(err2);
+        db.run('COMMIT', cb);
+      });
+    });
+  });
 }
 
 module.exports = {

@@ -649,6 +649,74 @@ test('gallery settings save contact info', async () => {
   await new Promise(resolve => db.run('DELETE FROM users WHERE username=?', ['setting-gallery'], resolve));
 });
 
+test('archiving artist cascades to artworks', async () => {
+  const port = server.address().port;
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(
+    `http://localhost:${port}/login`,
+    { username: 'admin', password: 'password', _csrf: loginCsrf },
+    cookie
+  );
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+
+  const artistId = 'test-artist-' + Date.now();
+  await new Promise(resolve =>
+    db.run('INSERT INTO artists (id, gallery_slug, name) VALUES (?,?,?)', [artistId, 'demo-gallery', 'Temp'], resolve)
+  );
+  const artworkId = 'test-artwork-' + Date.now();
+  await new Promise(resolve =>
+    db.run(
+      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [artworkId, artistId, 'demo-gallery', 'A', 'oil', '10x10', '', '', '', '', 'available', 1, 0, '', 0, 0],
+      resolve
+    )
+  );
+
+  const page = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
+  const token = extractCsrfToken(page.body);
+
+  let res = await httpRequest(
+    'PATCH',
+    `http://localhost:${port}/dashboard/artists/${artistId}/archive`,
+    {},
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 204);
+  const artistRow = await new Promise(resolve =>
+    db.get('SELECT archived FROM artists WHERE id=?', [artistId], (err, r) => resolve(r))
+  );
+  const artworkRow = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(artistRow.archived, 1);
+  assert.strictEqual(artworkRow.archived, 1);
+
+  res = await httpRequest(
+    'PATCH',
+    `http://localhost:${port}/dashboard/artists/${artistId}/unarchive`,
+    {},
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 204);
+  const artistRow2 = await new Promise(resolve =>
+    db.get('SELECT archived FROM artists WHERE id=?', [artistId], (err, r) => resolve(r))
+  );
+  const artworkRow2 = await new Promise(resolve =>
+    db.get('SELECT archived FROM artworks WHERE id=?', [artworkId], (err, r) => resolve(r))
+  );
+  assert.strictEqual(artistRow2.archived, 0);
+  assert.strictEqual(artworkRow2.archived, 0);
+
+  await new Promise(resolve => db.run('DELETE FROM artworks WHERE id=?', [artworkId], resolve));
+  await new Promise(resolve => db.run('DELETE FROM artists WHERE id=?', [artistId], resolve));
+});
+
 test('demo auth grants access to dashboard routes without login', async () => {
   process.env.USE_DEMO_AUTH = 'true';
   delete require.cache[require.resolve('../server')];
