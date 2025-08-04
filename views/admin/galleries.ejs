@@ -29,9 +29,6 @@
             <div class="gallery-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
               <form class="p-4 space-y-2 gallery-form" data-slug="<%= g.slug %>" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <label class="block text-sm font-medium">Slug
-                  <input name="slug" value="<%= g.slug %>" class="mt-1 w-full border rounded px-2 py-1"/>
-                </label>
                 <label class="block text-sm font-medium">Name
                   <input name="name" value="<%= g.name %>" class="mt-1 w-full border rounded px-2 py-1"/>
                 </label>
@@ -73,9 +70,6 @@
           <div class="gallery-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
             <form class="p-4 space-y-2 gallery-form" data-new="true" enctype="multipart/form-data">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <label class="block text-sm font-medium">Slug
-                <input name="slug" value="<%= user && user.role === 'gallery' ? user.username : generatedSlug %>" class="mt-1 w-full border rounded px-2 py-1"/>
-              </label>
               <label class="block text-sm font-medium">Name
                 <input name="name" class="mt-1 w-full border rounded px-2 py-1"/>
               </label>
@@ -133,6 +127,7 @@
     });
     function handleForm(form) {
       const btn = form.querySelector('.save-btn');
+      const toggleBtn = form.closest('li').querySelector('.gallery-toggle');
       let slug = form.dataset.slug;
       form.addEventListener('submit', async e => {
         e.preventDefault();
@@ -151,12 +146,14 @@
           });
           if (!res.ok) throw new Error(await res.text() || res.statusText);
           btn.textContent = 'Saved!';
-          slug = formData.get('slug');
-          form.dataset.slug = slug;
           if (isNew) {
+            const data = await res.json();
+            slug = data.slug;
+            form.dataset.slug = slug;
+            toggleBtn.dataset.slug = slug;
             form.dataset.new = 'false';
           }
-          form.closest('li').querySelector('.gallery-toggle span').textContent = formData.get('name') || formData.get('slug');
+          form.closest('li').querySelector('.gallery-toggle span').textContent = formData.get('name') || slug;
           setTimeout(() => {
             btn.textContent = original;
             btn.disabled = false;
