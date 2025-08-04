@@ -148,7 +148,7 @@ router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), cs
 });
 
 router.post('/artworks', requireRole('artist'), upload.single('imageFile'), csrfProtection, async (req, res) => {
-  const { title, medium, dimensions, price, description, framed, readyToHang, imageUrl, action = 'upload' } = req.body;
+  const { title, medium, dimensions, price, description, framed, readyToHang, isFeatured, imageUrl, action = 'upload' } = req.body;
   if (!title || !medium || !dimensions) {
     req.flash('error', 'All fields are required');
     return res.redirect('/dashboard/artist');
@@ -172,7 +172,18 @@ router.post('/artworks', requireRole('artist'), upload.single('imageFile'), csrf
     } else {
       images = { imageFull: '', imageStandard: '', imageThumb: '' };
     }
-    createArtwork(req.session.user.id, title, medium, dimensions, price, description, framed === 'on', readyToHang === 'on', images, createErr => {
+    createArtwork(
+      req.session.user.id,
+      title,
+      medium,
+      dimensions,
+      price,
+      description,
+      framed === 'on',
+      readyToHang === 'on',
+      images,
+      isFeatured === 'on',
+      createErr => {
       if (createErr) {
         console.error(createErr);
         req.flash('error', 'Could not create artwork');
@@ -180,7 +191,8 @@ router.post('/artworks', requireRole('artist'), upload.single('imageFile'), csrf
         req.flash('success', action === 'save' ? 'Artwork saved' : 'Artwork added');
       }
       res.redirect('/dashboard/artist');
-    });
+    }
+    );
   } catch (err) {
     console.error(err);
     req.flash('error', 'Image processing failed');
