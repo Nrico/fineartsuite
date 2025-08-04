@@ -9,6 +9,12 @@
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
+    <% if (flash.error && flash.error.length) { %>
+      <p class="text-red-600 mb-4"><%= flash.error[0] %></p>
+    <% } %>
+    <% if (flash.success && flash.success.length) { %>
+      <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
+    <% } %>
     <% const dashBase = '/dashboard'; %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <a href="<%= dashBase %>/galleries" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Gallery</a>

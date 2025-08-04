@@ -9,6 +9,12 @@
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
+    <% if (flash.error && flash.error.length) { %>
+      <p class="text-red-600 mb-4"><%= flash.error[0] %></p>
+    <% } %>
+    <% if (flash.success && flash.success.length) { %>
+      <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
+    <% } %>
     <section class="mb-8">
       <h2 class="text-xl font-semibold mb-4">Profile</h2>
       <form method="POST" action="/dashboard/artist/profile" enctype="multipart/form-data" class="space-y-2">
