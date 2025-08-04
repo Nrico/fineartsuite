@@ -36,7 +36,7 @@
     </header>
 
     <div class="mb-8">
-      <img src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full transition-opacity duration-700 opacity-0" loading="lazy" onload="this.classList.remove('opacity-0')">
+      <img src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
     </div>
 
     <ul class="max-w-md mx-auto divide-y divide-gray-200 text-center text-base">
@@ -55,5 +55,6 @@
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
+  <script src="/js/fade-in.js"></script>
 </body>
 </html>

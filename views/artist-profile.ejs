@@ -26,7 +26,7 @@
         <% artist.artworks.forEach(function(art){ %>
           <li class="<%= art.isFeatured ? 'md:col-span-2' : '' %>">
             <a href="/<%= slug %>/artworks/<%= art.id %>" class="block">
-              <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="w-full mb-2 transition-opacity duration-700 opacity-0" loading="lazy" onload="this.classList.remove('opacity-0')">
+              <img src="<%= art.imageThumb %>" alt="<%= art.title %>" class="w-full mb-2 transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
               <span class="font-semibold block"><%= art.title %></span>
             </a>
 
@@ -56,7 +56,7 @@
     </section>
 
     <section class="mt-16 flex flex-col items-center text-center">
-      <img src="<%= artist.bioImageUrl %>" alt="<%= artist.name %> portrait" class="w-36 h-36 rounded-full mb-4 transition-opacity duration-700 opacity-0" loading="lazy" onload="this.classList.remove('opacity-0')">
+      <img src="<%= artist.bioImageUrl %>" alt="<%= artist.name %> portrait" class="w-36 h-36 rounded-full mb-4 transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
       <div class="space-y-4 max-w-prose">
         <% if (artist.fullBio) { %>
           <% artist.fullBio.split('\n\n').forEach(function(par){ %>
@@ -74,5 +74,6 @@
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
+  <script src="/js/fade-in.js"></script>
 </body>
 </html>
