@@ -64,8 +64,13 @@ function getGallery(slug, options, cb) {
           if (artwork.isFeatured) featured.push(artwork);
         }
       });
-      gallery.artists = Object.values(artistMap);
-      gallery.featuredArtworks = featured;
+      // Exclude archived artists and artworks from the returned gallery data
+      const artists = Object.values(artistMap).filter(a => !a.archived);
+      artists.forEach(a => {
+        a.artworks = a.artworks.filter(w => !w.archived);
+      });
+      gallery.artists = artists;
+      gallery.featuredArtworks = featured.filter(w => !w.archived);
       cb(null, gallery);
     });
   });
