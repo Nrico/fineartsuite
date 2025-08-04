@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../models/db');
 const { getGallery } = require('../models/galleryModel');
+
+// Default options to ensure archived artists and artworks are excluded
+const galleryOptions = {
+  includeArchivedArtists: false,
+  includeArchivedArtworks: false
+};
 const { getArtist } = require('../models/artistModel');
 const { getArtwork } = require('../models/artworkModel');
 
@@ -21,7 +27,7 @@ router.get('/faq', (req, res) => {
 // Public gallery home page
 router.get('/:gallerySlug', (req, res) => {
   try {
-    getGallery(req.params.gallerySlug, (err, gallery) => {
+    getGallery(req.params.gallerySlug, galleryOptions, (err, gallery) => {
       if (err) return res.status(404).send('Gallery not found');
       res.render('gallery-home', { gallery, slug: req.params.gallerySlug });
     });
@@ -34,7 +40,7 @@ router.get('/:gallerySlug', (req, res) => {
 // Artist profile page within a gallery
 router.get('/:gallerySlug/artists/:artistId', (req, res) => {
   try {
-    getGallery(req.params.gallerySlug, (err, gallery) => {
+    getGallery(req.params.gallerySlug, galleryOptions, (err, gallery) => {
       if (err) return res.status(404).send('Gallery not found');
       getArtist(req.params.gallerySlug, req.params.artistId, (err2, artist) => {
         if (err2) return res.status(404).send('Artist not found');
@@ -50,7 +56,7 @@ router.get('/:gallerySlug/artists/:artistId', (req, res) => {
 // Artwork detail page within a gallery
 router.get('/:gallerySlug/artworks/:artworkId', (req, res) => {
   try {
-    getGallery(req.params.gallerySlug, (err, gallery) => {
+    getGallery(req.params.gallerySlug, galleryOptions, (err, gallery) => {
       if (err) return res.status(404).send('Gallery not found');
       getArtwork(req.params.gallerySlug, req.params.artworkId, (err2, result) => {
         if (err2) return res.status(404).send('Artwork not found');
