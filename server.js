@@ -14,15 +14,27 @@ try {
 } catch (err) {
   // Fallback implementation when connect-flash is not installed
   flash = () => (req, res, next) => {
-    res.locals.flash = req.session?.flash || {};
     req.flash = function(type, msg) {
       if (!req.session) throw new Error('flash requires sessions');
-      if (!req.session.flash) req.session.flash = {};
-      if (!req.session.flash[type]) req.session.flash[type] = [];
-      if (msg) req.session.flash[type].push(msg);
-      return req.session.flash[type];
+      const flash = req.session.flash || {};
+
+      if (type && msg) {
+        flash[type] = flash[type] || [];
+        flash[type].push(msg);
+        req.session.flash = flash;
+        return flash[type];
+      }
+
+      if (type) {
+        const msgs = flash[type] || [];
+        delete flash[type];
+        req.session.flash = flash;
+        return msgs;
+      }
+
+      req.session.flash = {};
+      return flash;
     };
-    delete req.session?.flash;
     next();
   };
 }
