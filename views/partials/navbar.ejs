@@ -5,8 +5,10 @@
     <% if (user && user.role !== 'artist') { %>
       <a href="/dashboard/galleries" class="hover:underline">Galleries</a>
       <a href="/dashboard/artists" class="hover:underline">Artists</a>
+      <a href="/dashboard/artworks" class="hover:underline">Artworks</a>
+    <% } else if (user) { %>
+      <a href="/dashboard/artist" class="hover:underline">Artworks</a>
     <% } %>
-    <a href="/dashboard/artworks" class="hover:underline">Artworks</a>
     <% if (user) { %>
       <a href="/account" class="hover:underline">Account</a>
     <% } %>
