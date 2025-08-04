@@ -95,6 +95,11 @@ router.post('/login', csrfProtection, (req, res) => {
     return res.redirect('/login');
   }
   findUserByUsername(username, (err, user) => {
+    if (err) {
+      console.error('Error finding user by username:', err);
+      req.flash('error', 'Server error');
+      return res.redirect('/login');
+    }
     if (user) {
       return bcrypt.compare(password, user.password, (err2, match) => {
         if (match) {
