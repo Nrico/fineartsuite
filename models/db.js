@@ -66,7 +66,10 @@ function initialize() {
       hide_collected INTEGER DEFAULT 0,
       featured INTEGER DEFAULT 0,
       isVisible INTEGER DEFAULT 1,
-      isFeatured INTEGER DEFAULT 0
+      isFeatured INTEGER DEFAULT 0,
+      description TEXT,
+      framed INTEGER DEFAULT 0,
+      ready_to_hang INTEGER DEFAULT 0
     )`);
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
@@ -153,7 +156,7 @@ function seed(done) {
   userStmt.run('Demo User', 'demouser', demoHash, 'artist', 'taos');
   userStmt.finalize();
 
-  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
 
   function randomImage() {
     const id = Math.floor(Math.random() * 90) + 10; // 10-99
@@ -174,16 +177,37 @@ function seed(done) {
   }
 
   const mediums = ['Oil', 'Acrylic', 'Digital', 'Watercolor'];
+  const adjectives = ['Crimson', 'Luminous', 'Silent', 'Mystic', 'Azure', 'Golden', 'Ethereal', 'Verdant', 'Shadowed', 'Radiant'];
+  const nouns = ['Reverie', 'Horizon', 'Echo', 'Forest', 'Dream', 'Symphony', 'Canvas', 'Whisper', 'Rhythm', 'Voyage'];
+  const descriptions = [
+    'An exploration of light and shadow.',
+    'A vibrant study in color.',
+    'Inspired by urban landscapes.',
+    'An abstract representation of emotion.',
+    'A minimalist piece evoking serenity.',
+    'Textures from nature combined with bold hues.',
+    'A digital collage capturing movement.',
+    'A contemplative work examining space.'
+  ];
+
+  function generateTitle(artist, index) {
+    const a = adjectives[(index + artist.id.length) % adjectives.length];
+    const n = nouns[(index * 3 + artist.id.length) % nouns.length];
+    return `${a} ${n}`;
+  }
 
   artists.forEach(artist => {
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const img = randomImage();
-      const artId = `${artist.id}-art${i}`;
-      const title = `Artwork ${i}`;
-      const medium = mediums[(i - 1) % mediums.length];
-      const status = i === 1 ? 'collected' : 'available';
-      const isFeatured = i === 1 ? 1 : 0;
-      artworkStmt.run(artId, artist.id, title, medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured);
+      const artId = `${artist.id}-art${i + 1}`;
+      const title = generateTitle(artist, i);
+      const medium = mediums[i % mediums.length];
+      const status = i === 0 ? 'collected' : 'available';
+      const isFeatured = i === 0 ? 1 : 0;
+      const description = descriptions[(i + artist.id.length) % descriptions.length];
+      const framed = i % 2 === 0 ? 1 : 0;
+      const ready = (i + 1) % 2 === 0 ? 1 : 0;
+      artworkStmt.run(artId, artist.id, title, medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured, description, framed, ready);
     }
   });
 

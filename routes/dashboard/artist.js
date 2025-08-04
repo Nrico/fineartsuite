@@ -158,7 +158,7 @@ router.post('/artworks', requireRole('artist'), (req, res) => {
       req.flash('error', err.message);
       return res.redirect('/dashboard/artist');
     }
-    const { title, medium, dimensions, price, imageUrl, action = 'upload' } = req.body;
+    const { title, medium, dimensions, price, description, framed, readyToHang, imageUrl, action = 'upload' } = req.body;
     if (!title || !medium || !dimensions) {
       req.flash('error', 'All fields are required');
       return res.redirect('/dashboard/artist');
@@ -182,7 +182,7 @@ router.post('/artworks', requireRole('artist'), (req, res) => {
       } else {
         images = { imageFull: '', imageStandard: '', imageThumb: '' };
       }
-      createArtwork(req.session.user.id, title, medium, dimensions, price, images, createErr => {
+      createArtwork(req.session.user.id, title, medium, dimensions, price, description, framed === 'on', readyToHang === 'on', images, createErr => {
         if (createErr) {
           console.error(createErr);
           req.flash('error', 'Could not create artwork');
