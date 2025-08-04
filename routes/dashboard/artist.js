@@ -117,7 +117,7 @@ router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res
 
 router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
   try {
-    const { name, bio, fullBio, bioImageUrl } = req.body;
+    const { name, bio, fullBio, bioImageUrl, currentBioImageUrl } = req.body;
     if (!name || !bio) {
       req.flash('error', 'Name and short bio are required');
       return res.redirect('/dashboard/artist');
@@ -126,10 +126,14 @@ router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), cs
       req.flash('error', 'Choose either an upload or a URL');
       return res.redirect('/dashboard/artist');
     }
-    let avatarUrl = bioImageUrl;
+    let avatarUrl;
     if (req.file) {
       const images = await processImages(req.file);
       avatarUrl = images.imageStandard;
+    } else if (bioImageUrl) {
+      avatarUrl = bioImageUrl;
+    } else {
+      avatarUrl = currentBioImageUrl;
     }
     updateArtist(req.session.user.id, name, bio, fullBio || '', avatarUrl || '', err2 => {
       if (err2) {

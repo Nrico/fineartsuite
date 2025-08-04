@@ -31,7 +31,8 @@
         <textarea name="bio" placeholder="Short bio" required class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.bio || '' %></textarea>
         <textarea name="fullBio" placeholder="Full bio" class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.fullBio || '' %></textarea>
         <input type="file" name="bioImageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="url" name="bioImageUrl" placeholder="Bio image URL" value="<%= artist.bioImageUrl || '' %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+        <input type="hidden" name="currentBioImageUrl" value="<%= artist.bioImageUrl || '' %>">
+        <input type="url" name="bioImageUrl" placeholder="Bio image URL" value="<%= artist.bioImageUrl && artist.bioImageUrl.startsWith('http') ? artist.bioImageUrl : '' %>" class="border border-gray-300 rounded px-2 py-1 w-full">
         <p class="text-xs text-gray-500">Provide an image file or a URL</p>
         <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save Profile</button>
       </form>
