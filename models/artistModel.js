@@ -19,8 +19,9 @@ function createArtist(id, name, gallerySlug, live, cb) {
     cb = live;
     live = 0;
   }
-  const stmt = `INSERT INTO artists (id, gallery_slug, name, live) VALUES (?,?,?,?)`;
-  db.run(stmt, [id, gallerySlug, name, live ? 1 : 0], cb);
+  const stmt = `INSERT INTO artists (id, gallery_slug, name, live, display_order)
+                VALUES (?,?,?,?, COALESCE((SELECT MAX(display_order) + 1 FROM artists WHERE gallery_slug = ?), 0))`;
+  db.run(stmt, [id, gallerySlug, name, live ? 1 : 0, gallerySlug], cb);
 }
 
 function getArtistById(id, cb) {

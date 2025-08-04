@@ -33,7 +33,8 @@ function initialize() {
       portrait_url TEXT,
       gallery_id TEXT,
       archived INTEGER DEFAULT 0,
-      live INTEGER DEFAULT 0
+      live INTEGER DEFAULT 0,
+      display_order INTEGER DEFAULT 0
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -155,8 +156,8 @@ function seed(done) {
   galleries.forEach(g => galleryStmt.run(g.slug, g.name, g.bio, g.contact_email, g.phone, g.logo_url));
   galleryStmt.finalize();
 
-  const artistStmt = db.prepare('INSERT INTO artists (id, gallery_slug, name, bio, bioImageUrl, fullBio, live) VALUES (?,?,?,?,?,?,1)');
-  artists.forEach(a => artistStmt.run(a.id, a.gallery_slug, a.name, a.bio, a.bioImageUrl, a.fullBio));
+  const artistStmt = db.prepare('INSERT INTO artists (id, gallery_slug, name, bio, bioImageUrl, fullBio, live, display_order) VALUES (?,?,?,?,?,?,1,?)');
+  artists.forEach((a, i) => artistStmt.run(a.id, a.gallery_slug, a.name, a.bio, a.bioImageUrl, a.fullBio, i));
   artistStmt.finalize();
 
   const userStmt = db.prepare('INSERT INTO users (display_name, username, password, role, promo_code) VALUES (?,?,?,?,?)');

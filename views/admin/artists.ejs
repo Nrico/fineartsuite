@@ -22,13 +22,14 @@
       <button id="new-artist" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artist</button>
       <ul id="artist-list" class="space-y-4">
         <% artists.forEach(function(a){ %>
-          <li class="bg-white shadow-md rounded border">
+          <li class="bg-white shadow-md rounded border" data-id="<%= a.id %>">
             <div class="artist-toggle w-full flex items-center p-4 cursor-pointer" data-id="<%= a.id %>">
               <span class="font-semibold flex-1"><%= a.name %></span>
               <label class="flex items-center gap-2">
                 <span class="text-sm">Live</span>
                 <input type="checkbox" class="live-toggle" data-id="<%= a.id %>" <%= a.live ? 'checked' : '' %> />
               </label>
+              <span class="grip ml-4 cursor-grab" draggable="true">&#9776;</span>
             </div>
             <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
               <form class="p-4 space-y-2 artist-form" data-id="<%= a.id %>">
@@ -63,13 +64,14 @@
         <% }) %>
       </ul>
       <template id="new-artist-template">
-        <li class="bg-white shadow-md rounded border">
+        <li class="bg-white shadow-md rounded border" data-new="true">
           <div class="artist-toggle w-full flex items-center p-4 cursor-pointer" data-new="true">
             <span class="font-semibold flex-1">New Artist</span>
             <label class="flex items-center gap-2">
               <span class="text-sm">Live</span>
               <input type="checkbox" class="live-toggle" data-new="true" />
             </label>
+            <span class="grip ml-4 cursor-grab" draggable="true">&#9776;</span>
           </div>
           <div class="artist-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
             <form class="p-4 space-y-2 artist-form" data-new="true">
@@ -126,6 +128,63 @@
       });
     });
 
+    const list = document.getElementById('artist-list');
+    let dragItem;
+    function initDrag(handle) {
+      handle.addEventListener('click', e => e.stopPropagation());
+      handle.addEventListener('dragstart', e => {
+        dragItem = handle.closest('li');
+        dragItem.classList.add('opacity-50');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      handle.addEventListener('dragend', async () => {
+        if (dragItem) {
+          dragItem.classList.remove('opacity-50');
+          dragItem = null;
+          await saveOrder();
+        }
+      });
+    }
+
+    function getDragAfterElement(container, y) {
+      const elements = [...container.querySelectorAll('li:not(.opacity-50)')];
+      return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        }
+        return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const after = getDragAfterElement(list, e.clientY);
+      if (!dragItem) return;
+      if (after == null) {
+        list.appendChild(dragItem);
+      } else if (after !== dragItem) {
+        list.insertBefore(dragItem, after);
+      }
+    });
+
+    async function saveOrder() {
+      const order = [...list.querySelectorAll('li')].map(li => li.dataset.id).filter(Boolean);
+      try {
+        const res = await fetch('/dashboard/artists/order', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
+          body: JSON.stringify({ order })
+        });
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.querySelectorAll('.grip').forEach(initDrag);
+
     function initLiveToggle(toggle) {
       toggle.addEventListener('click', e => e.stopPropagation());
       toggle.addEventListener('change', async () => {
@@ -152,7 +211,8 @@
     function handleForm(form) {
       const btn = form.querySelector('.save-btn');
       let id = form.dataset.id;
-      const container = form.closest('li').querySelector('.artist-toggle');
+      const li = form.closest('li');
+      const container = li.querySelector('.artist-toggle');
       const liveToggle = container.querySelector('.live-toggle');
       form.addEventListener('submit', async e => {
         e.preventDefault();
@@ -171,9 +231,11 @@
             form.dataset.id = id;
             form.dataset.new = 'false';
             container.dataset.id = id;
+            li.dataset.id = id;
             container.querySelector('span').textContent = formData.get('name') || id;
             liveToggle.dataset.id = id;
             liveToggle.dataset.new = 'false';
+            initDrag(li.querySelector('.grip'));
             setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1000);
           } else {
             const dataObj = Object.fromEntries(new FormData(form).entries());
@@ -222,6 +284,7 @@
       btn.addEventListener('click', () => toggleWrapper(wrapper));
       const toggle = li.querySelector('.live-toggle');
       initLiveToggle(toggle);
+      initDrag(li.querySelector('.grip'));
       handleForm(li.querySelector('form'));
       btn.click();
     });
