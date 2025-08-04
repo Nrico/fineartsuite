@@ -73,7 +73,8 @@ function initialize() {
       description TEXT,
       framed INTEGER DEFAULT 0,
       ready_to_hang INTEGER DEFAULT 0,
-      archived INTEGER DEFAULT 0
+      archived INTEGER DEFAULT 0,
+      display_order INTEGER DEFAULT 0
     )`);
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
@@ -165,7 +166,7 @@ function seed(done) {
   userStmt.run('Demo User', 'demouser', demoHash, 'artist', 'taos');
   userStmt.finalize();
 
-  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+  const artworkStmt = db.prepare('INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, hide_collected, featured, isVisible, isFeatured, description, framed, ready_to_hang, display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
 
   function randomImage() {
     const id = Math.floor(Math.random() * 90) + 10; // 10-99
@@ -231,7 +232,7 @@ function seed(done) {
         const img = randomImage();
         const status = 'available';
         const isFeatured = i === 0 ? 1 : 0;
-        artworkStmt.run(art.id, artist.id, artist.gallery_slug, art.title, art.medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured, art.description, 1, 0);
+        artworkStmt.run(art.id, artist.id, artist.gallery_slug, art.title, art.medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured, art.description, 1, 0, i);
       });
     } else {
       for (let i = 0; i < 8; i++) {
@@ -244,7 +245,7 @@ function seed(done) {
         const description = descriptions[(i + artist.id.length) % descriptions.length];
         const framed = i % 2 === 0 ? 1 : 0;
         const ready = (i + 1) % 2 === 0 ? 1 : 0;
-        artworkStmt.run(artId, artist.id, artist.gallery_slug, title, medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured, description, framed, ready);
+        artworkStmt.run(artId, artist.id, artist.gallery_slug, title, medium, '24x36', randomPrice(), img, img, img, status, 0, 0, 1, isFeatured, description, framed, ready, i);
       }
     }
   });

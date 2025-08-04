@@ -30,7 +30,7 @@ function getArtwork(gallerySlug, id, cb) {
 }
 
 function getArtworksByArtist(artistId, cb) {
-  db.all('SELECT * FROM artworks WHERE artist_id = ? AND archived = 0', [artistId], cb);
+  db.all('SELECT * FROM artworks WHERE artist_id = ? AND archived = 0 ORDER BY display_order', [artistId], cb);
 }
 
 function updateArtworkCollection(id, collectionId, cb) {
@@ -40,28 +40,32 @@ function updateArtworkCollection(id, collectionId, cb) {
 function createArtwork(artistId, title, medium, dimensions, price, description, framed, readyToHang, images, isFeatured, cb) {
   db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artistId], (err, row) => {
     if (err || !row) return cb(err || new Error('Artist not found'));
-    const id = 'art_' + Date.now();
-    const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-    const params = [
-      id,
-      artistId,
-      row.gallery_slug,
-      title,
-      medium,
-      dimensions,
-      price || '',
-      images.imageFull,
-      images.imageStandard,
-      images.imageThumb,
-      'available',
-      1,
-      isFeatured ? 1 : 0,
-      description || '',
-      framed ? 1 : 0,
-      readyToHang ? 1 : 0
-    ];
-    db.run(stmt, params, err2 => cb(err2, id));
+    db.get('SELECT COALESCE(MAX(display_order), -1) + 1 AS ord FROM artworks WHERE artist_id = ?', [artistId], (oErr, ordRow) => {
+      if (oErr) return cb(oErr);
+      const id = 'art_' + Date.now();
+      const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang, display_order)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      const params = [
+        id,
+        artistId,
+        row.gallery_slug,
+        title,
+        medium,
+        dimensions,
+        price || '',
+        images.imageFull,
+        images.imageStandard,
+        images.imageThumb,
+        'available',
+        1,
+        isFeatured ? 1 : 0,
+        description || '',
+        framed ? 1 : 0,
+        readyToHang ? 1 : 0,
+        ordRow.ord
+      ];
+      db.run(stmt, params, err2 => cb(err2, id));
+    });
   });
 }
 

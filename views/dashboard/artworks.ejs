@@ -11,15 +11,23 @@
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-4">
     <button id="new-artwork" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artwork</button>
-    <ul id="artwork-list" class="space-y-4">
-        <% artworks.forEach(function(art){ %>
-          <li class="bg-white shadow-md rounded border">
-            <button class="art-toggle w-full flex items-center p-4 text-left" data-id="<%= art.id %>">
-              <img src="<%= art.imageThumb || art.imageStandard || art.imageFull %>" class="w-[50px] h-[50px] object-cover rounded mr-4"/>
-              <span class="flex-1"><span class="font-semibold"><%= art.artist_name %></span> - <%= art.title %></span>
-            </button>
-            <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
-              <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>" enctype="multipart/form-data">
+    <div id="artwork-list">
+      <% let currentArtist = null; %>
+      <% artworks.forEach(function(art){ %>
+        <% if (art.artist_id !== currentArtist) { %>
+          <% if (currentArtist !== null) { %></ul></div><% } %>
+          <div class="mb-6">
+            <h3 class="font-semibold mb-2"><%= art.artist_name %></h3>
+            <ul class="artwork-group space-y-4" data-artist="<%= art.artist_id %>">
+        <% currentArtist = art.artist_id; } %>
+              <li class="bg-white shadow-md rounded border" data-id="<%= art.id %>">
+                <div class="art-toggle w-full flex items-center p-4 cursor-pointer" data-id="<%= art.id %>">
+                  <img src="<%= art.imageThumb || art.imageStandard || art.imageFull %>" class="w-[50px] h-[50px] object-cover rounded mr-4"/>
+                  <span class="flex-1"><%= art.title %></span>
+                  <span class="grip ml-4 cursor-grab" draggable="true">&#9776;</span>
+                </div>
+                <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
+                  <form class="p-4 space-y-2 art-form" data-id="<%= art.id %>" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <label class="block text-sm font-medium">Title
                   <input name="title" value="<%= art.title %>" class="mt-1 w-full border rounded px-2 py-1"/>
@@ -73,14 +81,16 @@
           </div>
         </li>
       <% }) %>
-    </ul>
+      <% if (currentArtist !== null) { %></ul></div><% } %>
+    </div>
   </main>
   <template id="new-artwork-template">
-    <li class="bg-white shadow-md rounded border">
-      <button class="art-toggle w-full flex items-center p-4 text-left" data-new="true">
+    <li class="bg-white shadow-md rounded border" data-new="true">
+      <div class="art-toggle w-full flex items-center p-4 cursor-pointer" data-new="true">
         <div class="w-[50px] h-[50px] bg-gray-200 flex items-center justify-center rounded mr-4">New</div>
         <span class="font-semibold flex-1">Untitled</span>
-      </button>
+        <span class="grip ml-4 cursor-grab" draggable="true">&#9776;</span>
+      </div>
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
         <form class="p-4 space-y-2 art-form" data-new="true" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -153,6 +163,59 @@
         toggleWrapper(wrapper);
       });
     });
+    function getDragAfterElement(container, y) {
+      const elements = [...container.querySelectorAll('li:not(.opacity-50)')];
+      return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        }
+        return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    async function saveOrder(artistId, order) {
+      try {
+        const res = await fetch('/dashboard/artworks/order', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
+          body: JSON.stringify({ artistId, order })
+        });
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    document.querySelectorAll('.artwork-group').forEach(list => {
+      let dragItem;
+      function initDrag(handle) {
+        handle.addEventListener('click', e => e.stopPropagation());
+        handle.addEventListener('dragstart', e => {
+          dragItem = handle.closest('li');
+          dragItem.classList.add('opacity-50');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        handle.addEventListener('dragend', async () => {
+          if (dragItem) {
+            dragItem.classList.remove('opacity-50');
+            const order = [...list.querySelectorAll('li')].map(li => li.dataset.id);
+            await saveOrder(list.dataset.artist, order);
+            dragItem = null;
+          }
+        });
+      }
+      list.addEventListener('dragover', e => {
+        e.preventDefault();
+        const after = getDragAfterElement(list, e.clientY);
+        if (!dragItem) return;
+        if (after == null) {
+          list.appendChild(dragItem);
+        } else if (after !== dragItem) {
+          list.insertBefore(dragItem, after);
+        }
+      });
+      list.querySelectorAll('.grip').forEach(initDrag);
+    });
     function handleForm(form){
       const btn = form.querySelector('.save-btn');
       const toggleBtn = form.closest('li').querySelector('.art-toggle');
@@ -195,7 +258,8 @@
     document.getElementById('new-artwork').addEventListener('click', () => {
       const tpl = document.getElementById('new-artwork-template');
       const li = tpl.content.firstElementChild.cloneNode(true);
-      document.getElementById('artwork-list').prepend(li);
+      const list = document.querySelector('.artwork-group') || document.getElementById('artwork-list');
+      list.prepend(li);
       const btn = li.querySelector('.art-toggle');
       const wrapper = li.querySelector('.art-form-wrapper');
       btn.addEventListener('click', () => toggleWrapper(wrapper));

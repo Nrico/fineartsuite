@@ -146,8 +146,8 @@ router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, r
   res.locals.csrfToken = req.csrfToken();
   try {
     const artQuery = req.user.role === 'gallery'
-      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]]
-      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id', []];
+      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ? ORDER BY ar.name, a.display_order', [req.user.username]]
+      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id ORDER BY ar.name, a.display_order', []];
     db.all(...artQuery, (err, artworks) => {
       if (err) {
         console.error(err);
@@ -440,6 +440,27 @@ router.patch('/artists/order', requireRole('admin', 'gallery'), csrfProtection, 
   });
 });
 
+router.patch('/artworks/order', requireRole('admin', 'gallery', 'artist'), csrfProtection, (req, res) => {
+  const { artistId, order } = req.body;
+  if (!artistId || !Array.isArray(order)) return res.status(400).send('Invalid order');
+  const stmt = req.user.role === 'gallery'
+    ? db.prepare('UPDATE artworks SET display_order = ? WHERE id = ? AND artist_id = ? AND gallery_slug = ?')
+    : db.prepare('UPDATE artworks SET display_order = ? WHERE id = ? AND artist_id = ?');
+  db.serialize(() => {
+    order.forEach((id, idx) => {
+      const params = req.user.role === 'gallery' ? [idx, id, artistId, req.user.username] : [idx, id, artistId];
+      stmt.run(params);
+    });
+    stmt.finalize(err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      res.sendStatus(204);
+    });
+  });
+});
+
 router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   try {
     const handleDelete = () => {
@@ -577,8 +598,11 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       images.imageStandard = imageUrl;
       images.imageThumb = imageUrl;
     }
-    const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-    const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0];
+    const ordRow = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(MAX(display_order), -1) + 1 AS ord FROM artworks WHERE artist_id = ?', [artist_id], (e, r) => e ? reject(e) : resolve(r));
+    });
+    const stmt = `INSERT INTO artworks (id, gallery_slug, artist_id, title, medium, custom_medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang, display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    const params = [id, gallery_slug, artist_id, title, medium, custom_medium || '', dimensions, priceValue, images.imageFull, images.imageStandard, images.imageThumb, status || '', isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0, ordRow.ord];
     db.run(stmt, params, runErr => {
       if (runErr) {
         console.error(runErr);
@@ -767,8 +791,11 @@ router.post('/upload', requireRole('admin', 'gallery'), upload.single('image'), 
       const finalMedium = medium === 'other' ? custom_medium : medium;
       const finalPrice = status === 'collected' ? null : price;
       const images = await processImages(req.file);
-      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-      db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0], runErr => {
+      const ordRow = await new Promise((resolve, reject) => {
+        db.get('SELECT COALESCE(MAX(display_order), -1) + 1 AS ord FROM artworks WHERE artist_id = ?', [artist.id], (e, r) => e ? reject(e) : resolve(r));
+      });
+      const stmt = `INSERT INTO artworks (id, artist_id, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang, display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      db.run(stmt, [artworkId, artist.id, title, finalMedium, dimensions, finalPrice, images.imageFull, images.imageStandard, images.imageThumb, status, isVisible ? 1 : 0, isFeatured ? 1 : 0, description || '', framed ? 1 : 0, readyToHang ? 1 : 0, ordRow.ord], runErr => {
         if (runErr) {
           console.error(runErr);
           req.flash('error', 'Database error');

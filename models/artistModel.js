@@ -5,7 +5,7 @@ function getArtist(gallerySlug, id, cb) {
     'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
   db.get(artistSql, [id, gallerySlug], (err, artist) => {
     if (err || !artist) return cb(err || new Error('Not found'));
-    const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
+    const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0 ORDER BY display_order';
     db.all(artSql, [id], (err2, artworks) => {
       if (err2) return cb(err2);
       artist.artworks = artworks || [];

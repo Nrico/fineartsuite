@@ -670,8 +670,8 @@ test('archiving artist cascades to artworks', async () => {
   const artworkId = 'test-artwork-' + Date.now();
   await new Promise(resolve =>
     db.run(
-      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      [artworkId, artistId, 'demo-gallery', 'A', 'oil', '10x10', '', '', '', '', 'available', 1, 0, '', 0, 0],
+      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang, display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [artworkId, artistId, 'demo-gallery', 'A', 'oil', '10x10', '', '', '', '', 'available', 1, 0, '', 0, 0, 0],
       resolve
     )
   );
@@ -767,8 +767,8 @@ test('archiving artwork toggles public visibility', async () => {
   const artworkId = 'test-only-artwork-' + Date.now();
   await new Promise(resolve =>
     db.run(
-      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      [artworkId, artistId, 'demo-gallery', 'Piece', 'oil', '1x1', '', '', '', '', 'available', 1, 0, '', 0, 0],
+      'INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang, display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [artworkId, artistId, 'demo-gallery', 'Piece', 'oil', '1x1', '', '', '', '', 'available', 1, 0, '', 0, 0, 0],
       resolve
     )
   );
