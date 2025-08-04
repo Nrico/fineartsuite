@@ -127,6 +127,15 @@ test('gallery page lists multiple artists', async () => {
   assert.ok(matches.length >= 2);
 });
 
+test('western gallery exposes contact info', async () => {
+  const port = server.address().port;
+  const { statusCode, body } = await httpGet(`http://localhost:${port}/western-gallery`);
+  assert.strictEqual(statusCode, 200);
+  assert.match(body, /Western Gallery/);
+  assert.match(body, /hello@western\.example/);
+  assert.match(body, /555-867-5309/);
+});
+
 test('dashboard redirects to login when not authenticated', async () => {
   const port = server.address().port;
   const { statusCode, headers } = await httpGet(`http://localhost:${port}/dashboard`);

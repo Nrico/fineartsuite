@@ -16,7 +16,10 @@
   </nav>
 
   <main class="max-w-5xl mx-auto p-6">
-    <section class="mb-6">
+    <section class="mb-6 text-center">
+      <% if (gallery.logo_url) { %>
+        <img src="<%= gallery.logo_url %>" alt="<%= gallery.name %> logo" class="mx-auto mb-4 w-16 h-16 object-contain">
+      <% } %>
       <div class="relative">
         <img id="main-image" src="<%= artwork.imageStandard %>" alt="<%= artwork.title %>" class="mx-auto max-w-full cursor-zoom-in transition-opacity duration-700 opacity-0" loading="lazy" data-fade>
         <div class="absolute bottom-2 right-2 flex space-x-2">
@@ -112,6 +115,16 @@
   </main>
 
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <% if (gallery.contact_email || gallery.phone) { %>
+      <div class="mb-2 text-sm">
+        <% if (gallery.contact_email) { %>
+          <p>Contact: <a href="mailto:<%= gallery.contact_email %>" class="underline"><%= gallery.contact_email %></a></p>
+        <% } %>
+        <% if (gallery.phone) { %>
+          <p>Phone: <%= gallery.phone %></p>
+        <% } %>
+      </div>
+    <% } %>
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
   <script src="/js/fade-in.js"></script>
