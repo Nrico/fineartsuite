@@ -16,6 +16,13 @@
     <% if (flash.success && flash.success.length) { %>
       <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
     <% } %>
+    <% if (artist.gallery_slug) { %>
+      <p class="mb-4 text-center">Your public page is available at
+        <a href="/<%= artist.gallery_slug %>/artists/<%= artist.id %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+          /<%= artist.gallery_slug %>/artists/<%= artist.id %>
+        </a>
+      </p>
+    <% } %>
     <section class="mb-8">
       <h2 class="text-xl font-semibold mb-4">Profile</h2>
       <form method="POST" action="/dashboard/artist/profile" enctype="multipart/form-data" class="space-y-2">

@@ -13,7 +13,7 @@
     <p class="mb-2 text-center">Username: <strong><%= user.username %></strong></p>
     <p class="mb-4 text-center">Role: <strong><%= user.role %></strong></p>
     <% if (user.role === 'gallery') { %>
-      <p class="mb-4 text-center">Public gallery URL: <a href="/<%= user.username %>" class="text-blue-600 underline">/<%= user.username %></a></p>
+      <p class="mb-4 text-center">Public gallery URL: <a href="/<%= user.username %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">/<%= user.username %></a></p>
     <% } else if (user.role === 'artist') { %>
       <p class="mb-4 text-center">Manage your portfolio from the dashboard.</p>
     <% } %>
