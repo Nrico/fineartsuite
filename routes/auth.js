@@ -13,54 +13,75 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const VALID_PROMO_CODES = ['taos'];
 const USERNAME_REGEX = /^[a-z0-9-]+$/;
 
+function validateSignup(req) {
+  const { display_name, username, password, passcode } = req.body;
+  if (!display_name || !username || !password || !passcode) {
+    return 'All fields are required';
+  }
+  if (!VALID_PROMO_CODES.includes(passcode)) {
+    return 'Invalid passcode';
+  }
+  if (!USERNAME_REGEX.test(username)) {
+    return 'Username may only contain lowercase letters, numbers, and hyphens';
+  }
+  return null;
+}
+
+function handleSignupError(id, req, res, role) {
+  db.run('DELETE FROM users WHERE id = ?', [id], () => {
+    req.flash('error', 'Signup failed');
+    res.redirect(`/signup/${role}`);
+  });
+}
+
+function completeSignup(req, res, id, username, role) {
+  req.session.user = { id, username, role };
+  res.redirect(`/dashboard/${role}`);
+}
+
+function handleArtistSignup(id, username, displayName, req, res) {
+  createArtist(id, displayName, '', err => {
+    if (err) {
+      return handleSignupError(id, req, res, 'artist');
+    }
+    completeSignup(req, res, id, username, 'artist');
+  });
+}
+
+function handleGallerySignup(id, username, displayName, req, res) {
+  createGallery(username, displayName, err => {
+    if (err) {
+      return handleSignupError(id, req, res, 'gallery');
+    }
+    completeSignup(req, res, id, username, 'gallery');
+  });
+}
+
+function isAdminCredentials(username, password) {
+  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+}
+
 function signupHandler(role) {
   return (req, res) => {
+    const error = validateSignup(req);
+    if (error) {
+      req.flash('error', error);
+      return res.redirect(`/signup/${role}`);
+    }
+
     const { display_name, username, password, passcode } = req.body;
-    if (!display_name || !username || !password || !passcode) {
-      req.flash('error', 'All fields are required');
-      return res.redirect(`/signup/${role}`);
-    }
-    if (!VALID_PROMO_CODES.includes(passcode)) {
-      req.flash('error', 'Invalid passcode');
-      return res.redirect(`/signup/${role}`);
-    }
-    if (!USERNAME_REGEX.test(username)) {
-      req.flash('error', 'Username may only contain lowercase letters, numbers, and hyphens');
-      return res.redirect(`/signup/${role}`);
-    }
     createUser(display_name, username, password, role, passcode, (err, id) => {
       if (err) {
         req.flash('error', 'Signup failed');
         return res.redirect(`/signup/${role}`);
       }
       if (role === 'artist') {
-        createArtist(id, display_name, '', err2 => {
-          if (err2) {
-            db.run('DELETE FROM users WHERE id = ?', [id], () => {
-              req.flash('error', 'Signup failed');
-              return res.redirect(`/signup/${role}`);
-            });
-            return;
-          }
-          req.session.user = { id, username, role };
-          return res.redirect(`/dashboard/${role}`);
-        });
-      } else if (role === 'gallery') {
-        createGallery(username, display_name, err2 => {
-          if (err2) {
-            db.run('DELETE FROM users WHERE id = ?', [id], () => {
-              req.flash('error', 'Signup failed');
-              return res.redirect(`/signup/${role}`);
-            });
-            return;
-          }
-          req.session.user = { id, username, role };
-          return res.redirect(`/dashboard/${role}`);
-        });
-      } else {
-        req.session.user = { id, username, role };
-        return res.redirect(`/dashboard/${role}`);
+        return handleArtistSignup(id, username, display_name, req, res);
       }
+      if (role === 'gallery') {
+        return handleGallerySignup(id, username, display_name, req, res);
+      }
+      completeSignup(req, res, id, username, role);
     });
   };
 }
@@ -94,32 +115,28 @@ router.post('/login', csrfProtection, (req, res) => {
     req.flash('error', 'All fields are required');
     return res.redirect('/login');
   }
+  if (isAdminCredentials(username, password)) {
+    req.session.user = { username, role: 'admin' };
+    return res.redirect('/dashboard');
+  }
   findUserByUsername(username, (err, user) => {
     if (err) {
       console.error('Error finding user by username:', err);
       req.flash('error', 'Server error');
       return res.redirect('/login');
     }
-    if (user) {
-      return bcrypt.compare(password, user.password, (err2, match) => {
-        if (match) {
-          req.session.user = { id: user.id, username: user.username, role: user.role };
-          return res.redirect(`/dashboard/${user.role}`);
-        }
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-          req.session.user = { username, role: 'admin' };
-          return res.redirect('/dashboard');
-        }
-        req.flash('error', 'Invalid credentials');
-        return res.redirect('/login');
-      });
+    if (!user) {
+      req.flash('error', 'Invalid credentials');
+      return res.redirect('/login');
     }
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      req.session.user = { username, role: 'admin' };
-      return res.redirect('/dashboard');
-    }
-    req.flash('error', 'Invalid credentials');
-    res.redirect('/login');
+    bcrypt.compare(password, user.password, (err2, match) => {
+      if (match) {
+        req.session.user = { id: user.id, username: user.username, role: user.role };
+        return res.redirect(`/dashboard/${user.role}`);
+      }
+      req.flash('error', 'Invalid credentials');
+      res.redirect('/login');
+    });
   });
 });
 
