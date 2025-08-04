@@ -1,4 +1,5 @@
 const { db } = require('./db');
+const { randomUUID } = require('crypto');
 
 function getArtwork(gallerySlug, id, cb) {
   const query = `SELECT artworks.*, artists.gallery_slug, artists.id as artistId
@@ -40,7 +41,7 @@ function updateArtworkCollection(id, collectionId, cb) {
 function createArtwork(artistId, title, medium, dimensions, price, description, framed, readyToHang, images, isFeatured, cb) {
   db.get('SELECT gallery_slug FROM artists WHERE id = ?', [artistId], (err, row) => {
     if (err || !row) return cb(err || new Error('Artist not found'));
-    const id = 'art_' + Date.now();
+    const id = randomUUID();
     const stmt = `INSERT INTO artworks (id, artist_id, gallery_slug, title, medium, dimensions, price, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, description, framed, ready_to_hang)
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
     const params = [
