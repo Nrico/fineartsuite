@@ -1,15 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title><%= gallery.name %> - Gallery</title>
-  <meta name="description" content="<%= gallery.bio %>">
-  <meta property="og:title" content="<%= gallery.name %>">
-  <meta property="og:description" content="<%= gallery.bio %>">
-  <meta property="og:type" content="website">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body class="font-sans bg-white text-black">
+<%- include('partials/head', {
+  title: gallery.name + ' - Gallery',
+  headExtras: `
+  <meta name="description" content="${gallery.bio}">
+  <meta property="og:title" content="${gallery.name}">
+  <meta property="og:description" content="${gallery.bio}">
+  <meta property="og:type" content="website">`
+}) %>
   <nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
     <a href="/" class="text-2xl font-bold">FineArtSuite</a>
     <div class="flex gap-4 mt-2 md:mt-0">
@@ -61,8 +57,4 @@
     </div>
   </main>
 
-  <footer class="text-center py-6 border-t border-gray-200 mt-12">
-    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
-  </footer>
-</body>
-</html>
+<%- include('partials/footer', { footerClass: 'mt-12' }) %>

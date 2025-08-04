@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Gallery Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body class="font-sans bg-white text-black">
+<%- include('partials/head', { title: 'Gallery Dashboard' }) %>
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6 text-center"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Dashboard</h1>
@@ -17,8 +10,4 @@
       <a href="<%= dashBase %>/settings" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Gallery Settings</a>
     </div>
   </main>
-  <footer class="text-center py-6 border-t border-gray-200 mt-12">
-    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
-  </footer>
-</body>
-</html>
+<%- include('partials/footer', { footerClass: 'mt-12' }) %>

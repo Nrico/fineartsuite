@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Page Not Found</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body class="font-sans bg-white text-black">
+<%- include('partials/head', { title: 'Page Not Found' }) %>
   <main class="min-h-screen flex flex-col items-center justify-center text-center p-6">
     <h1 class="text-xl font-bold mb-4">404 - Page Not Found</h1>
     <p class="text-base mb-4">The page you are looking for doesn't exist.</p>
     <p><a href="/" class="text-blue-600 underline">Return to home</a></p>
   </main>
-</body>
-</html>
+<%- include('partials/footer') %>

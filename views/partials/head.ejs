@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html<% if (htmlLang) { %> lang="<%= htmlLang %>"<% } %>>
+<head>
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+  <%- headExtras || '' %>
+</head>
+<body class="<%= bodyClass || 'font-sans bg-white text-black' %>">

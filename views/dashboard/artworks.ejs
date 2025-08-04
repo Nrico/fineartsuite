@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Artwork Management</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/css/main.css">
-  <meta name="csrf-token" content="<%= csrfToken %>">
-</head>
-<body class="font-sans bg-gray-50 text-black">
+<%- include('partials/head', {
+  title: 'Artwork Management',
+  bodyClass: 'font-sans bg-gray-50 text-black',
+  headExtras: `<meta name="csrf-token" content="${csrfToken}">`
+}) %>
   <%- include('../partials/navbar'); %>
   <main class="max-w-4xl mx-auto p-4">
     <button id="new-artwork" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Artwork</button>
@@ -171,5 +167,4 @@
       btn.click();
     });
   </script>
-</body>
-</html>
+<%- include('partials/footer') %>

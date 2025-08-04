@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upload Artwork</title>
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body class="font-sans bg-white text-black">
+<%- include('partials/head', {
+  title: 'Upload Artwork',
+  htmlLang: 'en',
+  headExtras: '<meta charset="UTF-8">'
+}) %>
     <%- include('../partials/navbar'); %>
     <main class="max-w-lg mx-auto p-6">
     <div class="border border-gray-200 p-6 rounded shadow">
@@ -92,10 +88,6 @@
       </ul>
     </div>
   </main>
-  <footer class="text-center py-6 border-t border-gray-200 mt-12">
-    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
-  </footer>
-
   <script>
     const imageInput = document.getElementById('image');
   const previewImg = document.getElementById('preview');
@@ -143,5 +135,4 @@
     submitLabel.textContent = 'Saving...';
   });
   </script>
-</body>
-</html>
+<%- include('partials/footer', { footerClass: 'mt-12' }) %>

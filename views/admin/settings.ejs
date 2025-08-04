@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Gallery Settings</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body class="font-sans bg-white text-black">
+<%- include('partials/head', { title: 'Gallery Settings' }) %>
     <%- include('../partials/navbar'); %>
     <% const dashboardUrl = user ? (user.role === 'artist' ? '/dashboard/artist' : user.role === 'gallery' ? '/dashboard/gallery' : '/dashboard') : '/dashboard'; %>
     <main class="max-w-xl mx-auto p-6">
@@ -60,8 +53,4 @@
         <p class="mt-6 text-center"><a href="<%= dashboardUrl %>" class="text-blue-600 underline">Back to dashboard</a></p>
     </div>
   </main>
-  <footer class="text-center py-6 border-t border-gray-200 mt-12">
-    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
-  </footer>
-</body>
-</html>
+<%- include('partials/footer', { footerClass: 'mt-12' }) %>
