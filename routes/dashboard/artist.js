@@ -5,6 +5,7 @@ const { requireRole } = require('../../middleware/auth');
 const csrf = require('csurf');
 const csrfProtection = csrf();
 const { processImages, uploadsDir } = require('../../utils/image');
+const { slugify } = require('../../utils/slug');
 const { createCollection, getCollectionsByArtist, updateCollection } = require('../../models/collectionModel');
 const { getArtworksByArtist, updateArtworkCollection, createArtwork } = require('../../models/artworkModel');
 const { getArtistById, updateArtist } = require('../../models/artistModel');
@@ -23,10 +24,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024
   }
 });
-
-function slugify(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
 
 router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
