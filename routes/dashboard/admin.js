@@ -430,15 +430,15 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (
 });
 
 router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+  const handle = async () => {
+    try {
+      await archiveArtist(req.params.id);
       req.flash('success', 'Artist archived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
     db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
@@ -453,15 +453,15 @@ router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtec
 });
 
 router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+  const handle = async () => {
+    try {
+      await unarchiveArtist(req.params.id);
       req.flash('success', 'Artist unarchived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
     db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
@@ -612,15 +612,15 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imag
 });
 
 router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+  const handle = async () => {
+    try {
+      await archiveArtwork(req.params.id);
       req.flash('success', 'Artwork archived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
     db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
@@ -635,15 +635,15 @@ router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProte
 });
 
 router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+  const handle = async () => {
+    try {
+      await unarchiveArtwork(req.params.id);
       req.flash('success', 'Artwork unarchived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
     db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {

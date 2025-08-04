@@ -14,7 +14,7 @@ const VALID_PROMO_CODES = ['taos'];
 const USERNAME_REGEX = /^[a-z0-9-]+$/;
 
 function signupHandler(role) {
-  return (req, res) => {
+  return async (req, res) => {
     const { display_name, username, password, passcode } = req.body;
     if (!display_name || !username || !password || !passcode) {
       req.flash('error', 'All fields are required');
@@ -28,40 +28,36 @@ function signupHandler(role) {
       req.flash('error', 'Username may only contain lowercase letters, numbers, and hyphens');
       return res.redirect(`/signup/${role}`);
     }
-    createUser(display_name, username, password, role, passcode, (err, id) => {
-      if (err) {
-        req.flash('error', 'Signup failed');
-        return res.redirect(`/signup/${role}`);
-      }
+    try {
+      const id = await createUser(display_name, username, password, role, passcode);
       if (role === 'artist') {
-        createArtist(id, display_name, '', err2 => {
-          if (err2) {
-            db.run('DELETE FROM users WHERE id = ?', [id], () => {
-              req.flash('error', 'Signup failed');
-              return res.redirect(`/signup/${role}`);
-            });
-            return;
-          }
+        try {
+          await createArtist(id, display_name, '');
           req.session.user = { id, username, role };
           return res.redirect(`/dashboard/${role}`);
-        });
+        } catch (err2) {
+          await new Promise(resolve => db.run('DELETE FROM users WHERE id = ?', [id], resolve));
+          req.flash('error', 'Signup failed');
+          return res.redirect(`/signup/${role}`);
+        }
       } else if (role === 'gallery') {
-        createGallery(username, display_name, err2 => {
-          if (err2) {
-            db.run('DELETE FROM users WHERE id = ?', [id], () => {
-              req.flash('error', 'Signup failed');
-              return res.redirect(`/signup/${role}`);
-            });
-            return;
-          }
+        try {
+          await createGallery(username, display_name);
           req.session.user = { id, username, role };
           return res.redirect(`/dashboard/${role}`);
-        });
+        } catch (err2) {
+          await new Promise(resolve => db.run('DELETE FROM users WHERE id = ?', [id], resolve));
+          req.flash('error', 'Signup failed');
+          return res.redirect(`/signup/${role}`);
+        }
       } else {
         req.session.user = { id, username, role };
         return res.redirect(`/dashboard/${role}`);
       }
-    });
+    } catch (err) {
+      req.flash('error', 'Signup failed');
+      return res.redirect(`/signup/${role}`);
+    }
   };
 }
 
@@ -88,31 +84,28 @@ router.get('/login', csrfProtection, (req, res) => {
   res.render('login');
 });
 
-router.post('/login', csrfProtection, (req, res) => {
+router.post('/login', csrfProtection, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     req.flash('error', 'All fields are required');
     return res.redirect('/login');
   }
-  findUserByUsername(username, (err, user) => {
-    if (err) {
-      console.error('Error finding user by username:', err);
-      req.flash('error', 'Server error');
-      return res.redirect('/login');
-    }
+  try {
+    const user = await findUserByUsername(username);
     if (user) {
-      return bcrypt.compare(password, user.password, (err2, match) => {
-        if (match) {
-          req.session.user = { id: user.id, username: user.username, role: user.role };
-          return res.redirect(`/dashboard/${user.role}`);
-        }
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-          req.session.user = { username, role: 'admin' };
-          return res.redirect('/dashboard');
-        }
-        req.flash('error', 'Invalid credentials');
-        return res.redirect('/login');
+      const match = await new Promise((resolve, reject) => {
+        bcrypt.compare(password, user.password, (err, m) => (err ? reject(err) : resolve(m)));
       });
+      if (match) {
+        req.session.user = { id: user.id, username: user.username, role: user.role };
+        return res.redirect(`/dashboard/${user.role}`);
+      }
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        req.session.user = { username, role: 'admin' };
+        return res.redirect('/dashboard');
+      }
+      req.flash('error', 'Invalid credentials');
+      return res.redirect('/login');
     }
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       req.session.user = { username, role: 'admin' };
@@ -120,7 +113,11 @@ router.post('/login', csrfProtection, (req, res) => {
     }
     req.flash('error', 'Invalid credentials');
     res.redirect('/login');
-  });
+  } catch (err) {
+    console.error('Error finding user by username:', err);
+    req.flash('error', 'Server error');
+    res.redirect('/login');
+  }
 });
 
 router.get('/logout', (req, res) => {

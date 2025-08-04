@@ -219,7 +219,7 @@ test('logout destroys session', async () => {
 test('non-admin users cannot access admin routes', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', () => resolve()));
+  await createUser('Artist', username, 'pass', 'artist', 'taos');
   const stored = await new Promise(resolve => {
     db.get('SELECT password FROM users WHERE username=?', [username], (err, row) => resolve(row));
   });
@@ -401,8 +401,8 @@ test('artist and artwork routes require login', async () => {
 test('artist artwork submission rejects invalid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
+  const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
+  await createArtist(userId, 'Artist', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -425,8 +425,8 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
 test('artist cannot access admin dashboard', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}x`;
-  const userId = await new Promise(resolve => createUser('Artist2', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', 1, () => resolve()));
+  const userId = await createUser('Artist2', username, 'pass', 'artist', 'taos');
+  await createArtist(userId, 'Artist2', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -442,8 +442,8 @@ test('artist cannot access admin dashboard', async () => {
 test('artist artwork submission succeeds with valid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
+  const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
+  await createArtist(userId, 'Artist', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];

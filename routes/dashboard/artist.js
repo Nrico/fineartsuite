@@ -28,41 +28,54 @@ function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/', requireRole('artist'), csrfProtection, async (req, res) => {
   res.locals.csrfToken = req.csrfToken();
-  getCollectionsByArtist(req.session.user.id, (err, collections) => {
-    getArtworksByArtist(req.session.user.id, (err2, artworks) => {
-      getArtistById(req.session.user.id, (err3, artist) => {
-        res.render('dashboard/artist', {
-          user: req.session.user,
-          collections: collections || [],
-          artworks: artworks || [],
-          artist: artist || {}
-        });
-      });
+  try {
+    const [collections, artworks, artist] = await Promise.all([
+      getCollectionsByArtist(req.session.user.id),
+      getArtworksByArtist(req.session.user.id),
+      getArtistById(req.session.user.id)
+    ]);
+    res.render('dashboard/artist', {
+      user: req.session.user,
+      collections: collections || [],
+      artworks: artworks || [],
+      artist: artist || {}
     });
-  });
+  } catch (err) {
+    console.error(err);
+    res.render('dashboard/artist', {
+      user: req.session.user,
+      collections: [],
+      artworks: [],
+      artist: {}
+    });
+  }
 });
 
 router.get('/collections', requireRole('artist'), (req, res) => {
   res.redirect('/dashboard/artist');
 });
 
-router.post('/collections', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/collections', requireRole('artist'), csrfProtection, async (req, res) => {
   const { name } = req.body;
   const slug = slugify(name);
-  createCollection(name, req.session.user.id, slug, err => {
-    if (err) req.flash('error', 'Could not create collection');
-    res.redirect('/dashboard/artist');
-  });
+  try {
+    await createCollection(name, req.session.user.id, slug);
+  } catch (err) {
+    req.flash('error', 'Could not create collection');
+  }
+  res.redirect('/dashboard/artist');
 });
 
-router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/collections/:id', requireRole('artist'), csrfProtection, async (req, res) => {
   const { name } = req.body;
-  updateCollection(req.params.id, name, err => {
-    if (err) req.flash('error', 'Could not update collection');
-    res.redirect('/dashboard/artist');
-  });
+  try {
+    await updateCollection(req.params.id, name);
+  } catch (err) {
+    req.flash('error', 'Could not update collection');
+  }
+  res.redirect('/dashboard/artist');
 });
 
 router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
@@ -85,15 +98,14 @@ router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), cs
     } else {
       avatarUrl = currentBioImageUrl;
     }
-    updateArtist(req.session.user.id, name, bio, fullBio || '', avatarUrl || '', err2 => {
-      if (err2) {
-        console.error(err2);
-        req.flash('error', 'Could not update profile');
-      } else {
-        req.flash('success', 'Profile updated');
-      }
-      res.redirect('/dashboard/artist');
-    });
+    try {
+      await updateArtist(req.session.user.id, name, bio, fullBio || '', avatarUrl || '');
+      req.flash('success', 'Profile updated');
+    } catch (err2) {
+      console.error(err2);
+      req.flash('error', 'Could not update profile');
+    }
+    res.redirect('/dashboard/artist');
   } catch (err) {
     console.error(err);
     req.flash('error', 'Image processing failed');
@@ -126,27 +138,25 @@ router.post('/artworks', requireRole('artist'), upload.single('imageFile'), csrf
     } else {
       images = { imageFull: '', imageStandard: '', imageThumb: '' };
     }
-    createArtwork(
-      req.session.user.id,
-      title,
-      medium,
-      dimensions,
-      price,
-      description,
-      framed === 'on',
-      readyToHang === 'on',
-      images,
-      isFeatured === 'on',
-      createErr => {
-      if (createErr) {
-        console.error(createErr);
-        req.flash('error', 'Could not create artwork');
-      } else {
-        req.flash('success', action === 'save' ? 'Artwork saved' : 'Artwork added');
-      }
-      res.redirect('/dashboard/artist');
+    try {
+      await createArtwork(
+        req.session.user.id,
+        title,
+        medium,
+        dimensions,
+        price,
+        description,
+        framed === 'on',
+        readyToHang === 'on',
+        images,
+        isFeatured === 'on'
+      );
+      req.flash('success', action === 'save' ? 'Artwork saved' : 'Artwork added');
+    } catch (createErr) {
+      console.error(createErr);
+      req.flash('error', 'Could not create artwork');
     }
-    );
+    res.redirect('/dashboard/artist');
   } catch (err) {
     console.error(err);
     req.flash('error', 'Image processing failed');
@@ -154,12 +164,14 @@ router.post('/artworks', requireRole('artist'), upload.single('imageFile'), csrf
   }
 });
 
-router.post('/artworks/:id/collection', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/artworks/:id/collection', requireRole('artist'), csrfProtection, async (req, res) => {
   const { collection_id } = req.body;
-  updateArtworkCollection(req.params.id, collection_id || null, err => {
-    if (err) req.flash('error', 'Could not update artwork');
-    res.redirect('/dashboard/artist');
-  });
+  try {
+    await updateArtworkCollection(req.params.id, collection_id || null);
+  } catch (err) {
+    req.flash('error', 'Could not update artwork');
+  }
+  res.redirect('/dashboard/artist');
 });
 
 // Handle CSRF token errors specifically for artist dashboard routes
