@@ -44,4 +44,4 @@ function generateUniqueSlug(db, table, column, title) {
   });
 }
 
-module.exports = { generateUniqueSlug };
+module.exports = { slugify, generateUniqueSlug };
