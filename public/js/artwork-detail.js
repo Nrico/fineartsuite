@@ -10,26 +10,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const tabAbout = document.getElementById('tab-about');
+  const tabDescription = document.getElementById('tab-description');
   const tabDetails = document.getElementById('tab-details');
-  const contentAbout = document.getElementById('content-about');
+  const contentDescription = document.getElementById('content-description');
   const contentDetails = document.getElementById('content-details');
-  if (tabAbout && tabDetails && contentAbout && contentDetails) {
-    tabAbout.addEventListener('click', () => {
-      tabAbout.classList.add('border-black');
-      tabAbout.classList.remove('text-gray-500');
-      tabDetails.classList.remove('border-black');
-      tabDetails.classList.add('text-gray-500');
-      contentAbout.classList.remove('hidden');
-      contentDetails.classList.add('hidden');
+
+  const showContent = (el) => {
+    el.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      el.classList.remove('opacity-0');
+    });
+  };
+
+  const hideContent = (el) => {
+    el.classList.add('opacity-0');
+    el.addEventListener('transitionend', () => {
+      el.classList.add('hidden');
+    }, { once: true });
+  };
+
+  if (tabDescription && tabDetails && contentDescription && contentDetails) {
+    tabDescription.addEventListener('click', () => {
+      tabDescription.classList.add('font-bold', 'border-black');
+      tabDescription.classList.remove('text-gray-500', 'border-transparent');
+      tabDetails.classList.remove('font-bold', 'border-black');
+      tabDetails.classList.add('text-gray-500', 'border-transparent');
+      showContent(contentDescription);
+      hideContent(contentDetails);
     });
     tabDetails.addEventListener('click', () => {
-      tabDetails.classList.add('border-black');
-      tabDetails.classList.remove('text-gray-500');
-      tabAbout.classList.remove('border-black');
-      tabAbout.classList.add('text-gray-500');
-      contentDetails.classList.remove('hidden');
-      contentAbout.classList.add('hidden');
+      tabDetails.classList.add('font-bold', 'border-black');
+      tabDetails.classList.remove('text-gray-500', 'border-transparent');
+      tabDescription.classList.remove('font-bold', 'border-black');
+      tabDescription.classList.add('text-gray-500', 'border-transparent');
+      showContent(contentDetails);
+      hideContent(contentDescription);
     });
   }
 });

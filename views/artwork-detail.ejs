@@ -44,13 +44,13 @@
 
     <section class="mt-8">
       <div class="flex border-b">
-        <button id="tab-about" class="px-4 py-2 font-medium border-b-2 border-black">About the Work</button>
-        <button id="tab-details" class="px-4 py-2 font-medium text-gray-500">Details/Dimensions</button>
+        <button id="tab-description" class="px-4 py-2 border-b-2 font-bold border-black">Description</button>
+        <button id="tab-details" class="px-4 py-2 border-b-2 border-transparent text-gray-500">Details &amp; Dimensions</button>
       </div>
-      <div id="content-about" class="mt-4">
+      <div id="content-description" class="mt-4 transition-opacity duration-300">
         <p class="text-base text-gray-700"><%= artwork.description || 'No description available.' %></p>
       </div>
-      <div id="content-details" class="mt-4 hidden">
+      <div id="content-details" class="mt-4 hidden opacity-0 transition-opacity duration-300">
         <ul class="space-y-2 text-base text-gray-700">
           <li><span class="font-semibold">Medium:</span> <%= artwork.medium %></li>
           <li><span class="font-semibold">Size:</span> <%= artwork.dimensions %></li>
