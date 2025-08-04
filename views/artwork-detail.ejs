@@ -73,14 +73,15 @@
     <% if (moreFromArtist && moreFromArtist.length) { %>
     <section class="mt-10">
       <h2 class="text-xl font-semibold mb-4">More from <%= artist.name %></h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <% moreFromArtist.forEach(a => { %>
-          <a href="/<%= slug %>/artworks/<%= a.id %>" class="block bg-gray-100 p-2 text-center">
-            <div class="flex items-center justify-center mb-2 bg-white">
-              <img src="<%= a.imageThumb %>" alt="<%= a.title %>" class="h-48 object-cover" loading="lazy">
+          <a href="/<%= slug %>/artworks/<%= a.id %>" class="flex flex-col items-center bg-gray-100 p-4 text-center">
+            <div class="flex items-center justify-center h-48 mb-2 w-full">
+              <img src="<%= a.imageThumb %>" alt="<%= a.title %>" class="max-h-full object-contain" loading="lazy">
             </div>
             <div class="text-sm font-medium"><%= a.title %></div>
-            <div class="text-xs text-gray-600"><%= a.medium %>, <%= a.dimensions %></div>
+            <div class="text-xs text-gray-600"><%= a.medium %></div>
+            <div class="text-xs text-gray-600"><%= a.dimensions %></div>
           </a>
         <% }); %>
       </div>
@@ -89,16 +90,16 @@
 
     <% if (relatedArtworks && relatedArtworks.length) { %>
     <section class="mt-10">
-      <h2 class="text-xl font-semibold mb-4">Related Artworks</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <h2 class="text-xl font-semibold mb-4">You May Also Like</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <% relatedArtworks.forEach(r => { %>
-          <a href="/<%= slug %>/artworks/<%= r.id %>" class="block text-center">
-            <div class="bg-gray-100 mb-2 flex items-center justify-center">
-              <img src="<%= r.imageThumb %>" alt="<%= r.title %>" class="h-40 object-cover" loading="lazy">
+          <a href="/<%= slug %>/artworks/<%= r.id %>" class="flex flex-col items-center bg-gray-100 p-4 text-center">
+            <div class="flex items-center justify-center h-48 mb-2 w-full">
+              <img src="<%= r.imageThumb %>" alt="<%= r.title %>" class="max-h-full object-contain" loading="lazy">
             </div>
             <div class="text-sm font-medium"><%= r.title %></div>
-            <div class="text-xs text-gray-600"><%= r.artistName %></div>
-            <div class="text-xs text-gray-600"><%= r.medium %>, <%= r.dimensions %></div>
+            <div class="text-xs text-gray-600"><%= r.medium %></div>
+            <div class="text-xs text-gray-600"><%= r.dimensions %></div>
           </a>
         <% }); %>
       </div>
