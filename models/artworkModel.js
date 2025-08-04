@@ -3,7 +3,8 @@ const { db } = require('./db');
 function getArtwork(gallerySlug, id, cb) {
   const query = `SELECT artworks.*, artists.gallery_slug, artists.id as artistId
                  FROM artworks JOIN artists ON artworks.artist_id = artists.id
-                 WHERE artworks.id = ? AND artists.gallery_slug = ?`;
+                 WHERE artworks.id = ? AND artists.gallery_slug = ?
+                 AND artworks.archived = 0 AND artists.archived = 0`;
   db.get(query, [id, gallerySlug], (err, row) => {
     if (err || !row) return cb(err || new Error('Not found'));
     const artwork = {
@@ -29,7 +30,7 @@ function getArtwork(gallerySlug, id, cb) {
 }
 
 function getArtworksByArtist(artistId, cb) {
-  db.all('SELECT * FROM artworks WHERE artist_id = ?', [artistId], cb);
+  db.all('SELECT * FROM artworks WHERE artist_id = ? AND archived = 0', [artistId], cb);
 }
 
 function updateArtworkCollection(id, collectionId, cb) {
@@ -64,4 +65,19 @@ function createArtwork(artistId, title, medium, dimensions, price, description, 
   });
 }
 
-module.exports = { getArtwork, getArtworksByArtist, updateArtworkCollection, createArtwork };
+function archiveArtwork(id, cb) {
+  db.run('UPDATE artworks SET archived = 1 WHERE id = ?', [id], cb);
+}
+
+function unarchiveArtwork(id, cb) {
+  db.run('UPDATE artworks SET archived = 0 WHERE id = ?', [id], cb);
+}
+
+module.exports = {
+  getArtwork,
+  getArtworksByArtist,
+  updateArtworkCollection,
+  createArtwork,
+  archiveArtwork,
+  unarchiveArtwork
+};
