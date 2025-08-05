@@ -18,7 +18,8 @@ function initialize() {
       gallarist_name TEXT,
       bio_short TEXT,
       bio_full TEXT,
-      logo_url TEXT
+      logo_url TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS artists (
@@ -34,7 +35,8 @@ function initialize() {
       gallery_id TEXT,
       archived INTEGER DEFAULT 0,
       live INTEGER DEFAULT 0,
-      display_order INTEGER DEFAULT 0
+      display_order INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -43,14 +45,16 @@ function initialize() {
       username TEXT UNIQUE,
       password TEXT,
       role TEXT,
-      promo_code TEXT
+      promo_code TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS collections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       artist_id TEXT,
-      slug TEXT
+      slug TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS artworks (
@@ -73,8 +77,39 @@ function initialize() {
       description TEXT,
       framed INTEGER DEFAULT 0,
       ready_to_hang INTEGER DEFAULT 0,
-      archived INTEGER DEFAULT 0
+      archived INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    db.run(`CREATE TRIGGER IF NOT EXISTS galleries_updated_at AFTER UPDATE ON galleries
+             FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+             BEGIN
+               UPDATE galleries SET updated_at = CURRENT_TIMESTAMP WHERE slug = OLD.slug;
+             END`);
+
+    db.run(`CREATE TRIGGER IF NOT EXISTS artists_updated_at AFTER UPDATE ON artists
+             FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+             BEGIN
+               UPDATE artists SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+             END`);
+
+    db.run(`CREATE TRIGGER IF NOT EXISTS users_updated_at AFTER UPDATE ON users
+             FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+             BEGIN
+               UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+             END`);
+
+    db.run(`CREATE TRIGGER IF NOT EXISTS collections_updated_at AFTER UPDATE ON collections
+             FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+             BEGIN
+               UPDATE collections SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+             END`);
+
+    db.run(`CREATE TRIGGER IF NOT EXISTS artworks_updated_at AFTER UPDATE ON artworks
+             FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+             BEGIN
+               UPDATE artworks SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+             END`);
 
     db.get('SELECT COUNT(*) as count FROM galleries', (err, row) => {
       if (err) return;
