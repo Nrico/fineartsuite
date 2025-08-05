@@ -210,6 +210,8 @@
             }
           }, 1000);
         } catch(err) {
+          const message = err.message || 'Error saving artwork';
+          alert(message);
           btn.textContent = 'Error';
           setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
         }
