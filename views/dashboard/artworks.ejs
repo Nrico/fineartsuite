@@ -87,6 +87,7 @@
       <div class="art-form-wrapper max-h-0 opacity-0 overflow-hidden transition-all ease-in-out">
         <form class="p-4 space-y-2 art-form" data-new="true" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (user.role !== 'artist') { %>
           <label class="block text-sm font-medium">Artist
             <select name="artist_id" class="mt-1 w-full border rounded px-2 py-1 artist-select">
               <% artists.forEach(function(a){ %>
@@ -94,6 +95,7 @@
               <% }) %>
             </select>
           </label>
+          <% } %>
           <label class="block text-sm font-medium">Title
             <input name="title" class="mt-1 w-full border rounded px-2 py-1"/>
           </label>
