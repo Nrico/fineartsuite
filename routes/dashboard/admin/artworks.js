@@ -71,7 +71,6 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
   try {
     let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
     if (!artist_id || !title || !medium || !dimensions) {
-      req.flash('error', 'All fields are required');
       return res.status(400).send('All fields are required');
     }
     const artist = await new Promise((resolve, reject) => {
@@ -80,11 +79,9 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       });
     });
     if (!artist) {
-      req.flash('error', 'Artist not found');
       return res.status(400).send('Artist not found');
     }
     if (req.user.role === 'gallery' && artist.gallery_slug !== req.user.username) {
-      req.flash('error', 'Artist not found');
       return res.status(403).send('Forbidden');
     }
     const gallery_slug = artist.gallery_slug;
@@ -94,7 +91,6 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       });
     });
     if (!gallery) {
-      req.flash('error', 'Gallery not found');
       return res.status(400).send('Gallery not found');
     }
     if (!id) {
@@ -105,17 +101,14 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
       const sanitized = price.replace(/[^0-9.]/g, '');
       const parsed = parseFloat(sanitized);
       if (isNaN(parsed)) {
-        req.flash('error', 'Price must be a valid number');
         return res.status(400).send('Price must be a valid number');
       }
       priceValue = parsed.toFixed(2);
     }
     if (req.file && imageUrl) {
-      req.flash('error', 'Choose either an upload or a URL');
       return res.status(400).send('Choose either an upload or a URL');
     }
     if (!req.file && !imageUrl) {
-      req.flash('error', 'Image is required');
       return res.status(400).send('Image is required');
     }
     let images = {};
@@ -124,7 +117,6 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
         images = await processImages(req.file);
       } catch (imageErr) {
         console.error(imageErr);
-        req.flash('error', 'Image processing failed');
         return res.status(500).send('Image processing failed');
       }
     } else if (imageUrl) {
@@ -137,15 +129,12 @@ router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFi
     db.run(stmt, params, runErr => {
       if (runErr) {
         console.error(runErr);
-        req.flash('error', 'Database error');
         return res.status(500).send('Database error');
       }
-      req.flash('success', 'Artwork added');
       res.status(201).json({ id });
     });
   } catch (error) {
     console.error(error);
-    req.flash('error', 'Server error');
     res.status(500).send('Server error');
   }
 });
@@ -194,7 +183,6 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imag
         console.error(dbErr);
         return res.status(500).send('Database error');
       }
-      req.flash('success', 'Artwork saved');
       res.sendStatus(204);
     });
   } catch (e) {
@@ -210,7 +198,6 @@ router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProte
         console.error(err);
         return res.status(500).send('Database error');
       }
-      req.flash('success', 'Artwork archived');
       res.sendStatus(204);
     });
   };
@@ -233,7 +220,6 @@ router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfPro
         console.error(err);
         return res.status(500).send('Database error');
       }
-      req.flash('success', 'Artwork unarchived');
       res.sendStatus(204);
     });
   };
@@ -257,7 +243,6 @@ router.delete('/artworks/:id', requireRole('admin', 'gallery'), csrfProtection, 
           console.error(err);
           return res.status(500).send('Database error');
         }
-        req.flash('success', 'Artwork deleted');
         res.sendStatus(204);
       });
     };
