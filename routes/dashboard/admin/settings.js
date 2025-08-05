@@ -40,6 +40,17 @@ router.get('/settings', requireRole('admin', 'gallery'), csrfProtection, (req, r
   );
 });
 
+router.post('/settings/logo', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const images = await processImages(req.file);
+    res.json({ url: images.imageStandard });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Image processing failed' });
+  }
+});
+
 router.post('/settings', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
   try {
     const slug = req.user.role === 'gallery' ? req.user.username : req.body.slug;
