@@ -95,7 +95,8 @@ app.use((err, req, res, next) => {
     return res.status(403).render('403');
   }
   console.error(err);
-  res.status(500).send('Server error');
+  const status = err.status || err.statusCode || 500;
+  res.status(status).send(err.message || 'Server error');
 });
 
 const PORT = process.env.PORT || 3000;
