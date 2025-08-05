@@ -475,6 +475,31 @@ test('artist artwork submission succeeds with valid CSRF token', async () => {
   }));
 });
 
+test('artist can publish site and view public link', async () => {
+  const port = server.address().port;
+  const username = `pub${randomUUID()}`;
+  const userId = await new Promise(resolve => createUser('Pub', username, 'pass', 'artist', 'demo-gallery', (err, id) => resolve(id)));
+  await new Promise(resolve => createArtist(userId, 'Pub', 'demo-gallery', 0, () => resolve()));
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const loginRes = await httpPostForm(`http://localhost:${port}/login`, { username, password: 'pass', _csrf: loginCsrf }, cookie);
+  if (loginRes.headers['set-cookie']) {
+    cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+  }
+  const dash = await httpGet(`http://localhost:${port}/dashboard/artist`, cookie);
+  const csrf = extractCsrfToken(dash.body);
+  const pubRes = await httpPostForm(`http://localhost:${port}/dashboard/artist/publish`, { _csrf: csrf }, cookie);
+  assert.strictEqual(pubRes.statusCode, 302);
+  assert.strictEqual(pubRes.headers.location, '/dashboard/artist');
+  const row = await new Promise(resolve => {
+    db.get('SELECT live FROM artists WHERE id = ?', [userId], (err, r) => resolve(r));
+  });
+  assert.strictEqual(row.live, 1);
+  const publicPage = await httpGet(`http://localhost:${port}/demo-gallery/artists/${userId}`);
+  assert.strictEqual(publicPage.statusCode, 200);
+});
+
 test('upload post requires login', async () => {
   const port = server.address().port;
   const temp = path.join(__dirname, 'temp.jpg');

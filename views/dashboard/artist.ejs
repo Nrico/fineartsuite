@@ -17,11 +17,18 @@
       <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
     <% } %>
     <% if (artist.gallery_slug) { %>
-      <p class="mb-4 text-center">Your public page is available at
-        <a href="/<%= artist.gallery_slug %>/artists/<%= artist.id %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
-          /<%= artist.gallery_slug %>/artists/<%= artist.id %>
-        </a>
-      </p>
+      <% if (artist.live) { %>
+        <p class="mb-4 text-center">Your public page is available at
+          <a href="/<%= artist.gallery_slug %>/artists/<%= artist.id %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+            /<%= artist.gallery_slug %>/artists/<%= artist.id %>
+          </a>
+        </p>
+      <% } else { %>
+        <form method="POST" action="/dashboard/artist/publish" class="mb-4 text-center">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Publish My Site</button>
+        </form>
+      <% } %>
     <% } %>
     <section class="mb-8">
       <h2 class="text-xl font-semibold mb-4">Profile</h2>
