@@ -5,6 +5,7 @@
   <title>Gallery Settings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/main.css">
+  <meta name="csrf-token" content="<%= csrfToken %>">
 </head>
 <body class="font-sans bg-white text-black">
     <%- include('../partials/navbar'); %>
@@ -50,13 +51,16 @@
         <div>
           <label class="block text-sm font-medium" for="logoFile">Logo File</label>
           <input type="file" id="logoFile" name="logoFile" accept="image/*" class="mt-1 w-full">
+          <p id="logo-upload-status" class="text-sm text-gray-600 mt-1"></p>
           <% if (settings.logo_url) { %>
-            <img src="<%= settings.logo_url %>" alt="Logo" class="mt-2 max-h-24">
+            <img id="logoPreview" src="<%= settings.logo_url %>" alt="Logo" class="mt-2 max-h-24">
             <input type="hidden" name="existingLogo" value="<%= settings.logo_url %>">
+          <% } else { %>
+            <img id="logoPreview" src="" alt="Logo" class="mt-2 max-h-24 hidden">
           <% } %>
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+        <button type="submit" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
       </form>
         <p class="mt-6 text-center"><a href="<%= dashboardUrl %>" class="text-blue-600 underline">Back to dashboard</a></p>
     </div>
@@ -64,5 +68,46 @@
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
+
+  <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const logoFileInput = document.getElementById('logoFile');
+    const logoUrlInput = document.getElementById('logoUrl');
+    const uploadStatus = document.getElementById('logo-upload-status');
+    const logoPreview = document.getElementById('logoPreview');
+    const form = document.querySelector('form');
+    const saveBtn = form.querySelector('.save-btn');
+
+    logoFileInput.addEventListener('change', async () => {
+      const file = logoFileInput.files[0];
+      if (!file) return;
+      uploadStatus.textContent = 'Uploading...';
+      const formData = new FormData();
+      formData.append('logoFile', file);
+      try {
+        const res = await fetch('/dashboard/settings/logo', {
+          method: 'POST',
+          headers: { 'CSRF-Token': csrfToken },
+          body: formData
+        });
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
+        const data = await res.json();
+        logoUrlInput.value = data.url;
+        logoFileInput.value = '';
+        logoPreview.src = data.url;
+        logoPreview.classList.remove('hidden');
+        uploadStatus.textContent = 'Uploaded';
+      } catch (err) {
+        uploadStatus.textContent = 'Upload failed';
+      }
+    });
+
+    form.addEventListener('submit', () => {
+      saveBtn.disabled = true;
+      saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      saveBtn.textContent = 'Saving...';
+    });
+  </script>
+
 </body>
 </html>
