@@ -33,6 +33,11 @@ function updateArtist(id, name, bio, fullBio, bioImageUrl, cb) {
   db.run(stmt, [name, bio, fullBio, bioImageUrl, id], cb);
 }
 
+function setArtistLive(id, live, cb) {
+  const stmt = 'UPDATE artists SET live = ? WHERE id = ?';
+  db.run(stmt, [live ? 1 : 0, id], cb);
+}
+
 function toggleArchive(id, archived, cb) {
   db.serialize(() => {
     db.run('BEGIN TRANSACTION');
@@ -60,6 +65,7 @@ module.exports = {
   createArtist,
   getArtistById,
   updateArtist,
+  setArtistLive,
   archiveArtist,
   unarchiveArtist
 };

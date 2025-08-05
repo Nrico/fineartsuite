@@ -8,7 +8,7 @@ const { processImages, uploadsDir } = require('../../utils/image');
 const { slugify } = require('../../utils/slug');
 const { createCollection, getCollectionsByArtist, updateCollection } = require('../../models/collectionModel');
 const { getArtworksByArtist, updateArtworkCollection, createArtwork } = require('../../models/artworkModel');
-const { getArtistById, updateArtist } = require('../../models/artistModel');
+const { getArtistById, updateArtist, setArtistLive } = require('../../models/artistModel');
 
 const upload = multer({
   dest: uploadsDir,
@@ -58,6 +58,17 @@ router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res
   const { name } = req.body;
   updateCollection(req.params.id, name, err => {
     if (err) req.flash('error', 'Could not update collection');
+    res.redirect('/dashboard/artist');
+  });
+});
+
+router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
+  setArtistLive(req.session.user.id, 1, err => {
+    if (err) {
+      req.flash('error', 'Could not publish site');
+    } else {
+      req.flash('success', 'Site published');
+    }
     res.redirect('/dashboard/artist');
   });
 });
