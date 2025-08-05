@@ -26,24 +26,39 @@ const upload = multer({
   }
 });
 
-router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+router.get('/artworks', requireRole('admin', 'gallery', 'artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   try {
-    const artQuery = req.user.role === 'gallery'
-      ? ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]]
-      : ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id', []];
+    let artQuery;
+    if (req.user.role === 'gallery') {
+      artQuery = ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.gallery_slug = ?', [req.user.username]];
+    } else if (req.user.role === 'artist') {
+      artQuery = ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE a.artist_id = ?', [req.user.id]];
+    } else {
+      artQuery = ['SELECT a.*, ar.name AS artist_name FROM artworks a LEFT JOIN artists ar ON a.artist_id = ar.id', []];
+    }
     db.all(...artQuery, (err, artworks) => {
       if (err) {
         console.error(err);
         req.flash('error', 'Database error');
         return res.render('dashboard/artworks', { artworks: [], collections: [], artists: [] });
       }
-      const collQuery = req.user.role === 'gallery'
-        ? ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]]
-        : ['SELECT id, name FROM collections', []];
-      const artistQuery = req.user.role === 'gallery'
-        ? ['SELECT id, name FROM artists WHERE gallery_slug = ? ORDER BY display_order', [req.user.username]]
-        : ['SELECT id, name FROM artists ORDER BY display_order', []];
+      let collQuery;
+      if (req.user.role === 'gallery') {
+        collQuery = ['SELECT c.id, c.name FROM collections c JOIN artists a ON c.artist_id = a.id WHERE a.gallery_slug = ?', [req.user.username]];
+      } else if (req.user.role === 'artist') {
+        collQuery = ['SELECT id, name FROM collections WHERE artist_id = ?', [req.user.id]];
+      } else {
+        collQuery = ['SELECT id, name FROM collections', []];
+      }
+      let artistQuery;
+      if (req.user.role === 'gallery') {
+        artistQuery = ['SELECT id, name FROM artists WHERE gallery_slug = ? ORDER BY display_order', [req.user.username]];
+      } else if (req.user.role === 'artist') {
+        artistQuery = ['SELECT id, name FROM artists WHERE id = ?', [req.user.id]];
+      } else {
+        artistQuery = ['SELECT id, name FROM artists ORDER BY display_order', []];
+      }
       db.all(...collQuery, (cErr, collections) => {
         if (cErr) {
           console.error(cErr);
@@ -67,10 +82,13 @@ router.get('/artworks', requireRole('admin', 'gallery'), csrfProtection, (req, r
   }
 });
 
-router.post('/artworks', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
+router.post('/artworks', requireRole('admin', 'gallery', 'artist'), upload.single('imageFile'), csrfProtection, async (req, res) => {
   try {
     let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
-    if (!artist_id || !title || !medium || !dimensions) {
+    if (req.user.role === 'artist') {
+      artist_id = req.user.id;
+    }
+    if ((!artist_id && req.user.role !== 'artist') || !title || !medium || !dimensions) {
       return res.status(400).send('All fields are required');
     }
     const artist = await new Promise((resolve, reject) => {

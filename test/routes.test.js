@@ -216,7 +216,7 @@ test('logout destroys session', async () => {
   assert.strictEqual(dash.headers.location, '/login');
 });
 
-test('non-admin users cannot access admin routes', async () => {
+test('non-admin users have limited access to admin routes', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
   await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', () => resolve()));
@@ -243,7 +243,7 @@ test('non-admin users cannot access admin routes', async () => {
   res = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
   assert.strictEqual(res.statusCode, 403);
   res = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
-  assert.strictEqual(res.statusCode, 403);
+  assert.strictEqual(res.statusCode, 200);
 });
 
 test('admin artist routes allow CRUD after login', async () => {
@@ -319,6 +319,38 @@ test('admin artwork routes allow CRUD after login', async () => {
   await httpRequest('DELETE', `http://localhost:${port}/dashboard/artworks/${id}`, null, cookie, token);
   res = await httpGet(`http://localhost:${port}/demo-gallery/artworks/${id}`);
   assert.strictEqual(res.statusCode, 404);
+});
+
+test('artist can upload artwork without specifying artist_id', async () => {
+  const port = server.address().port;
+  const username = `artist${randomUUID()}`;
+  const password = 'password';
+  const artistId = await new Promise((resolve, reject) => {
+    createUser('Artist Test', username, password, 'artist', 'taos', (err, id) => err ? reject(err) : resolve(id));
+  });
+  await new Promise((resolve, reject) => {
+    createArtist(artistId, 'Artist Test', 'demo-gallery', 1, err => err ? reject(err) : resolve());
+  });
+  const loginPage = await httpGet(`http://localhost:${port}/login`);
+  const loginCsrf = extractCsrfToken(loginPage.body);
+  let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
+  const login = await httpPostForm(`http://localhost:${port}/login`, { username, password, _csrf: loginCsrf }, cookie);
+  if (login.headers['set-cookie']) {
+    cookie = login.headers['set-cookie'][0].split(';')[0];
+  }
+  const artPage = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
+  assert.strictEqual(artPage.statusCode, 200);
+  const token = extractCsrfToken(artPage.body);
+  const id = `artistart${randomUUID()}`;
+  const res = await httpPostForm(`http://localhost:${port}/dashboard/artworks`, {
+    id,
+    title: 'Artist Art',
+    medium: 'Oil',
+    dimensions: '10x10',
+    imageUrl: 'http://example.com',
+    _csrf: token
+  }, cookie);
+  assert.strictEqual(res.statusCode, 201);
 });
 
 // Additional tests for auth-required routes and upload functionality
