@@ -25,24 +25,13 @@
 
     <section class="mb-12">
       <h2 class="text-xl font-bold mb-4">Featured Artworks</h2>
-      <ul class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <% gallery.featuredArtworks.forEach(function(art){ %>
-          <li>
-            <a href="/<%= slug %>/artworks/<%= art.id %>" class="block text-center">
-              <img src="<%= art.imageStandard %>" alt="<%= art.title %>" loading="lazy"
-                   class="block w-full h-auto transition-opacity duration-700 opacity-0" data-fade>
-              <div class="mt-2 space-y-1">
-                <span class="font-semibold block"><%= art.title %></span>
-                <span class="text-sm"><%= art.artistName %></span>
-                <% const showPrice = !(art.status === 'collected' && art.price); %>
-                <% if (art.price && showPrice) { %>
-                  <span class="text-sm text-gray-600 block"><%= art.price %></span>
-                <% } %>
-              </div>
-            </a>
-          </li>
-        <% }) %>
-      </ul>
+      <%- include('partials/artwork-grid', {
+        artworks: gallery.featuredArtworks,
+        slug,
+        showArtistName: true,
+        featured: false,
+        gridClasses: 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
+      }) %>
     </section>
 
     <section>
