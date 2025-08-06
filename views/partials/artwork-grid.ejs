@@ -1,0 +1,44 @@
+<% const classes = typeof gridClasses !== 'undefined' ? gridClasses : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8'; %>
+<% const showName = typeof showArtistName !== 'undefined' ? showArtistName : false; %>
+<ul class="<%= classes %>">
+  <% artworks.forEach(function(art){ %>
+    <li class="<%= featured && art.isFeatured ? 'md:col-span-2' : '' %>">
+      <a href="/<%= slug %>/artworks/<%= art.id %>" class="block <%= showName ? 'text-center' : '' %>">
+        <img src="<%= art.imageThumb || art.imageStandard %>" alt="<%= art.title %>" loading="lazy" class="<%= showName ? 'block w-full h-auto' : 'w-full mb-2' %> transition-opacity duration-700 opacity-0" data-fade>
+        <% if (showName) { %>
+          <div class="mt-2 space-y-1">
+            <span class="font-semibold block"><%= art.title %></span>
+            <% if (art.artistName) { %><span class="text-sm"><%= art.artistName %></span><% } %>
+            <% const showPrice = !(art.status === 'collected' && art.price); %>
+            <% if (art.price && showPrice) { %>
+              <span class="text-sm text-gray-600 block"><%= art.price %></span>
+            <% } %>
+          </div>
+        <% } else { %>
+          <span class="font-semibold block"><%= art.title %></span>
+        <% } %>
+      </a>
+      <% if (!showName) { %>
+        <% if (art.status) { %>
+          <% if (art.status === 'collected') { %>
+            <span class="text-red-500 flex items-center text-sm">
+              <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+              Collected
+            </span>
+          <% } else if (art.status === 'available') { %>
+            <span class="text-sm">Available</span>
+          <% } else if (art.status === 'inquire') { %>
+            <button class="mt-1 text-sm px-2 py-1 border rounded">Inquire</button>
+          <% } else if (art.status === 'make_offer' || art.status === 'offer') { %>
+            <button class="mt-1 text-sm px-2 py-1 border rounded">Make an Offer</button>
+          <% } %>
+        <% } %>
+        <% const showPrice = !(art.status === 'collected' && art.price); %>
+        <span class="text-sm text-gray-600 block">
+          <%= art.medium %> • <%= art.dimensions %>
+          <% if (showPrice && art.price) { %> • <%= art.price %><% } %>
+        </span>
+      <% } %>
+    </li>
+  <% }) %>
+</ul>
