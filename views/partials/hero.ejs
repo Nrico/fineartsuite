@@ -1,0 +1,29 @@
+<% if (heroData) { %>
+  <section class="mb-12">
+    <% if (heroData.image) { %>
+      <img src="<%= heroData.image %>" alt="<%= heroData.imageAlt || '' %>" class="w-full h-auto mb-4">
+    <% } %>
+
+    <% if (heroData.featuredWork) { %>
+      <div class="text-center mb-4">
+        <% if (heroData.featuredWork.url) { %>
+          <a href="<%= heroData.featuredWork.url %>" class="block">
+        <% } %>
+          <% if (heroData.featuredWork.image) { %>
+            <img src="<%= heroData.featuredWork.image %>" alt="<%= heroData.featuredWork.title %>" class="w-full h-auto mb-2">
+          <% } %>
+          <h2 class="text-xl font-bold"><%= heroData.featuredWork.title %></h2>
+          <% if (heroData.featuredWork.artist) { %>
+            <p class="text-gray-600"><%= heroData.featuredWork.artist %></p>
+          <% } %>
+        <% if (heroData.featuredWork.url) { %>
+          </a>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (heroData.announcement) { %>
+      <p class="text-center text-lg font-semibold"><%= heroData.announcement %></p>
+    <% } %>
+  </section>
+<% } %>

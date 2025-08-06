@@ -10,6 +10,7 @@
   <%- include('partials/header', { gallery, slug }) %>
 
   <main class="max-w-4xl mx-auto p-6">
+    <%- include('partials/hero', { heroData }) %>
     <header class="text-center mb-12">
       <% if (gallery.logo_url) { %>
         <img src="<%= gallery.logo_url %>" alt="<%= gallery.name %> logo" class="mx-auto mb-4 w-16 h-16 object-contain">
