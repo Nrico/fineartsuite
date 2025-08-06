@@ -4,7 +4,8 @@ const fs = require('fs');
 const bcrypt = require('../utils/bcrypt');
 const randomAvatar = require('../utils/avatar');
 
-const db = new sqlite3.Database(path.join(__dirname, '..', 'gallery.db'));
+const dbFile = process.env.DB_FILE || path.join(__dirname, '..', 'gallery.db');
+const db = new sqlite3.Database(dbFile);
 
 function initialize() {
   db.serialize(() => {
