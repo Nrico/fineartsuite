@@ -54,6 +54,9 @@ docker build -t fineartsuite .
 docker run -p 3000:3000 -e SESSION_SECRET=changeme fineartsuite
 ```
 
+The Docker image uses a multi-stage build to compile Tailwind CSS, ensuring the
+frontend assets are bundled and styled when the container starts.
+
 The container stores data in a SQLite file. To persist it outside the container
 mount a volume and point `DB_FILE` at the mounted path:
 

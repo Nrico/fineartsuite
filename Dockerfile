@@ -1,20 +1,21 @@
-# Use Node.js 20 LTS image
-FROM node:20
-
-# Create app directory
+# Build stage: install dev dependencies and generate front-end assets
+FROM node:20 AS build
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+# Compile Tailwind CSS into the public folder
+RUN npm run build:css
 
-# Install app dependencies
+# Production stage: install only runtime deps and copy built assets
+FROM node:20 AS production
+WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
-
-# Bundle app source
 COPY . .
-
-# Build CSS assets
-RUN npm run build:css
+# Overwrite with built CSS from the build stage so styling is available
+COPY --from=build /app/public/css ./public/css
 
 ENV NODE_ENV=production
 EXPOSE 3000
-
 CMD ["node", "server.js"]
