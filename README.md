@@ -25,6 +25,7 @@ The server reads credentials and session configuration from environment variable
 - `ADMIN_USERNAME` – username for the admin login (defaults to `admin`)
 - `ADMIN_PASSWORD` – password for the admin login (defaults to `password`)
 - `SESSION_SECRET` – secret used to sign session cookies (required; set to a secure value)
+- `DB_FILE` – optional path to the SQLite database file (defaults to `gallery.db`)
 - `USE_DEMO_AUTH` – set to `true` to automatically log into admin pages
 
 Set these variables before starting the server. The application will refuse to start if `SESSION_SECRET` is not defined.
@@ -43,6 +44,26 @@ Running `npm install` will install this dependency and the application will
 create a `sessions.db` file in the project root to store session data. Session
 cookies are configured with the `secure` flag when `NODE_ENV` is set to
 `production` and always use the `httpOnly` flag for improved security.
+
+## Running with Docker
+
+To build and start the application in a container:
+
+```bash
+docker build -t fineartsuite .
+docker run -p 3000:3000 -e SESSION_SECRET=changeme fineartsuite
+```
+
+The container stores data in a SQLite file. To persist it outside the container
+mount a volume and point `DB_FILE` at the mounted path:
+
+```bash
+docker run -p 3000:3000 \
+  -e SESSION_SECRET=changeme \
+  -v $(pwd)/data:/app/data \
+  -e DB_FILE=/app/data/gallery.db \
+  fineartsuite
+```
 
 ## Gallery pages
 
