@@ -35,7 +35,12 @@ router.get('/faq', (req, res) => {
 router.get('/:gallerySlug', async (req, res) => {
   try {
     const gallery = await getGalleryAsync(req.params.gallerySlug, galleryOptions);
-    res.render('gallery-home', { gallery, slug: req.params.gallerySlug });
+    const heroData = {
+      image: gallery.heroImageUrl,
+      featuredWork: (gallery.featuredArtworks || [])[0],
+      announcement: gallery.announcement
+    };
+    res.render('gallery-home', { gallery, slug: req.params.gallerySlug, heroData });
   } catch (err) {
     send404(res, 'Gallery not found', err);
   }
@@ -52,7 +57,12 @@ router.get('/:gallerySlug/artists/:artistId', async (req, res) => {
 
   try {
     const artist = await getArtistAsync(req.params.gallerySlug, req.params.artistId);
-    res.render('artist-profile', { gallery, artist, slug: req.params.gallerySlug });
+    const heroData = {
+      image: artist.bioImageUrl,
+      featuredWork: (artist.artworks || []).find(a => a.isFeatured),
+      announcement: artist.announcement
+    };
+    res.render('artist-profile', { gallery, artist, slug: req.params.gallerySlug, heroData });
   } catch (err) {
     send404(res, 'Artist not found', err);
   }
