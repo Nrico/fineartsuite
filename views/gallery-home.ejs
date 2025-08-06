@@ -47,13 +47,8 @@
 
     <section>
       <h2 class="text-xl font-bold mb-4">Artists</h2>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-center">
-        <% gallery.artists.forEach(function(artist){ %>
-          <li>
-            <a href="/<%= slug %>/artists/<%= artist.id %>" class="block p-2 hover:underline"><%= artist.name %></a>
-          </li>
-        <% }) %>
-      </ul>
+      <% const artists = gallery.artists; %>
+      <%- include('partials/artist-list', { artists, slug }) %>
     </section>
 
     <div class="mt-12 text-center">
