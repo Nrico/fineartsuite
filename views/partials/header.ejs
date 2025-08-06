@@ -1,0 +1,10 @@
+<nav class="flex flex-col items-center justify-between p-4 border-b border-gray-300 md:flex-row">
+  <a href="/" class="text-2xl font-bold">FineArtSuite</a>
+  <div class="flex gap-4 mt-2 md:mt-0">
+    <% if (typeof artist !== 'undefined') { %>
+      <a href="/<%= slug %>" class="hover:underline">Gallery</a>
+    <% } else { %>
+      <a href="/" class="hover:underline">Home</a>
+    <% } %>
+  </div>
+</nav>
