@@ -1,0 +1,156 @@
+{
+  "roles": {
+    "gallery_owner": {
+      "label": "Gallery Owner",
+      "steps": [
+        {
+          "step": "signup",
+          "actions": [
+            "visit_landing_page",
+            "select_role_gallery_owner",
+            "enter_email_password",
+            "verify_email"
+          ]
+        },
+        {
+          "step": "initial_setup",
+          "actions": [
+            "upload_logo",
+            "add_gallery_bio",
+            "set_location",
+            "add_contact_info",
+            "connect_social_links",
+            "select_template",
+            "set_language_currency",
+            "connect_domain_optional"
+          ]
+        },
+        {
+          "step": "add_artists",
+          "actions": [
+            "invite_artist_by_email",
+            "create_artist_profile",
+            "upload_artist_bio",
+            "assign_artist_to_collection"
+          ]
+        },
+        {
+          "step": "add_artworks",
+          "actions": [
+            "upload_artwork",
+            "enter_artwork_details",
+            "set_pricing_and_status",
+            "organize_by_collection"
+          ]
+        },
+        {
+          "step": "setup_exhibition",
+          "actions": [
+            "create_exhibition",
+            "assign_artworks_and_artists",
+            "set_viewing_status",
+            "schedule_announcement"
+          ]
+        },
+        {
+          "step": "customize_website",
+          "actions": [
+            "choose_homepage_layout",
+            "add_sections",
+            "configure_carousel_or_grid"
+          ]
+        },
+        {
+          "step": "activate_sales",
+          "actions": [
+            "enable_sales",
+            "set_shipping_options",
+            "connect_payment_gateway",
+            "configure_tax",
+            "upload_certificate_template"
+          ]
+        },
+        {
+          "step": "publish_site",
+          "actions": [
+            "preview_site",
+            "go_live"
+          ]
+        },
+        {
+          "step": "manage_site",
+          "actions": [
+            "update_inventory",
+            "post_news",
+            "view_analytics",
+            "track_sales",
+            "use_crm"
+          ]
+        }
+      ]
+    },
+    "artist": {
+      "label": "Artist",
+      "steps": [
+        {
+          "step": "signup",
+          "actions": [
+            "visit_landing_page",
+            "select_role_artist",
+            "enter_email_password",
+            "verify_email"
+          ]
+        },
+        {
+          "step": "initial_setup",
+          "actions": [
+            "upload_headshot",
+            "fill_bio_and_statement",
+            "connect_social_links",
+            "upload_cv",
+            "choose_theme"
+          ]
+        },
+        {
+          "step": "upload_artworks",
+          "actions": [
+            "upload_artwork_files",
+            "enter_details",
+            "set_price_edition_status"
+          ]
+        },
+        {
+          "step": "accept_gallery_invite",
+          "actions": [
+            "review_invite",
+            "accept_terms",
+            "share_selected_works"
+          ]
+        },
+        {
+          "step": "artist_page",
+          "actions": [
+            "enable_personal_page",
+            "customize_layout",
+            "share_public_link"
+          ]
+        },
+        {
+          "step": "track_activity",
+          "actions": [
+            "view_sales",
+            "download_invoices",
+            "update_profile"
+          ]
+        }
+      ]
+    }
+  },
+  "shared_features": [
+    "messaging",
+    "artwork_status_sync",
+    "activity_feed",
+    "email_alerts",
+    "analytics_dashboard"
+  ]
+}
