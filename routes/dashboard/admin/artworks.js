@@ -69,7 +69,7 @@ router.get('/artworks', authorize('admin', 'gallery', 'artist'), csrfProtection,
 
 router.post('/artworks', authorize('admin', 'gallery', 'artist'), upload.single('imageFile'), csrfProtection, async (req, res) => {
   try {
-    let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
+    let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured, collection_id } = req.body;
     if (req.user.role === 'artist') {
       artist_id = req.user.id;
     }
@@ -105,13 +105,21 @@ router.post('/artworks', authorize('admin', 'gallery', 'artist'), upload.single(
       const parsed = parseFloat(sanitized);
       if (!isNaN(parsed)) priceValue = parsed.toFixed(2);
     }
-    let image_url = imageUrl || null;
+    let imageFull = null;
+    let imageStandard = null;
+    let imageThumb = null;
     if (req.file) {
       const images = await processImages(req.file);
-      image_url = images.imageStandard;
+      imageFull = images.imageFull;
+      imageStandard = images.imageStandard;
+      imageThumb = images.imageThumb;
+    } else if (imageUrl) {
+      imageFull = imageUrl;
+      imageStandard = imageUrl;
+      imageThumb = imageUrl;
     }
-    const stmt = 'INSERT OR REPLACE INTO artworks (id, artist_id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
-    db.run(stmt, [id, artist_id, gallery_slug, title, medium, custom_medium || null, dimensions, priceValue, description || null, framed ? 1 : 0, readyToHang ? 1 : 0, image_url, status || 'draft', isVisible ? 1 : 0, isFeatured ? 1 : 0], err2 => {
+    const stmt = 'INSERT OR REPLACE INTO artworks (id, artist_id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, ready_to_hang, imageFull, imageStandard, imageThumb, status, isVisible, isFeatured, collection_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+    db.run(stmt, [id, artist_id, gallery_slug, title, medium, custom_medium || null, dimensions, priceValue, description || null, framed ? 1 : 0, readyToHang ? 1 : 0, imageFull, imageStandard, imageThumb, status || 'draft', isVisible ? 1 : 0, isFeatured ? 1 : 0, collection_id || null], err2 => {
       if (err2) {
         console.error(err2);
         return res.status(500).send('Database error');
