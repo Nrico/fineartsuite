@@ -14,13 +14,15 @@ const { getArtist } = require('../models/artistModel');
 const { getArtwork } = require('../models/artworkModel');
 
 const getGalleryAsync = util.promisify(getGallery);
-const getArtistAsync = util.promisify(getArtist);
 const getArtworkAsync = util.promisify(getArtwork);
 const dbAll = util.promisify(db.all.bind(db));
 
 // Home route displaying available galleries
 router.get('/', (req, res) => {
   db.all('SELECT slug, name FROM galleries', (err, rows) => {
+    if (err) {
+      console.error('Error loading galleries:', err);
+    }
     const galleries = err ? [] : rows;
     res.render('home', { galleries });
   });
@@ -56,7 +58,7 @@ router.get('/:gallerySlug/artists/:artistId', async (req, res) => {
   }
 
   try {
-    const artist = await getArtistAsync(req.params.gallerySlug, req.params.artistId);
+    const artist = await getArtist(req.params.gallerySlug, req.params.artistId);
     const heroData = {
       image: artist.bioImageUrl,
       featuredWork: (artist.artworks || []).find(a => a.isFeatured),
@@ -86,7 +88,7 @@ router.get('/:gallerySlug/artworks/:artworkId', async (req, res) => {
 
   let artist;
   try {
-    artist = await getArtistAsync(req.params.gallerySlug, result.artistId);
+    artist = await getArtist(req.params.gallerySlug, result.artistId);
   } catch (err) {
     return send404(res, 'Artist not found', err);
   }

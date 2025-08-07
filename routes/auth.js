@@ -7,6 +7,11 @@ const { createArtist } = require('../models/artistModel');
 const { createGallery } = require('../models/galleryModel');
 const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
+const { promisify } = require('util');
+
+const createArtistAsync = promisify(createArtist);
+const createGalleryAsync = promisify(createGallery);
+const compareAsync = promisify(bcrypt.compare);
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
@@ -27,9 +32,10 @@ function validateSignup(req) {
   return null;
 }
 
-function handleSignupError(id, req, res, role) {
+function handleSignupError(id, req, res, role, err) {
+  if (err) console.error('Signup error:', err);
   db.run('DELETE FROM users WHERE id = ?', [id], () => {
-    req.flash('error', 'Signup failed');
+    req.flash('error', 'Signup failed. Please try again.');
     res.redirect(`/signup/${role}`);
   });
 }
@@ -39,30 +45,12 @@ function completeSignup(req, res, id, username, role) {
   res.redirect(`/dashboard/${role}`);
 }
 
-function handleArtistSignup(id, username, displayName, req, res) {
-  createArtist(id, displayName, '', err => {
-    if (err) {
-      return handleSignupError(id, req, res, 'artist');
-    }
-    completeSignup(req, res, id, username, 'artist');
-  });
-}
-
-function handleGallerySignup(id, username, displayName, req, res) {
-  createGallery(username, displayName, err => {
-    if (err) {
-      return handleSignupError(id, req, res, 'gallery');
-    }
-    completeSignup(req, res, id, username, 'gallery');
-  });
-}
-
 function isAdminCredentials(username, password) {
   return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
 }
 
 function signupHandler(role) {
-  return (req, res) => {
+  return async (req, res) => {
     const error = validateSignup(req);
     if (error) {
       req.flash('error', error);
@@ -70,19 +58,26 @@ function signupHandler(role) {
     }
 
     const { display_name, username, password, passcode } = req.body;
-    createUser(display_name, username, password, role, passcode, (err, id) => {
-      if (err) {
-        req.flash('error', 'Signup failed');
-        return res.redirect(`/signup/${role}`);
-      }
+    let id;
+    try {
+      id = await createUser(display_name, username, password, role, passcode);
+    } catch (err) {
+      console.error('Error creating user:', err);
+      req.flash('error', 'Signup failed. Please try again.');
+      return res.redirect(`/signup/${role}`);
+    }
+
+    try {
       if (role === 'artist') {
-        return handleArtistSignup(id, username, display_name, req, res);
+        await createArtistAsync(id, display_name, '');
+      } else if (role === 'gallery') {
+        await createGalleryAsync(username, display_name);
       }
-      if (role === 'gallery') {
-        return handleGallerySignup(id, username, display_name, req, res);
-      }
-      completeSignup(req, res, id, username, role);
-    });
+    } catch (err) {
+      return handleSignupError(id, req, res, role, err);
+    }
+
+    completeSignup(req, res, id, username, role);
   };
 }
 
@@ -109,7 +104,7 @@ router.get('/login', csrfProtection, (req, res) => {
   res.render('login');
 });
 
-router.post('/login', csrfProtection, (req, res) => {
+router.post('/login', csrfProtection, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     req.flash('error', 'All fields are required');
@@ -119,25 +114,24 @@ router.post('/login', csrfProtection, (req, res) => {
     req.session.user = { username, role: 'admin' };
     return res.redirect('/dashboard');
   }
-  findUserByUsername(username, (err, user) => {
-    if (err) {
-      console.error('Error finding user by username:', err);
-      req.flash('error', 'Server error');
-      return res.redirect('/login');
-    }
+  try {
+    const user = await findUserByUsername(username);
     if (!user) {
       req.flash('error', 'Invalid credentials');
       return res.redirect('/login');
     }
-    bcrypt.compare(password, user.password, (err2, match) => {
-      if (match) {
-        req.session.user = { id: user.id, username: user.username, role: user.role };
-        return res.redirect(`/dashboard/${user.role}`);
-      }
-      req.flash('error', 'Invalid credentials');
-      res.redirect('/login');
-    });
-  });
+    const match = await compareAsync(password, user.password);
+    if (match) {
+      req.session.user = { id: user.id, username: user.username, role: user.role };
+      return res.redirect(`/dashboard/${user.role}`);
+    }
+    req.flash('error', 'Invalid credentials');
+    res.redirect('/login');
+  } catch (err) {
+    console.error('Login error:', err);
+    req.flash('error', 'Server error');
+    res.redirect('/login');
+  }
 });
 
 router.get('/logout', (req, res) => {
