@@ -30,12 +30,15 @@
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Publish My Site</button>
         </form>
       <% } %>
+    <% } else { %>
+      <p class="mb-8 text-center">You are not yet connected to a gallery.</p>
     <% } %>
     <% const dashBase = '/dashboard/artist'; %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <a href="<%= dashBase %>/profile" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Profile</a>
       <a href="<%= dashBase %>/collections" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Collections</a>
       <a href="/dashboard/artworks" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Artworks</a>
+      <a href="/account" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">Account Settings</a>
     </div>
   </main>
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
