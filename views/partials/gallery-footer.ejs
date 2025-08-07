@@ -1,0 +1,15 @@
+<%
+  const email = (typeof contactEmail !== 'undefined' && contactEmail) ? contactEmail : '';
+  const phoneNumber = (typeof phone !== 'undefined' && phone) ? phone : '';
+%>
+<footer class="text-center py-6 border-t border-gray-200 mt-12">
+  <div class="mb-2 text-sm">
+    <% if (email) { %>
+      <p>Contact: <a href="mailto:<%= email %>" class="underline"><%= email %></a></p>
+    <% } %>
+    <% if (phoneNumber) { %>
+      <p>Phone: <%= phoneNumber %></p>
+    <% } %>
+  </div>
+  <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> <%= gallery.name %></p>
+</footer>
