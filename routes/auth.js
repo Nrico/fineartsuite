@@ -4,6 +4,7 @@ const csrf = require('csurf');
 const csrfProtection = csrf();
 const { createUser, findUserByUsername } = require('../models/userModel');
 const { createArtist } = require('../models/artistModel');
+const { generateUniqueSlug } = require('../utils/slug');
 const { createGallery } = require('../models/galleryModel');
 const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
@@ -97,9 +98,10 @@ function signupHandler(role) {
     }
 
     const { display_name, username, password, passcode } = req.body;
-    let id;
+    let userId;
+    let artistId;
     try {
-      id = await createUser(display_name, username, password, role, passcode);
+      userId = await createUser(display_name, username, password, role, passcode);
     } catch (err) {
       console.error('Error creating user:', err);
       req.flash('error', 'Signup failed. Please try again.');
@@ -108,15 +110,16 @@ function signupHandler(role) {
 
     try {
       if (role === 'artist') {
-        await createArtistAsync(id, display_name, '');
+        artistId = await generateUniqueSlug(db, 'artists', 'id', display_name);
+        await createArtistAsync(artistId, display_name, null);
       } else if (role === 'gallery') {
         await createGalleryAsync(username, display_name);
       }
     } catch (err) {
-      return handleSignupError(id, req, res, role, err);
+      return handleSignupError(userId, req, res, role, err);
     }
 
-    completeSignup(req, res, id, username, role);
+    completeSignup(req, res, artistId || userId, username, role);
   };
 }
 
