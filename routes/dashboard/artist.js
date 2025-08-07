@@ -8,6 +8,7 @@ const { processImages, uploadsDir } = require('../../utils/image');
 const { slugify } = require('../../utils/slug');
 const { createCollection, getCollectionsByArtist, updateCollection } = require('../../models/collectionModel');
 const { getArtistById, updateArtist, setArtistLive } = require('../../models/artistModel');
+const { body, param, validationResult } = require('express-validator');
 
 const upload = multer({
   dest: uploadsDir,
@@ -23,6 +24,21 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024
   }
 });
+
+const collectionValidation = [
+  body('name').trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 100 })
+];
+
+const profileValidation = [
+  body('name').trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 100 }),
+  body('bio').trim().notEmpty().withMessage('Short bio is required')
+    .isLength({ max: 1000 }),
+  body('fullBio').optional().isLength({ max: 5000 }),
+  body('bioImageUrl').optional({ checkFalsy: true }).isURL().isLength({ max: 2048 }),
+  body('currentBioImageUrl').optional().isString().isLength({ max: 2048 })
+];
 
 router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
@@ -54,7 +70,12 @@ router.get('/collections', requireRole('artist'), csrfProtection, (req, res) => 
   });
 });
 
-router.post('/collections', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/collections', requireRole('artist'), csrfProtection, collectionValidation, (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.flash('error', errors.array()[0].msg);
+    return res.redirect('/dashboard/artist/collections');
+  }
   const { name } = req.body;
   const slug = slugify(name);
   createCollection(name, req.session.user.id, slug, err => {
@@ -63,15 +84,28 @@ router.post('/collections', requireRole('artist'), csrfProtection, (req, res) =>
   });
 });
 
-router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res) => {
-  const { name } = req.body;
-  updateCollection(req.params.id, name, err => {
-    if (err) req.flash('error', 'Could not update collection');
-    res.redirect('/dashboard/artist/collections');
-  });
-});
+router.post('/collections/:id', requireRole('artist'), csrfProtection,
+  [param('id').trim().notEmpty().withMessage('ID is required'), ...collectionValidation],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      req.flash('error', errors.array()[0].msg);
+      return res.redirect('/dashboard/artist/collections');
+    }
+    const { name } = req.body;
+    updateCollection(req.params.id, name, err => {
+      if (err) req.flash('error', 'Could not update collection');
+      res.redirect('/dashboard/artist/collections');
+    });
+  }
+);
 
 router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.flash('error', errors.array()[0].msg);
+    return res.redirect('/dashboard/artist');
+  }
   setArtistLive(req.session.user.id, 1, err => {
     if (err) {
       req.flash('error', 'Could not publish site');
@@ -82,13 +116,14 @@ router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
   });
 });
 
-router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
+router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, profileValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.flash('error', errors.array()[0].msg);
+    return res.redirect('/dashboard/artist/profile');
+  }
   try {
     const { name, bio, fullBio, bioImageUrl, currentBioImageUrl } = req.body;
-    if (!name || !bio) {
-      req.flash('error', 'Name and short bio are required');
-      return res.redirect('/dashboard/artist/profile');
-    }
     if (req.file && bioImageUrl) {
       req.flash('error', 'Choose either an upload or a URL');
       return res.redirect('/dashboard/artist/profile');

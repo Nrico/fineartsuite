@@ -7,6 +7,7 @@ const { generateUniqueSlug } = require('../../../utils/slug');
 const { processImages, uploadsDir } = require('../../../utils/image');
 const csrf = require('csurf');
 const csrfProtection = csrf();
+const { body, param, validationResult } = require('express-validator');
 
 const { db } = require('../../../models/db');
 const { archiveArtist, unarchiveArtist } = require('../../../models/artistModel');
@@ -25,6 +26,19 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
+
+const artistValidation = [
+  body('name').trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 100 }).withMessage('Name must be at most 100 characters'),
+  body('bio').trim().notEmpty().withMessage('Bio is required')
+    .isLength({ max: 1000 }).withMessage('Bio must be at most 1000 characters'),
+  body('fullBio').optional().isLength({ max: 5000 }),
+  body('bioImageUrl').optional({ checkFalsy: true }).isURL().isLength({ max: 2048 }),
+  body('gallery_slug').if((value, { req }) => req.user && req.user.role === 'admin')
+    .trim().notEmpty().withMessage('Gallery slug is required')
+    .isLength({ max: 100 }),
+  body('live').optional().toBoolean().isBoolean()
+];
 
 router.get('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
@@ -64,13 +78,15 @@ router.post('/artists', requireRole('admin', 'gallery'), csrfProtection, (req, r
       console.error(err);
       return handleArtistResponse(req, res, 400, err.message);
     }
+    await Promise.all(artistValidation.map(v => v.run(req)));
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return handleArtistResponse(req, res, 400, errors.array()[0].msg);
+    }
     try {
       let { id, gallery_slug, name, bio, fullBio, bioImageUrl, live } = req.body;
       if (req.user.role === 'gallery') {
         gallery_slug = req.user.username;
-      }
-      if (!gallery_slug || !name || !bio) {
-        return handleArtistResponse(req, res, 400, 'All fields are required');
       }
       if (req.file && bioImageUrl) {
         return handleArtistResponse(req, res, 400, 'Choose either an upload or a URL');
@@ -132,6 +148,11 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req
       console.error(err);
       return res.status(400).send(err.message);
     }
+    await Promise.all(artistValidation.map(v => v.run(req)));
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
     try {
       if (req.user.role === 'gallery') {
         const owner = await new Promise((resolve, reject) => {
@@ -185,49 +206,65 @@ router.put('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req
   });
 });
 
-router.patch('/artists/:id/live', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const liveVal = req.body.live ? 1 : 0;
-  const handle = () => {
-    db.run('UPDATE artists SET live = ? WHERE id = ?', [liveVal, req.params.id], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      res.sendStatus(204);
-    });
-  };
-  if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
-      if (err || !row || row.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+router.patch('/artists/:id/live', requireRole('admin', 'gallery'), csrfProtection,
+  [
+    param('id').trim().notEmpty().withMessage('ID is required'),
+    body('live').notEmpty().withMessage('Live is required').isBoolean().withMessage('Live must be boolean').toBoolean()
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const liveVal = req.body.live ? 1 : 0;
+    const handle = () => {
+      db.run('UPDATE artists SET live = ? WHERE id = ?', [liveVal, req.params.id], err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handle();
+      });
+    } else {
       handle();
-    });
-  } else {
-    handle();
+    }
   }
-});
+);
 
-router.patch('/artists/order', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const { order } = req.body;
-  if (!Array.isArray(order)) return res.status(400).send('Invalid order');
-  const stmt = req.user.role === 'gallery'
-    ? db.prepare('UPDATE artists SET display_order = ? WHERE id = ? AND gallery_slug = ?')
-    : db.prepare('UPDATE artists SET display_order = ? WHERE id = ?');
-  db.serialize(() => {
-    order.forEach((id, idx) => {
-      const params = req.user.role === 'gallery' ? [idx, id, req.user.username] : [idx, id];
-      stmt.run(params);
+router.patch('/artists/order', requireRole('admin', 'gallery'), csrfProtection,
+  body('order').isArray().withMessage('Order must be an array'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const { order } = req.body;
+    const stmt = req.user.role === 'gallery'
+      ? db.prepare('UPDATE artists SET display_order = ? WHERE id = ? AND gallery_slug = ?')
+      : db.prepare('UPDATE artists SET display_order = ? WHERE id = ?');
+    db.serialize(() => {
+      order.forEach((id, idx) => {
+        const params = req.user.role === 'gallery' ? [idx, id, req.user.username] : [idx, id];
+        stmt.run(params);
+      });
+      stmt.finalize(err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
     });
-    stmt.finalize(err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      res.sendStatus(204);
-    });
-  });
-});
+  }
+);
 
 router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   try {
@@ -257,50 +294,64 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (
   }
 });
 
-router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Artist archived');
-      res.sendStatus(204);
-    });
-  };
-  if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
-      if (err || !row || row.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection,
+  param('id').trim().notEmpty().withMessage('ID is required'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const handle = () => {
+      archiveArtist(req.params.id, err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artist archived');
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handle();
+      });
+    } else {
       handle();
-    });
-  } else {
-    handle();
+    }
   }
-});
+);
 
-router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Artist unarchived');
-      res.sendStatus(204);
-    });
-  };
-  if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
-      if (err || !row || row.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection,
+  param('id').trim().notEmpty().withMessage('ID is required'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const handle = () => {
+      unarchiveArtist(req.params.id, err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        req.flash('success', 'Artist unarchived');
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handle();
+      });
+    } else {
       handle();
-    });
-  } else {
-    handle();
+    }
   }
-});
+);
 
 module.exports = router;

@@ -8,6 +8,7 @@ const { createGallery } = require('../models/galleryModel');
 const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
 const { promisify } = require('util');
+const { body, validationResult } = require('express-validator');
 
 const createArtistAsync = promisify(createArtist);
 const createGalleryAsync = promisify(createGallery);
@@ -18,19 +19,23 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const VALID_PROMO_CODES = ['taos'];
 const USERNAME_REGEX = /^[a-z0-9-]+$/;
 
-function validateSignup(req) {
-  const { display_name, username, password, passcode } = req.body;
-  if (!display_name || !username || !password || !passcode) {
-    return 'All fields are required';
-  }
-  if (!VALID_PROMO_CODES.includes(passcode)) {
-    return 'Invalid passcode';
-  }
-  if (!USERNAME_REGEX.test(username)) {
-    return 'Username may only contain lowercase letters, numbers, and hyphens';
-  }
-  return null;
-}
+const signupValidation = [
+  body('display_name').trim().notEmpty().withMessage('Display name is required')
+    .isLength({ max: 100 }).withMessage('Display name must be at most 100 characters'),
+  body('username').trim().notEmpty().withMessage('Username is required')
+    .isLength({ max: 50 }).withMessage('Username must be at most 50 characters')
+    .matches(USERNAME_REGEX).withMessage('Username may only contain lowercase letters, numbers, and hyphens'),
+  body('password').notEmpty().withMessage('Password is required')
+    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('passcode').notEmpty().withMessage('Passcode is required')
+    .isIn(VALID_PROMO_CODES).withMessage('Invalid passcode')
+];
+
+const loginValidation = [
+  body('username').trim().notEmpty().withMessage('Username is required')
+    .isLength({ max: 50 }),
+  body('password').notEmpty().withMessage('Password is required')
+];
 
 function handleSignupError(id, req, res, role, err) {
   if (err) console.error('Signup error:', err);
@@ -51,9 +56,9 @@ function isAdminCredentials(username, password) {
 
 function signupHandler(role) {
   return async (req, res) => {
-    const error = validateSignup(req);
-    if (error) {
-      req.flash('error', error);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      req.flash('error', errors.array()[0].msg);
       return res.redirect(`/signup/${role}`);
     }
 
@@ -96,20 +101,21 @@ router.get('/signup/gallery', csrfProtection, (req, res) => {
   res.render('signup/gallery');
 });
 
-router.post('/signup/artist', csrfProtection, signupHandler('artist'));
-router.post('/signup/gallery', csrfProtection, signupHandler('gallery'));
+router.post('/signup/artist', csrfProtection, signupValidation, signupHandler('artist'));
+router.post('/signup/gallery', csrfProtection, signupValidation, signupHandler('gallery'));
 
 router.get('/login', csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   res.render('login');
 });
 
-router.post('/login', csrfProtection, async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    req.flash('error', 'All fields are required');
+router.post('/login', csrfProtection, loginValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.flash('error', errors.array()[0].msg);
     return res.redirect('/login');
   }
+  const { username, password } = req.body;
   if (isAdminCredentials(username, password)) {
     req.session.user = { username, role: 'admin' };
     return res.redirect('/dashboard');

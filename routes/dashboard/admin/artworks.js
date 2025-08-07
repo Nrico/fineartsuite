@@ -7,6 +7,7 @@ const { generateUniqueSlug } = require('../../../utils/slug');
 const { processImages, uploadsDir } = require('../../../utils/image');
 const csrf = require('csurf');
 const csrfProtection = csrf();
+const { body, param, validationResult } = require('express-validator');
 
 const { db } = require('../../../models/db');
 const { archiveArtwork, unarchiveArtwork } = require('../../../models/artworkModel');
@@ -25,6 +26,41 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
+
+const commonArtworkValidation = [
+  body('title').trim().notEmpty().withMessage('Title is required')
+    .isLength({ max: 200 }),
+  body('medium').trim().notEmpty().withMessage('Medium is required')
+    .isLength({ max: 100 }),
+  body('custom_medium').optional().isLength({ max: 100 }),
+  body('dimensions').trim().notEmpty().withMessage('Dimensions are required')
+    .isLength({ max: 100 }),
+  body('price').optional({ checkFalsy: true }).isFloat().withMessage('Price must be a number'),
+  body('description').optional().isLength({ max: 2000 }),
+  body('status').optional().isString().isLength({ max: 50 }),
+  body('framed').optional().toBoolean().isBoolean(),
+  body('readyToHang').optional().toBoolean().isBoolean(),
+  body('isVisible').optional().toBoolean().isBoolean(),
+  body('isFeatured').optional().toBoolean().isBoolean(),
+  body('imageUrl').optional({ checkFalsy: true }).isURL().isLength({ max: 2048 })
+];
+
+const artworkCreateValidation = [
+  body('artist_id').if((value, { req }) => req.user.role !== 'artist')
+    .notEmpty().withMessage('Artist is required')
+    .isLength({ max: 100 }),
+  ...commonArtworkValidation
+];
+
+const artworkUpdateValidation = commonArtworkValidation;
+
+const uploadValidation = [
+  body('gallery_slug').trim().notEmpty().withMessage('Gallery slug is required')
+    .isLength({ max: 100 }),
+  body('status').trim().notEmpty().withMessage('Status is required')
+    .isLength({ max: 50 }),
+  ...commonArtworkValidation
+];
 
 router.get('/artworks', requireRole('admin', 'gallery', 'artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
@@ -82,14 +118,15 @@ router.get('/artworks', requireRole('admin', 'gallery', 'artist'), csrfProtectio
   }
 });
 
-router.post('/artworks', requireRole('admin', 'gallery', 'artist'), upload.single('imageFile'), csrfProtection, async (req, res) => {
+router.post('/artworks', requireRole('admin', 'gallery', 'artist'), upload.single('imageFile'), csrfProtection, artworkCreateValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).send(errors.array()[0].msg);
+  }
   try {
     let { id, artist_id, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, imageUrl, status, isVisible, isFeatured } = req.body;
     if (req.user.role === 'artist') {
       artist_id = req.user.id;
-    }
-    if ((!artist_id && req.user.role !== 'artist') || !title || !medium || !dimensions) {
-      return res.status(400).send('All fields are required');
     }
     const artist = await new Promise((resolve, reject) => {
       db.get('SELECT id, gallery_slug FROM artists WHERE id = ?', [artist_id], (err, row) => {
@@ -157,7 +194,11 @@ router.post('/artworks', requireRole('admin', 'gallery', 'artist'), upload.singl
   }
 });
 
-router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, async (req, res) => {
+router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imageFile'), csrfProtection, artworkUpdateValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).send(errors.array()[0].msg);
+  }
   try {
     if (req.user.role === 'gallery') {
       const owner = await new Promise((resolve, reject) => {
@@ -209,49 +250,63 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imag
   }
 });
 
-router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      res.sendStatus(204);
-    });
-  };
-  if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
-      if (err || !row || row.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection,
+  param('id').trim().notEmpty().withMessage('ID is required'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const handle = () => {
+      archiveArtwork(req.params.id, err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handle();
+      });
+    } else {
       handle();
-    });
-  } else {
-    handle();
+    }
   }
-});
+);
 
-router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      res.sendStatus(204);
-    });
-  };
-  if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
-      if (err || !row || row.gallery_slug !== req.user.username) {
-        return res.status(403).send('Forbidden');
-      }
+router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection,
+  param('id').trim().notEmpty().withMessage('ID is required'),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send(errors.array()[0].msg);
+    }
+    const handle = () => {
+      unarchiveArtwork(req.params.id, err => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.sendStatus(204);
+      });
+    };
+    if (req.user.role === 'gallery') {
+      db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+        if (err || !row || row.gallery_slug !== req.user.username) {
+          return res.status(403).send('Forbidden');
+        }
+        handle();
+      });
+    } else {
       handle();
-    });
-  } else {
-    handle();
+    }
   }
-});
+);
 
 router.delete('/artworks/:id', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
   try {
@@ -291,17 +346,19 @@ router.get('/upload', requireRole('admin', 'gallery'), csrfProtection, (req, res
   });
 });
 
-router.post('/upload', requireRole('admin', 'gallery'), upload.single('image'), csrfProtection, async (req, res) => {
+router.post('/upload', requireRole('admin', 'gallery'), upload.single('image'), csrfProtection, uploadValidation, async (req, res) => {
   if (!req.file) {
     req.flash('error', 'No file uploaded');
     return res.status(400).redirect('/dashboard/upload');
   }
 
-  let { id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, status, isVisible, isFeatured } = req.body;
-  if (!gallery_slug || !title || !medium || !dimensions || !status) {
-    req.flash('error', 'All fields are required');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    req.flash('error', errors.array()[0].msg);
     return res.status(400).redirect('/dashboard/upload');
   }
+
+  let { id, gallery_slug, title, medium, custom_medium, dimensions, price, description, framed, readyToHang, status, isVisible, isFeatured } = req.body;
 
   const gallery = await new Promise((resolve, reject) => {
     db.get('SELECT slug FROM galleries WHERE slug = ?', [gallery_slug], (err, row) => {

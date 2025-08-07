@@ -23,7 +23,8 @@
     "connect-sqlite3": "^0.9.0",
     "jimp": "^0.22.10",
     "bcrypt": "^5.1.1",
-    "csurf": "^1.11.0"
+    "csurf": "^1.11.0",
+    "express-validator": "^6.15.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.4",
