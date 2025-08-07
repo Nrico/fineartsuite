@@ -18,90 +18,29 @@
     <% } %>
     <% if (artist.gallery_slug) { %>
       <% if (artist.live) { %>
-        <p class="mb-4 text-center">Your public page is available at
-          <a href="/<%= artist.gallery_slug %>/artists/<%= artist.id %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
-            /<%= artist.gallery_slug %>/artists/<%= artist.id %>
+        <p class="mb-4 text-center">Your public page is available at:</p>
+        <p class="mb-8 text-center">
+          <a href="/<%= artist.gallery_slug %>/artists/<%= artist.id %>" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Preview /<%= artist.gallery_slug %>/artists/<%= artist.id %>
           </a>
         </p>
       <% } else { %>
-        <form method="POST" action="/dashboard/artist/publish" class="mb-4 text-center">
+        <form method="POST" action="/dashboard/artist/publish" class="mb-8 text-center">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Publish My Site</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Publish My Site</button>
         </form>
       <% } %>
     <% } %>
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Profile</h2>
-      <form method="POST" action="/dashboard/artist/profile" enctype="multipart/form-data" class="space-y-2">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="text" name="name" value="<%= artist.name || '' %>" placeholder="Name" required class="border border-gray-300 rounded px-2 py-1 w-full">
-        <textarea name="bio" placeholder="Short bio" required class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.bio || '' %></textarea>
-        <textarea name="fullBio" placeholder="Full bio" class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.fullBio || '' %></textarea>
-        <input type="file" name="bioImageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="hidden" name="currentBioImageUrl" value="<%= artist.bioImageUrl || '' %>">
-        <input type="url" name="bioImageUrl" placeholder="Bio image URL" value="<%= artist.bioImageUrl && artist.bioImageUrl.startsWith('http') ? artist.bioImageUrl : '' %>" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <p class="text-xs text-gray-500">Provide an image file or a URL</p>
-        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save Profile</button>
-      </form>
-    </section>
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Collections</h2>
-      <ul class="space-y-4">
-        <% collections.forEach(c => { %>
-          <li>
-            <form method="POST" action="/dashboard/artist/collections/<%= c.id %>" class="flex gap-2 items-center">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <input type="text" name="name" value="<%= c.name %>" class="border border-gray-300 rounded px-2 py-1 flex-grow">
-              <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-            </form>
-          </li>
-        <% }) %>
-      </ul>
-      <form method="POST" action="/dashboard/artist/collections" class="mt-6 flex gap-2 items-center">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="text" name="name" placeholder="New collection" class="border border-gray-300 rounded px-2 py-1 flex-grow" required>
-        <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Add</button>
-      </form>
-    </section>
-    <section>
-      <h2 class="text-xl font-semibold mb-4">Artworks</h2>
-      <form method="POST" action="/dashboard/artist/artworks" enctype="multipart/form-data" class="mb-6 space-y-2">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="text" name="title" placeholder="Title" required class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="text" name="medium" placeholder="Medium" required class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="text" name="dimensions" placeholder="Dimensions" required class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="text" name="price" placeholder="Price" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <textarea name="description" placeholder="Description" class="border border-gray-300 rounded px-2 py-1 w-full"></textarea>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="framed" class="border-gray-300">Framed</label>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="readyToHang" class="border-gray-300">Ready to Hang</label>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isFeatured" class="border-gray-300">Featured</label>
-        <input type="file" name="imageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <input type="url" name="imageUrl" placeholder="Image URL" class="border border-gray-300 rounded px-2 py-1 w-full">
-        <p class="text-xs text-gray-500">Provide an image file or a URL</p>
-        <div class="flex gap-2">
-          <button type="submit" name="action" value="upload" class="bg-green-600 text-white px-3 py-1 rounded">Upload</button>
-          <button type="submit" name="action" value="save" class="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-        </div>
-      </form>
-      <% artworks.forEach(a => { %>
-        <div class="mb-4 p-4 border rounded">
-          <div class="font-medium mb-2"><%= a.title %></div>
-          <form method="POST" action="/dashboard/artist/artworks/<%= a.id %>/collection" class="flex gap-2 items-center">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <select name="collection_id" class="border border-gray-300 rounded px-2 py-1 flex-grow">
-              <option value="">No Collection</option>
-              <% collections.forEach(c => { %>
-                <option value="<%= c.id %>" <%= a.collection_id === c.id ? 'selected' : '' %>><%= c.name %></option>
-              <% }) %>
-            </select>
-            <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Assign</button>
-          </form>
-        </div>
-      <% }) %>
-    </section>
+    <% const dashBase = '/dashboard/artist'; %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <a href="<%= dashBase %>/profile" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Profile</a>
+      <a href="<%= dashBase %>/collections" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Collections</a>
+      <a href="/dashboard/artworks" class="p-6 border rounded flex flex-col items-center hover:bg-gray-50">My Artworks</a>
+    </div>
   </main>
   <footer class="text-center py-6 border-t border-gray-200 mt-12">
     <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
   </footer>
 </body>
 </html>
+
