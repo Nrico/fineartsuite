@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Artist Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="font-sans bg-white text-black">
+  <%- include('../partials/navbar'); %>
+  <main class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">My Profile</h1>
+    <% if (flash.error && flash.error.length) { %>
+      <p class="text-red-600 mb-4"><%= flash.error[0] %></p>
+    <% } %>
+    <% if (flash.success && flash.success.length) { %>
+      <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
+    <% } %>
+    <form method="POST" action="/dashboard/artist/profile" enctype="multipart/form-data" class="space-y-2">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="text" name="name" value="<%= artist.name || '' %>" placeholder="Name" required class="border border-gray-300 rounded px-2 py-1 w-full">
+      <textarea name="bio" placeholder="Short bio" required class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.bio || '' %></textarea>
+      <textarea name="fullBio" placeholder="Full bio" class="border border-gray-300 rounded px-2 py-1 w-full"><%= artist.fullBio || '' %></textarea>
+      <input type="file" name="bioImageFile" accept="image/*" class="border border-gray-300 rounded px-2 py-1 w-full">
+      <input type="hidden" name="currentBioImageUrl" value="<%= artist.bioImageUrl || '' %>">
+      <input type="url" name="bioImageUrl" placeholder="Bio image URL" value="<%= artist.bioImageUrl && artist.bioImageUrl.startsWith('http') ? artist.bioImageUrl : '' %>" class="border border-gray-300 rounded px-2 py-1 w-full">
+      <p class="text-xs text-gray-500">Provide an image file or a URL</p>
+      <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Save Profile</button>
+    </form>
+  </main>
+  <footer class="text-center py-6 border-t border-gray-200 mt-12">
+    <p class="text-sm text-gray-500">&copy; <%= new Date().getFullYear() %> FineArtSuite</p>
+  </footer>
+</body>
+</html>
+

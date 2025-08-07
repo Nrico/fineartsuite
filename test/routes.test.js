@@ -442,14 +442,14 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
   }
   const temp = path.join(__dirname, 'art.jpg');
   await fs.writeFile(temp, 'img');
-  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artist/artworks`, {
+  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artworks`, {
     title: 'NoCSRF',
     medium: 'm',
     dimensions: 'd'
   }, temp, cookie, '', 'imageFile');
   await fs.unlink(temp);
   assert.strictEqual(res.statusCode, 403);
-  assert.match(res.body, /Access Forbidden/);
+  assert.match(res.body, /Invalid CSRF token/);
 });
 
 test('artist cannot access admin dashboard', async () => {
@@ -481,19 +481,20 @@ test('artist artwork submission succeeds with valid CSRF token', async () => {
   if (loginRes.headers['set-cookie']) {
     cookie = loginRes.headers['set-cookie'][0].split(';')[0];
   }
-  const dash = await httpGet(`http://localhost:${port}/dashboard/artist`, cookie);
+  const dash = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
   const token = extractCsrfToken(dash.body);
   const temp = path.join(__dirname, 'artvalid.jpg');
   await fs.writeFile(temp, 'img');
-  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artist/artworks`, {
+  const res = await httpPostMultipart(`http://localhost:${port}/dashboard/artworks`, {
     title: 'GoodCSRF',
     medium: 'm',
     dimensions: 'd',
     _csrf: token
   }, temp, cookie, token, 'imageFile');
   await fs.unlink(temp);
-  assert.strictEqual(res.statusCode, 302);
-  assert.strictEqual(res.headers.location, '/dashboard/artist');
+  assert.strictEqual(res.statusCode, 201);
+  const data = JSON.parse(res.body);
+  assert.ok(data.id);
   const row = await new Promise(resolve => {
     db.get('SELECT id, imageFull, imageStandard, imageThumb FROM artworks WHERE title=?', ['GoodCSRF'], (err, r) => resolve(r));
   });
