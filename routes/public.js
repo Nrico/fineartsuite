@@ -33,6 +33,21 @@ router.get('/faq', (req, res) => {
   res.render('faq');
 });
 
+// Standalone artist page (no gallery)
+router.get('/artist/:artistId', async (req, res) => {
+  try {
+    const artist = await getArtist(null, req.params.artistId);
+    const heroData = {
+      image: artist.bioImageUrl,
+      featuredWork: (artist.artworks || []).find(a => a.isFeatured),
+      announcement: artist.announcement
+    };
+    res.render('artist-public', { artist, heroData });
+  } catch (err) {
+    send404(res, 'Artist not found', err);
+  }
+});
+
 // Public gallery home page
 router.get('/:gallerySlug', async (req, res) => {
   try {

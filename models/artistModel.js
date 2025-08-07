@@ -2,9 +2,16 @@ const { db } = require('./db');
 
 function getArtist(gallerySlug, id) {
   return new Promise((resolve, reject) => {
-    const artistSql =
-      'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
-    db.get(artistSql, [id, gallerySlug], (err, artist) => {
+    let artistSql =
+      'SELECT * FROM artists WHERE id = ? AND archived = 0 AND live = 1';
+    const params = [id];
+    if (gallerySlug) {
+      artistSql += ' AND gallery_slug = ?';
+      params.push(gallerySlug);
+    } else {
+      artistSql += ' AND gallery_slug IS NULL';
+    }
+    db.get(artistSql, params, (err, artist) => {
       if (err || !artist) return reject(err || new Error('Not found'));
       const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
       db.all(artSql, [id], (err2, artworks) => {
@@ -21,9 +28,18 @@ function createArtist(id, name, gallerySlug, live, cb) {
     cb = live;
     live = 0;
   }
-  const stmt = `INSERT INTO artists (id, gallery_slug, name, live, display_order)
-                VALUES (?,?,?,?, COALESCE((SELECT MAX(display_order) + 1 FROM artists WHERE gallery_slug = ?), 0))`;
-  db.run(stmt, [id, gallerySlug, name, live ? 1 : 0, gallerySlug], cb);
+  let stmt;
+  let params;
+  if (gallerySlug) {
+    stmt = `INSERT INTO artists (id, gallery_slug, name, live, display_order)
+            VALUES (?,?,?,?, COALESCE((SELECT MAX(display_order) + 1 FROM artists WHERE gallery_slug = ?), 0))`;
+    params = [id, gallerySlug, name, live ? 1 : 0, gallerySlug];
+  } else {
+    stmt = `INSERT INTO artists (id, gallery_slug, name, live, display_order)
+            VALUES (?,?,?, ?, COALESCE((SELECT MAX(display_order) + 1 FROM artists WHERE gallery_slug IS NULL), 0))`;
+    params = [id, null, name, live ? 1 : 0];
+  }
+  db.run(stmt, params, cb);
 }
 
 function getArtistById(id, cb) {
