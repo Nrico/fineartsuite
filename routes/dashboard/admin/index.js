@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
-const { requireRole } = require('../../../middleware/auth');
+const { authorize } = require('../../../middleware/auth');
 
-router.get('/gallery', requireRole('gallery'), (req, res) => {
+router.get('/gallery', authorize('gallery'), (req, res) => {
   res.render('dashboard/gallery', { user: req.session.user });
 });
 
-router.get('/', requireRole('admin'), (req, res) => {
+router.get('/', authorize('admin'), (req, res) => {
   res.render('admin/dashboard', { user: req.session.user });
 });
 

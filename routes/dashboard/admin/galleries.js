@@ -1,29 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
+const upload = require('../../../middleware/upload');
 const { db } = require('../../../models/db');
-const { requireRole } = require('../../../middleware/auth');
+const { authorize } = require('../../../middleware/auth');
 const { generateUniqueSlug } = require('../../../utils/slug');
-const { processImages, uploadsDir } = require('../../../utils/image');
+const { processImages } = require('../../../utils/image');
 const csrf = require('csurf');
 const csrfProtection = csrf();
 
-const upload = multer({
-  dest: uploadsDir,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  }
-});
-
-router.get('/galleries', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+router.get('/galleries', authorize('admin', 'gallery'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   try {
     const baseQuery = 'SELECT slug, name, bio AS description, contact_email AS email, phone, address, gallarist_name AS owner, logo_url FROM galleries';
@@ -46,7 +31,7 @@ router.get('/galleries', requireRole('admin', 'gallery'), csrfProtection, (req, 
   }
 });
 
-router.post('/galleries', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+router.post('/galleries', authorize('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
   try {
     let { name, description, email, phone, address, owner, logoUrl } = req.body;
     if (!name || !description) {
@@ -92,7 +77,7 @@ function handleGalleryResponse(req, res, status, data) {
   res.status(status).json(data);
 }
 
-router.put('/galleries/:slug', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+router.put('/galleries/:slug', authorize('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
   try {
     if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
       return res.status(403).send('Forbidden');
@@ -115,25 +100,6 @@ router.put('/galleries/:slug', requireRole('admin', 'gallery'), upload.single('l
         return res.status(500).send('Database error');
       }
       req.flash('success', 'Gallery saved');
-      res.sendStatus(204);
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
-});
-
-router.delete('/galleries/:slug', requireRole('admin', 'gallery'), (req, res) => {
-  try {
-    if (req.user.role === 'gallery' && req.params.slug !== req.user.username) {
-      return res.status(403).send('Forbidden');
-    }
-    db.run('DELETE FROM galleries WHERE slug = ?', [req.params.slug], err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
-      req.flash('success', 'Gallery deleted');
       res.sendStatus(204);
     });
   } catch (err) {

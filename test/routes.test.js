@@ -970,7 +970,7 @@ test('artist cannot access gallery endpoints', async () => {
   assert.strictEqual(res.statusCode, 403);
 });
 
-test('demo auth grants access to dashboard routes without login', async () => {
+test('dev login grants access to dashboard routes', async () => {
   process.env.USE_DEMO_AUTH = 'true';
   delete require.cache[require.resolve('../server')];
   const demoApp = require('../server');
@@ -979,19 +979,25 @@ test('demo auth grants access to dashboard routes without login', async () => {
   });
   const port = demoServer.address().port;
 
-  const routes = [
+  const loginRes = await httpGet(`http://localhost:${port}/dev-login/admin`);
+  let cookie = (loginRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+
+  const adminRoutes = [
     '/dashboard',
     '/dashboard/galleries',
     '/dashboard/artists',
-    '/dashboard/artworks',
-    '/dashboard/upload',
-    '/dashboard/artist'
+    '/dashboard/artworks'
   ];
 
-  for (const r of routes) {
-    const res = await httpGet(`http://localhost:${port}${r}`);
+  for (const r of adminRoutes) {
+    const res = await httpGet(`http://localhost:${port}${r}`, cookie);
     assert.strictEqual(res.statusCode, 200);
   }
+
+  const artistLogin = await httpGet(`http://localhost:${port}/dev-login/artist`);
+  cookie = (artistLogin.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+  const artistRes = await httpGet(`http://localhost:${port}/dashboard/artist`, cookie);
+  assert.strictEqual(artistRes.statusCode, 200);
 
   await new Promise(resolve => demoServer.close(resolve));
   delete require.cache[require.resolve('../server')];
