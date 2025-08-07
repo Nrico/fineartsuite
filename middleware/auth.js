@@ -1,12 +1,5 @@
-function requireAuth(req, res, next) {
-  if (!req.user) {
-    return res.redirect('/login');
-  }
-  next();
-}
-
-function requireRole(...roles) {
-  return function(req, res, next) {
+function authorize(...roles) {
+  return function (req, res, next) {
     if (!req.user) {
       return res.redirect('/login');
     }
@@ -17,4 +10,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { authorize };

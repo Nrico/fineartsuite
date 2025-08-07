@@ -11,19 +11,6 @@ const path = require('path');
 const flash = require('./middleware/flashFallback');
 require('./models/db');
 
-function simulateAuth(req, res, next) {
-  if (!req.session.user) {
-    if (req.path === '/artist' || req.path.startsWith('/artist/')) {
-      req.session.user = { username: 'demoArtist', role: 'artist', id: 'artist1' };
-    } else if (req.path.startsWith('/gallery')) {
-      req.session.user = { username: 'demoGallery', role: 'gallery' };
-    } else {
-      req.session.user = { username: 'demoAdmin', role: 'admin' };
-    }
-  }
-  next();
-}
-
 // Read session secret from environment variables and require it to be set
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
@@ -57,9 +44,19 @@ app.use(session(sessionOptions));
 
 // Flash messages using connect-flash or fallback implementation
 app.use(flash());
-if (process.env.USE_DEMO_AUTH === 'true') {
-  app.use('/dashboard', simulateAuth);
+
+if (process.env.NODE_ENV !== 'production' && process.env.USE_DEMO_AUTH === 'true') {
+  app.get('/dev-login/:role', (req, res) => {
+    const { role } = req.params;
+    const roles = ['artist', 'gallery', 'admin'];
+    if (!roles.includes(role)) return res.status(400).send('Invalid role');
+    const user = { username: `demo${role.charAt(0).toUpperCase() + role.slice(1)}`, role };
+    if (role === 'artist') user.id = 'artist1';
+    req.session.user = user;
+    res.redirect(role === 'artist' ? '/dashboard/artist' : '/dashboard');
+  });
 }
+
 app.use((req, res, next) => {
   req.user = req.session.user;
   res.locals.user = req.user;

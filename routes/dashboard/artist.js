@@ -1,30 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const { requireRole } = require('../../middleware/auth');
+const { authorize } = require('../../middleware/auth');
+const upload = require('../../middleware/upload');
 const csrf = require('csurf');
 const csrfProtection = csrf();
-const { processImages, uploadsDir } = require('../../utils/image');
+const { processImages } = require('../../utils/image');
 const { slugify } = require('../../utils/slug');
 const { createCollection, getCollectionsByArtist, updateCollection } = require('../../models/collectionModel');
 const { getArtistById, updateArtist, setArtistLive } = require('../../models/artistModel');
 
-const upload = multer({
-  dest: uploadsDir,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024
-  }
-});
-
-router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/', authorize('artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   getArtistById(req.session.user.id, (err, artist) => {
     res.render('dashboard/artist', {
@@ -34,7 +19,7 @@ router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
   });
 });
 
-router.get('/profile', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/profile', authorize('artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   getArtistById(req.session.user.id, (err, artist) => {
     res.render('dashboard/artist-profile', {
@@ -44,7 +29,7 @@ router.get('/profile', requireRole('artist'), csrfProtection, (req, res) => {
   });
 });
 
-router.get('/collections', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/collections', authorize('artist'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   getCollectionsByArtist(req.session.user.id, (err, collections) => {
     res.render('dashboard/artist-collections', {
@@ -54,7 +39,7 @@ router.get('/collections', requireRole('artist'), csrfProtection, (req, res) => 
   });
 });
 
-router.post('/collections', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/collections', authorize('artist'), csrfProtection, (req, res) => {
   const { name } = req.body;
   const slug = slugify(name);
   createCollection(name, req.session.user.id, slug, err => {
@@ -63,7 +48,7 @@ router.post('/collections', requireRole('artist'), csrfProtection, (req, res) =>
   });
 });
 
-router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/collections/:id', authorize('artist'), csrfProtection, (req, res) => {
   const { name } = req.body;
   updateCollection(req.params.id, name, err => {
     if (err) req.flash('error', 'Could not update collection');
@@ -71,7 +56,7 @@ router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res
   });
 });
 
-router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
+router.post('/publish', authorize('artist'), csrfProtection, (req, res) => {
   setArtistLive(req.session.user.id, 1, err => {
     if (err) {
       req.flash('error', 'Could not publish site');
@@ -82,7 +67,7 @@ router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
   });
 });
 
-router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
+router.post('/profile', authorize('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
   try {
     const { name, bio, fullBio, bioImageUrl, currentBioImageUrl } = req.body;
     if (!name || !bio) {
@@ -117,7 +102,6 @@ router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), cs
     res.redirect('/dashboard/artist/profile');
   }
 });
-
 
 // Handle CSRF token errors specifically for artist dashboard routes
 router.use((err, req, res, next) => {

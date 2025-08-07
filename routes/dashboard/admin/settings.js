@@ -1,29 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const { requireRole } = require('../../../middleware/auth');
-const { processImages, uploadsDir } = require('../../../utils/image');
+const upload = require('../../../middleware/upload');
+const { authorize } = require('../../../middleware/auth');
+const { processImages } = require('../../../utils/image');
 const csrf = require('csurf');
 const csrfProtection = csrf();
 
 const { db } = require('../../../models/db');
 
-const upload = multer({
-  dest: uploadsDir,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, PNG, or HEIC images are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  }
-});
-
-router.get('/settings', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
+router.get('/settings', authorize('admin', 'gallery'), csrfProtection, (req, res) => {
   res.locals.csrfToken = req.csrfToken();
   const slug = req.user.role === 'gallery' ? req.user.username : req.query.slug;
   db.get(
@@ -40,7 +25,7 @@ router.get('/settings', requireRole('admin', 'gallery'), csrfProtection, (req, r
   );
 });
 
-router.post('/settings/logo', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+router.post('/settings/logo', authorize('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const images = await processImages(req.file);
@@ -51,7 +36,7 @@ router.post('/settings/logo', requireRole('admin', 'gallery'), upload.single('lo
   }
 });
 
-router.post('/settings', requireRole('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
+router.post('/settings', authorize('admin', 'gallery'), upload.single('logoFile'), csrfProtection, async (req, res) => {
   try {
     const slug = req.user.role === 'gallery' ? req.user.username : req.body.slug;
     let { name, phone, email, address, description, owner, logoUrl, existingLogo } = req.body;
