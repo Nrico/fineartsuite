@@ -16,9 +16,10 @@
     <% if (flash.success && flash.success.length) { %>
       <p class="text-green-600 mb-4"><%= flash.success[0] %></p>
     <% } %>
-    <p class="mb-4 text-center">Your public gallery is available at
-      <a href="/<%= user.username %>" class="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
-        /<%= user.username %>
+    <p class="mb-4 text-center">Your public gallery is available at:</p>
+    <p class="mb-8 text-center">
+      <a href="/<%= user.username %>" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+        Preview /<%= user.username %>
       </a>
     </p>
     <% const dashBase = '/dashboard'; %>
