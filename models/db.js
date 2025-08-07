@@ -9,6 +9,7 @@ const db = new sqlite3.Database(dbFile);
 
 function initialize() {
   db.serialize(() => {
+    db.run('PRAGMA foreign_keys = ON');
     db.run(`CREATE TABLE IF NOT EXISTS galleries (
       slug TEXT PRIMARY KEY,
       name TEXT,
@@ -37,7 +38,8 @@ function initialize() {
       archived INTEGER DEFAULT 0,
       live INTEGER DEFAULT 0,
       display_order INTEGER DEFAULT 0,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (gallery_slug) REFERENCES galleries(slug) ON DELETE CASCADE
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -55,7 +57,8 @@ function initialize() {
       name TEXT,
       artist_id TEXT,
       slug TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS artworks (
@@ -79,7 +82,10 @@ function initialize() {
       framed INTEGER DEFAULT 0,
       ready_to_hang INTEGER DEFAULT 0,
       archived INTEGER DEFAULT 0,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      collection_id INTEGER,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+      FOREIGN KEY (gallery_slug) REFERENCES galleries(slug) ON DELETE CASCADE
     )`);
 
     db.run(`CREATE TRIGGER IF NOT EXISTS galleries_updated_at AFTER UPDATE ON galleries
