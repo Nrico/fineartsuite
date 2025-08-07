@@ -190,10 +190,12 @@
         if (artistSelect) {
           localStorage.setItem('lastArtistId', artistSelect.value);
         }
-        const url = isNew ? '/dashboard/artworks' : '/dashboard/artworks/' + id;
-        const method = isNew ? 'POST' : 'PUT';
+        const url = '/dashboard/artworks';
+        if (!isNew) {
+          data.append('id', id);
+        }
         try {
-          const res = await fetch(url, { method, headers: { 'CSRF-Token': csrfToken }, body: data });
+          const res = await fetch(url, { method: 'POST', headers: { 'CSRF-Token': csrfToken }, body: data });
           if (!res.ok) throw new Error(await res.text() || res.statusText);
           btn.textContent = 'Saved!';
           if (isNew) {
