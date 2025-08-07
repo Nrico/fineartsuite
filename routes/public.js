@@ -17,14 +17,23 @@ const getGalleryAsync = util.promisify(getGallery);
 const getArtworkAsync = util.promisify(getArtwork);
 const dbAll = util.promisify(db.all.bind(db));
 
-// Home route displaying available galleries
+// Home route displaying available galleries and standalone artist portfolios
 router.get('/', (req, res) => {
-  db.all('SELECT slug, name FROM galleries', (err, rows) => {
-    if (err) {
-      console.error('Error loading galleries:', err);
+  db.all('SELECT slug, name FROM galleries', (gErr, gRows) => {
+    if (gErr) {
+      console.error('Error loading galleries:', gErr);
     }
-    const galleries = err ? [] : rows;
-    res.render('home', { galleries });
+    const galleries = gErr ? [] : gRows;
+
+    const artistSql =
+      'SELECT id, name FROM artists WHERE gallery_slug IS NULL AND archived = 0 AND live = 1';
+    db.all(artistSql, (aErr, aRows) => {
+      if (aErr) {
+        console.error('Error loading artists:', aErr);
+      }
+      const artists = aErr ? [] : aRows;
+      res.render('home', { galleries, artists });
+    });
   });
 });
 
