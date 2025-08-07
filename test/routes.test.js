@@ -35,6 +35,9 @@ test.before(async () => {
     };
     check();
   });
+  try {
+    await createUser('Demo Gallery', 'demo-gallery', 'password', 'gallery', 'taos');
+  } catch {}
 });
 
 // Close server after tests
@@ -98,6 +101,23 @@ function httpPostForm(url, data, cookies = '') {
     req.write(postData);
     req.end();
   });
+}
+
+async function login(username, password) {
+  const port = server.address().port;
+  const page = await httpGet(`http://localhost:${port}/login`);
+  const csrf = extractCsrfToken(page.body);
+  const cookie = page.headers['set-cookie'][0].split(';')[0];
+  const res = await httpPostForm(
+    `http://localhost:${port}/login`,
+    { username, password, _csrf: csrf },
+    cookie
+  );
+  let authCookie = cookie;
+  if (res.headers['set-cookie']) {
+    authCookie = res.headers['set-cookie'][0].split(';')[0];
+  }
+  return authCookie;
 }
 
 test('homepage responds with welcome text', async () => {
@@ -881,6 +901,73 @@ test('archiving artwork toggles public visibility', async () => {
 
   await new Promise(resolve => db.run('DELETE FROM artworks WHERE id=?', [artworkId], resolve));
   await new Promise(resolve => db.run('DELETE FROM artists WHERE id=?', [artistId], resolve));
+});
+
+test('gallery cannot update artist from another gallery', async () => {
+  const port = server.address().port;
+  const cookie = await login('demo-gallery', 'password');
+  const page = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
+  const token = extractCsrfToken(page.body);
+  const res = await httpRequest(
+    'PUT',
+    `http://localhost:${port}/dashboard/artists/artist5`,
+    { name: 'Hacked' },
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 403);
+});
+
+test('gallery cannot delete artist from another gallery', async () => {
+  const port = server.address().port;
+  const cookie = await login('demo-gallery', 'password');
+  const page = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
+  const token = extractCsrfToken(page.body);
+  const res = await httpRequest(
+    'DELETE',
+    `http://localhost:${port}/dashboard/artists/artist5`,
+    null,
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 403);
+});
+
+test('gallery cannot update artwork from another gallery', async () => {
+  const port = server.address().port;
+  const cookie = await login('demo-gallery', 'password');
+  const page = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
+  const token = extractCsrfToken(page.body);
+  const res = await httpRequest(
+    'PUT',
+    `http://localhost:${port}/dashboard/artworks/artist5-art1`,
+    { title: 'Hack' },
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 403);
+});
+
+test('gallery cannot delete artwork from another gallery', async () => {
+  const port = server.address().port;
+  const cookie = await login('demo-gallery', 'password');
+  const page = await httpGet(`http://localhost:${port}/dashboard/artworks`, cookie);
+  const token = extractCsrfToken(page.body);
+  const res = await httpRequest(
+    'DELETE',
+    `http://localhost:${port}/dashboard/artworks/artist5-art1`,
+    null,
+    cookie,
+    token
+  );
+  assert.strictEqual(res.statusCode, 403);
+});
+
+test('artist cannot access gallery endpoints', async () => {
+  const port = server.address().port;
+  const cookie = await login('demouser', 'password');
+  const res = await httpGet(`http://localhost:${port}/dashboard/artists`, cookie);
+  assert.strictEqual(res.statusCode, 403);
 });
 
 test('demo auth grants access to dashboard routes without login', async () => {
