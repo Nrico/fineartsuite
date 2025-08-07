@@ -9,6 +9,33 @@ const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
 const { promisify } = require('util');
 
+let rateLimit;
+try {
+  rateLimit = require('express-rate-limit');
+} catch {
+  rateLimit = ({ windowMs, max, handler, skip }) => {
+    const hits = new Map();
+    return (req, res, next) => {
+      if (skip && skip(req, res)) return next();
+      const ip = req.ip;
+      const now = Date.now();
+      const record = hits.get(ip) || { count: 0, start: now };
+      if (now - record.start >= windowMs) {
+        record.count = 0;
+        record.start = now;
+      }
+      record.count++;
+      hits.set(ip, record);
+      if (record.count > max) {
+        if (handler) return handler(req, res, next);
+        res.status(429).send('Too many requests');
+      } else {
+        next();
+      }
+    };
+  };
+}
+
 const createArtistAsync = promisify(createArtist);
 const createGalleryAsync = promisify(createGallery);
 const compareAsync = promisify(bcrypt.compare);
@@ -17,6 +44,18 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const VALID_PROMO_CODES = ['taos'];
 const USERNAME_REGEX = /^[a-z0-9-]+$/;
+
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  handler: (req, res) => {
+    req.flash('error', 'Too many login attempts. Please try again later.');
+    res.status(429).redirect('/login');
+  },
+});
 
 function validateSignup(req) {
   const { display_name, username, password, passcode } = req.body;
@@ -104,7 +143,7 @@ router.get('/login', csrfProtection, (req, res) => {
   res.render('login');
 });
 
-router.post('/login', csrfProtection, async (req, res) => {
+router.post('/login', loginLimiter, csrfProtection, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     req.flash('error', 'All fields are required');

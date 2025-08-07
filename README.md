@@ -37,6 +37,12 @@ form for convenience.
 Flash messages are provided using the `connect-flash` middleware. These
 messages give feedback after actions such as logging in or editing records.
 
+### Rate limiting
+
+The `/login` endpoint allows up to five requests per minute from a single IP
+address. When this limit is exceeded the server responds with HTTP 429, which
+helps protect against brute-force attempts.
+
 ### Sessions
 
 Session data is persisted using [`connect-sqlite3`](https://www.npmjs.com/package/connect-sqlite3).

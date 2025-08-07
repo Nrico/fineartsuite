@@ -4,7 +4,7 @@
   "description": "FineArtSuite is a minimal gallery website project. This repository provides a single HTML file that serves as a starting point for displaying art online.",
   "main": "server.js",
   "scripts": {
-    "test": "node --test",
+    "test": "NODE_ENV=test node --test",
     "start": "node server.js",
     "build:css": "npx tailwindcss -i ./styles/tailwind.css -o ./public/css/main.css --minify"
   },
@@ -23,7 +23,8 @@
     "connect-sqlite3": "^0.9.0",
     "jimp": "^0.22.10",
     "bcrypt": "^5.1.1",
-    "csurf": "^1.11.0"
+    "csurf": "^1.11.0",
+    "express-rate-limit": "^6.7.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.4",
