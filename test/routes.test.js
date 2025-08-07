@@ -219,7 +219,7 @@ test('logout destroys session', async () => {
 test('non-admin users have limited access to admin routes', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', () => resolve()));
+  await createUser('Artist', username, 'pass', 'artist', 'taos');
   const stored = await new Promise(resolve => {
     db.get('SELECT password FROM users WHERE username=?', [username], (err, row) => resolve(row));
   });
@@ -325,9 +325,7 @@ test('artist can upload artwork without specifying artist_id', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
   const password = 'password';
-  const artistId = await new Promise((resolve, reject) => {
-    createUser('Artist Test', username, password, 'artist', 'taos', (err, id) => err ? reject(err) : resolve(id));
-  });
+  const artistId = await createUser('Artist Test', username, password, 'artist', 'taos');
   await new Promise((resolve, reject) => {
     createArtist(artistId, 'Artist Test', 'demo-gallery', 1, err => err ? reject(err) : resolve());
   });
@@ -433,7 +431,7 @@ test('artist and artwork routes require login', async () => {
 test('artist artwork submission rejects invalid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
   await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
@@ -457,7 +455,7 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
 test('artist cannot access admin dashboard', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}x`;
-  const userId = await new Promise(resolve => createUser('Artist2', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  const userId = await createUser('Artist2', username, 'pass', 'artist', 'taos');
   await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
@@ -474,7 +472,7 @@ test('artist cannot access admin dashboard', async () => {
 test('artist artwork submission succeeds with valid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
-  const userId = await new Promise(resolve => createUser('Artist', username, 'pass', 'artist', 'taos', (err, id) => resolve(id)));
+  const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
   await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
@@ -510,7 +508,7 @@ test('artist artwork submission succeeds with valid CSRF token', async () => {
 test('artist can publish site and view public link', async () => {
   const port = server.address().port;
   const username = `pub${randomUUID()}`;
-  const userId = await new Promise(resolve => createUser('Pub', username, 'pass', 'artist', 'demo-gallery', (err, id) => resolve(id)));
+  const userId = await createUser('Pub', username, 'pass', 'artist', 'demo-gallery');
   await new Promise(resolve => createArtist(userId, 'Pub', 'demo-gallery', 0, () => resolve()));
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);

@@ -1,15 +1,17 @@
 const { db } = require('./db');
 
-function getArtist(gallerySlug, id, cb) {
-  const artistSql =
-    'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
-  db.get(artistSql, [id, gallerySlug], (err, artist) => {
-    if (err || !artist) return cb(err || new Error('Not found'));
-    const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
-    db.all(artSql, [id], (err2, artworks) => {
-      if (err2) return cb(err2);
-      artist.artworks = artworks || [];
-      cb(null, artist);
+function getArtist(gallerySlug, id) {
+  return new Promise((resolve, reject) => {
+    const artistSql =
+      'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
+    db.get(artistSql, [id, gallerySlug], (err, artist) => {
+      if (err || !artist) return reject(err || new Error('Not found'));
+      const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
+      db.all(artSql, [id], (err2, artworks) => {
+        if (err2) return reject(err2);
+        artist.artworks = artworks || [];
+        resolve(artist);
+      });
     });
   });
 }
