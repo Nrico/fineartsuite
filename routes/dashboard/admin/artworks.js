@@ -209,47 +209,47 @@ router.put('/artworks/:id', requireRole('admin', 'gallery'), upload.single('imag
   }
 });
 
-router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+router.patch('/artworks/:id/archive', requireRole('admin', 'gallery'), csrfProtection, async (req, res) => {
+  const handle = async () => {
+    try {
+      await archiveArtwork(req.params.id);
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], async (err, row) => {
       if (err || !row || row.gallery_slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      handle();
+      await handle();
     });
   } else {
-    handle();
+    await handle();
   }
 });
 
-router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtwork(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+router.patch('/artworks/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, async (req, res) => {
+  const handle = async () => {
+    try {
+      await unarchiveArtwork(req.params.id);
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], (err, row) => {
+    db.get('SELECT gallery_slug FROM artworks WHERE id=?', [req.params.id], async (err, row) => {
       if (err || !row || row.gallery_slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      handle();
+      await handle();
     });
   } else {
-    handle();
+    await handle();
   }
 });
 

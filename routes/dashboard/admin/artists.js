@@ -257,49 +257,49 @@ router.delete('/artists/:id', requireRole('admin', 'gallery'), csrfProtection, (
   }
 });
 
-router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    archiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+router.patch('/artists/:id/archive', requireRole('admin', 'gallery'), csrfProtection, async (req, res) => {
+  const handle = async () => {
+    try {
+      await archiveArtist(req.params.id);
       req.flash('success', 'Artist archived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], async (err, row) => {
       if (err || !row || row.gallery_slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      handle();
+      await handle();
     });
   } else {
-    handle();
+    await handle();
   }
 });
 
-router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, (req, res) => {
-  const handle = () => {
-    unarchiveArtist(req.params.id, err => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Database error');
-      }
+router.patch('/artists/:id/unarchive', requireRole('admin', 'gallery'), csrfProtection, async (req, res) => {
+  const handle = async () => {
+    try {
+      await unarchiveArtist(req.params.id);
       req.flash('success', 'Artist unarchived');
       res.sendStatus(204);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Database error');
+    }
   };
   if (req.user.role === 'gallery') {
-    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], (err, row) => {
+    db.get('SELECT gallery_slug FROM artists WHERE id = ?', [req.params.id], async (err, row) => {
       if (err || !row || row.gallery_slug !== req.user.username) {
         return res.status(403).send('Forbidden');
       }
-      handle();
+      await handle();
     });
   } else {
-    handle();
+    await handle();
   }
 });
 

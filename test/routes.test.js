@@ -326,9 +326,7 @@ test('artist can upload artwork without specifying artist_id', async () => {
   const username = `artist${randomUUID()}`;
   const password = 'password';
   const artistId = await createUser('Artist Test', username, password, 'artist', 'taos');
-  await new Promise((resolve, reject) => {
-    createArtist(artistId, 'Artist Test', 'demo-gallery', 1, err => err ? reject(err) : resolve());
-  });
+  await createArtist(artistId, 'Artist Test', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -432,7 +430,7 @@ test('artist artwork submission rejects invalid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
   const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
+  await createArtist(userId, 'Artist', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -456,7 +454,7 @@ test('artist cannot access admin dashboard', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}x`;
   const userId = await createUser('Artist2', username, 'pass', 'artist', 'taos');
-  await new Promise(resolve => createArtist(userId, 'Artist2', 'demo-gallery', 1, () => resolve()));
+  await createArtist(userId, 'Artist2', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -473,7 +471,7 @@ test('artist artwork submission succeeds with valid CSRF token', async () => {
   const port = server.address().port;
   const username = `artist${randomUUID()}`;
   const userId = await createUser('Artist', username, 'pass', 'artist', 'taos');
-  await new Promise(resolve => createArtist(userId, 'Artist', 'demo-gallery', 1, () => resolve()));
+  await createArtist(userId, 'Artist', 'demo-gallery', 1);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];
@@ -510,7 +508,7 @@ test('artist can publish site and view public link', async () => {
   const port = server.address().port;
   const username = `pub${randomUUID()}`;
   const userId = await createUser('Pub', username, 'pass', 'artist', 'demo-gallery');
-  await new Promise(resolve => createArtist(userId, 'Pub', 'demo-gallery', 0, () => resolve()));
+  await createArtist(userId, 'Pub', 'demo-gallery', 0);
   const loginPage = await httpGet(`http://localhost:${port}/login`);
   const loginCsrf = extractCsrfToken(loginPage.body);
   let cookie = loginPage.headers['set-cookie'][0].split(';')[0];

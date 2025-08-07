@@ -1,65 +1,59 @@
 const { db } = require('./db');
+const { promisify } = require('util');
 
-function getArtist(gallerySlug, id) {
-  return new Promise((resolve, reject) => {
-    const artistSql =
-      'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
-    db.get(artistSql, [id, gallerySlug], (err, artist) => {
-      if (err || !artist) return reject(err || new Error('Not found'));
-      const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
-      db.all(artSql, [id], (err2, artworks) => {
-        if (err2) return reject(err2);
-        artist.artworks = artworks || [];
-        resolve(artist);
-      });
-    });
-  });
+const dbGet = promisify(db.get.bind(db));
+const dbAll = promisify(db.all.bind(db));
+const dbRun = promisify(db.run.bind(db));
+
+async function getArtist(gallerySlug, id) {
+  const artistSql =
+    'SELECT * FROM artists WHERE id = ? AND gallery_slug = ? AND archived = 0 AND live = 1';
+  const artist = await dbGet(artistSql, [id, gallerySlug]);
+  if (!artist) throw new Error('Not found');
+  const artSql = 'SELECT * FROM artworks WHERE artist_id = ? AND archived = 0';
+  const artworks = await dbAll(artSql, [id]);
+  artist.artworks = artworks || [];
+  return artist;
 }
 
-function createArtist(id, name, gallerySlug, live, cb) {
-  if (typeof live === 'function') {
-    cb = live;
-    live = 0;
-  }
+async function createArtist(id, name, gallerySlug, live = 0) {
   const stmt = `INSERT INTO artists (id, gallery_slug, name, live, display_order)
                 VALUES (?,?,?,?, COALESCE((SELECT MAX(display_order) + 1 FROM artists WHERE gallery_slug = ?), 0))`;
-  db.run(stmt, [id, gallerySlug, name, live ? 1 : 0, gallerySlug], cb);
+  await dbRun(stmt, [id, gallerySlug, name, live ? 1 : 0, gallerySlug]);
 }
 
-function getArtistById(id, cb) {
-  db.get('SELECT * FROM artists WHERE id = ?', [id], cb);
+async function getArtistById(id) {
+  return dbGet('SELECT * FROM artists WHERE id = ?', [id]);
 }
 
-function updateArtist(id, name, bio, fullBio, bioImageUrl, cb) {
+async function updateArtist(id, name, bio, fullBio, bioImageUrl) {
   const stmt = `UPDATE artists SET name = ?, bio = ?, fullBio = ?, bioImageUrl = ? WHERE id = ?`;
-  db.run(stmt, [name, bio, fullBio, bioImageUrl, id], cb);
+  await dbRun(stmt, [name, bio, fullBio, bioImageUrl, id]);
 }
 
-function setArtistLive(id, live, cb) {
+async function setArtistLive(id, live) {
   const stmt = 'UPDATE artists SET live = ? WHERE id = ?';
-  db.run(stmt, [live ? 1 : 0, id], cb);
+  await dbRun(stmt, [live ? 1 : 0, id]);
 }
 
-function toggleArchive(id, archived, cb) {
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
-    const rollback = err => db.run('ROLLBACK', () => cb(err));
-    db.run('UPDATE artists SET archived = ? WHERE id = ?', [archived, id], err => {
-      if (err) return rollback(err);
-      db.run('UPDATE artworks SET archived = ? WHERE artist_id = ?', [archived, id], err2 => {
-        if (err2) return rollback(err2);
-        db.run('COMMIT', cb);
-      });
-    });
-  });
+async function toggleArchive(id, archived) {
+  try {
+    await dbRun('BEGIN TRANSACTION');
+    await dbRun('UPDATE artists SET archived = ? WHERE id = ?', [archived, id]);
+    await dbRun('UPDATE artworks SET archived = ? WHERE artist_id = ?', [archived, id]);
+    await dbRun('COMMIT');
+  } catch (err) {
+    await dbRun('ROLLBACK');
+    throw err;
+  }
 }
 
-function archiveArtist(id, cb) {
-  toggleArchive(id, 1, cb);
+async function archiveArtist(id) {
+  await toggleArchive(id, 1);
 }
 
-function unarchiveArtist(id, cb) {
-  toggleArchive(id, 0, cb);
+async function unarchiveArtist(id) {
+  await toggleArchive(id, 0);
 }
 
 module.exports = {

@@ -9,8 +9,6 @@ const { db } = require('../models/db');
 const bcrypt = require('../utils/bcrypt');
 const { promisify } = require('util');
 
-const createArtistAsync = promisify(createArtist);
-const createGalleryAsync = promisify(createGallery);
 const compareAsync = promisify(bcrypt.compare);
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
@@ -69,9 +67,9 @@ function signupHandler(role) {
 
     try {
       if (role === 'artist') {
-        await createArtistAsync(id, display_name, '');
+        await createArtist(id, display_name, '');
       } else if (role === 'gallery') {
-        await createGalleryAsync(username, display_name);
+        await createGallery(username, display_name);
       }
     } catch (err) {
       return handleSignupError(id, req, res, role, err);

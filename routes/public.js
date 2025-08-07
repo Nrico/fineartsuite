@@ -13,8 +13,6 @@ const galleryOptions = {
 const { getArtist } = require('../models/artistModel');
 const { getArtwork } = require('../models/artworkModel');
 
-const getGalleryAsync = util.promisify(getGallery);
-const getArtworkAsync = util.promisify(getArtwork);
 const dbAll = util.promisify(db.all.bind(db));
 
 // Home route displaying available galleries
@@ -36,7 +34,7 @@ router.get('/faq', (req, res) => {
 // Public gallery home page
 router.get('/:gallerySlug', async (req, res) => {
   try {
-    const gallery = await getGalleryAsync(req.params.gallerySlug, galleryOptions);
+    const gallery = await getGallery(req.params.gallerySlug, galleryOptions);
     const heroData = {
       image: gallery.heroImageUrl,
       featuredWork: (gallery.featuredArtworks || [])[0],
@@ -52,7 +50,7 @@ router.get('/:gallerySlug', async (req, res) => {
 router.get('/:gallerySlug/artists/:artistId', async (req, res) => {
   let gallery;
   try {
-    gallery = await getGalleryAsync(req.params.gallerySlug, galleryOptions);
+    gallery = await getGallery(req.params.gallerySlug, galleryOptions);
   } catch (err) {
     return send404(res, 'Gallery not found', err);
   }
@@ -71,17 +69,17 @@ router.get('/:gallerySlug/artists/:artistId', async (req, res) => {
 });
 
 // Artwork detail page within a gallery
-router.get('/:gallerySlug/artworks/:artworkId', async (req, res) => {
-  let gallery;
-  try {
-    gallery = await getGalleryAsync(req.params.gallerySlug, galleryOptions);
+  router.get('/:gallerySlug/artworks/:artworkId', async (req, res) => {
+    let gallery;
+    try {
+      gallery = await getGallery(req.params.gallerySlug, galleryOptions);
   } catch (err) {
     return send404(res, 'Gallery not found', err);
   }
 
   let result;
   try {
-    result = await getArtworkAsync(req.params.gallerySlug, req.params.artworkId);
+    result = await getArtwork(req.params.gallerySlug, req.params.artworkId);
   } catch (err) {
     return send404(res, 'Artwork not found', err);
   }

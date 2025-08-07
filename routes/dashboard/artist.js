@@ -24,24 +24,30 @@ const upload = multer({
   }
 });
 
-router.get('/', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/', requireRole('artist'), csrfProtection, async (req, res) => {
   res.locals.csrfToken = req.csrfToken();
-  getArtistById(req.session.user.id, (err, artist) => {
+  try {
+    const artist = await getArtistById(req.session.user.id);
     res.render('dashboard/artist', {
       user: req.session.user,
       artist: artist || {}
     });
-  });
+  } catch (err) {
+    res.render('dashboard/artist', { user: req.session.user, artist: {} });
+  }
 });
 
-router.get('/profile', requireRole('artist'), csrfProtection, (req, res) => {
+router.get('/profile', requireRole('artist'), csrfProtection, async (req, res) => {
   res.locals.csrfToken = req.csrfToken();
-  getArtistById(req.session.user.id, (err, artist) => {
+  try {
+    const artist = await getArtistById(req.session.user.id);
     res.render('dashboard/artist-profile', {
       user: req.session.user,
       artist: artist || {}
     });
-  });
+  } catch (err) {
+    res.render('dashboard/artist-profile', { user: req.session.user, artist: {} });
+  }
 });
 
 router.get('/collections', requireRole('artist'), csrfProtection, (req, res) => {
@@ -71,15 +77,14 @@ router.post('/collections/:id', requireRole('artist'), csrfProtection, (req, res
   });
 });
 
-router.post('/publish', requireRole('artist'), csrfProtection, (req, res) => {
-  setArtistLive(req.session.user.id, 1, err => {
-    if (err) {
-      req.flash('error', 'Could not publish site');
-    } else {
-      req.flash('success', 'Site published');
-    }
-    res.redirect('/dashboard/artist');
-  });
+router.post('/publish', requireRole('artist'), csrfProtection, async (req, res) => {
+  try {
+    await setArtistLive(req.session.user.id, 1);
+    req.flash('success', 'Site published');
+  } catch (err) {
+    req.flash('error', 'Could not publish site');
+  }
+  res.redirect('/dashboard/artist');
 });
 
 router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), csrfProtection, async (req, res) => {
@@ -102,15 +107,14 @@ router.post('/profile', requireRole('artist'), upload.single('bioImageFile'), cs
     } else {
       avatarUrl = currentBioImageUrl;
     }
-    updateArtist(req.session.user.id, name, bio, fullBio || '', avatarUrl || '', err2 => {
-      if (err2) {
-        console.error(err2);
-        req.flash('error', 'Could not update profile');
-      } else {
-        req.flash('success', 'Profile updated');
-      }
-      res.redirect('/dashboard/artist/profile');
-    });
+    try {
+      await updateArtist(req.session.user.id, name, bio, fullBio || '', avatarUrl || '');
+      req.flash('success', 'Profile updated');
+    } catch (err2) {
+      console.error(err2);
+      req.flash('error', 'Could not update profile');
+    }
+    res.redirect('/dashboard/artist/profile');
   } catch (err) {
     console.error(err);
     req.flash('error', 'Image processing failed');
