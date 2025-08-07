@@ -37,6 +37,21 @@
     </ul>
   </section>
 
+  <section id="artists" class="max-w-4xl mx-auto px-4 py-12">
+    <h2 class="text-xl font-bold mb-6 text-center">Artist Portfolios</h2>
+    <% if (artists && artists.length) { %>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-center">
+        <% artists.forEach(a => { %>
+          <li>
+            <a href="/artist/<%= a.id %>" class="block border border-gray-200 p-4 hover:bg-gray-50"><%= a.name %></a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="text-center text-gray-600">No artist portfolios available.</p>
+    <% } %>
+  </section>
+
   <section class="bg-gray-50 py-16 px-4">
     <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
       <div>
