@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body class="font-sans bg-white text-black">
-  <%- include('partials/header', { gallery, slug }) %>
+  <%- include('partials/gallery-header', { gallery, slug }) %>
 
   <main class="max-w-4xl mx-auto p-6">
     <%- include('partials/hero', { heroData }) %>
@@ -40,12 +40,9 @@
       <%- include('partials/artist-list', { artists, slug }) %>
     </section>
 
-    <div class="mt-12 text-center">
-      <a class="underline" href="/">Back home</a>
-    </div>
   </main>
 
-  <%- include('partials/footer', { contactEmail: gallery.contact_email, phone: gallery.phone }); %>
+  <%- include('partials/gallery-footer', { gallery, contactEmail: gallery.contact_email, phone: gallery.phone }); %>
   <script src="/js/fade-in.js"></script>
 </body>
 </html>
